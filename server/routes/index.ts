@@ -10,6 +10,7 @@ import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
+import featureFlagsRoutes from './feature-flags';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/conversations', conversationsRoutes);
 router.use('/clients', clientsRoutes);
 router.use('/users', usersRoutes);
 router.use('/monitoring', monitoringRoutes);
+router.use('/feature-flags', featureFlagsRoutes);
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {
@@ -40,7 +42,8 @@ router.get('/health', (req, res) => {
       '/conversations',
       '/clients',
       '/users',
-      '/monitoring'
+      '/monitoring',
+      '/feature-flags'
     ]
   });
 });
@@ -154,6 +157,21 @@ router.get('/docs', (req, res) => {
           'GET /monitoring/stats',
           'GET /monitoring/alerts'
         ]
+      },
+      '/feature-flags': {
+        description: 'Feature flag management and evaluation',
+        endpoints: [
+          'POST /feature-flags/evaluate',
+          'POST /feature-flags/all',
+          'GET /feature-flags/check/:flagKey',
+          'GET /feature-flags/admin',
+          'POST /feature-flags/admin',
+          'PUT /feature-flags/admin/:flagKey',
+          'DELETE /feature-flags/admin/:flagKey',
+          'POST /feature-flags/admin/:flagKey/disable',
+          'POST /feature-flags/admin/:flagKey/enable',
+          'GET /feature-flags/health'
+        ]
       }
     }
   });
@@ -177,5 +195,6 @@ export {
   conversationsRoutes,
   clientsRoutes,
   usersRoutes,
-  monitoringRoutes
+  monitoringRoutes,
+  featureFlagsRoutes
 };
