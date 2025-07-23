@@ -34,7 +34,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
       if (type) params.append('type', type);
       if (active !== undefined) params.append('active', active.toString());
       
-      const response = await fetch(`/api/agent-configurations?${params}`);
+      const response = await fetch(`/api/agents?${params}`);
       
       if (!response.ok) {
         throw new Error(`Failed to load agents: ${response.statusText}`);
@@ -53,7 +53,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const createAgent = useCallback(async (agentData: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
     try {
-      const response = await fetch('/api/agent-configurations', {
+      const response = await fetch('/api/agents', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const updateAgent = useCallback(async (id: string, updates: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
     try {
-      const response = await fetch(`/api/agent-configurations/${id}`, {
+      const response = await fetch(`/api/agents/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const deleteAgent = useCallback(async (id: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/agent-configurations/${id}`, {
+      const response = await fetch(`/api/agents/${id}`, {
         method: 'DELETE',
       });
 
@@ -126,7 +126,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const toggleAgent = useCallback(async (id: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/agent-configurations/${id}/toggle`, {
+      const response = await fetch(`/api/agents/${id}/toggle`, {
         method: 'PATCH',
       });
 
@@ -148,7 +148,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const getActiveAgent = useCallback(async (agentType: AgentType): Promise<UnifiedAgentConfig | null> => {
     try {
-      const response = await fetch(`/api/agent-configurations/active/${agentType}`);
+      const response = await fetch(`/api/agents/active/${agentType}`);
       
       if (response.status === 404) {
         return null; // No active agent of this type
@@ -209,7 +209,7 @@ export function useAgentConfiguration(agentId?: string) {
     setError(null);
     
     try {
-      const response = await fetch(`/api/agent-configurations/${agentId}`);
+      const response = await fetch(`/api/agents/${agentId}`);
       
       if (!response.ok) {
         throw new Error(`Failed to load agent: ${response.statusText}`);
