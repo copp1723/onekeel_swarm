@@ -3,34 +3,44 @@ import { z } from 'zod';
 
 const router = Router();
 
+// Check if auth should be skipped
+const skipAuth = process.env.SKIP_AUTH === 'true';
+
 // Validation schemas
 const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1)
 });
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/),
-  password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 
-    'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  role: z.enum(['admin', 'manager', 'agent', 'viewer']).optional()
-});
-
-const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1)
-});
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-});
-
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
+    // If SKIP_AUTH is true, auto-login as admin
+    if (skipAuth) {
+      const result = {
+        user: {
+          id: 'admin-1',
+          email: 'admin@onekeel.com',
+          username: 'admin',
+          firstName: 'Admin',
+          lastName: 'User',
+          role: 'admin',
+          active: true
+        },
+        accessToken: 'skip-auth-token-' + Date.now(),
+        refreshToken: 'skip-auth-refresh-' + Date.now(),
+        expiresIn: 86400 // 24 hours
+      };
+
+      return res.json({
+        success: true,
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn
+      });
+    }
+
     const validationResult = loginSchema.safeParse(req.body);
     if (!validationResult.success) {
       return res.status(400).json({
@@ -71,297 +81,97 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // Mock additional users
-    const mockUsers = [
-      {
-        username: 'manager@onekeel.com',
-        password: 'manager123',
-        user: {
-          id: 'manager-1',
-          email: 'manager@onekeel.com',
-          username: 'manager',
-          firstName: 'Manager',
-          lastName: 'User',
-          role: 'manager',
-          active: true
-        }
-      },
-      {
-        username: 'agent@onekeel.com',
-        password: 'agent123',
-        user: {
-          id: 'agent-1',
-          email: 'agent@onekeel.com',
-          username: 'agent',
-          firstName: 'Agent',
-          lastName: 'User',
-          role: 'agent',
-          active: true
-        }
-      }
-    ];
-
-    const matchedUser = mockUsers.find(u => u.username === username && u.password === password);
-    if (matchedUser) {
-      return res.json({
-        success: true,
-        user: matchedUser.user,
-        accessToken: `token-${matchedUser.user.id}-${Date.now()}`,
-        refreshToken: `refresh-${matchedUser.user.id}-${Date.now()}`,
-        expiresIn: 3600
-      });
-    }
-    
-    return res.status(401).json({ 
+    // Default: Invalid credentials
+    return res.status(401).json({
       success: false,
       error: {
         code: 'INVALID_CREDENTIALS',
-        message: 'Invalid credentials'
+        message: 'Invalid username or password'
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({
       success: false,
       error: {
-        code: 'LOGIN_ERROR',
-        message: 'Login failed',
-        category: 'authentication'
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred during login'
       }
     });
   }
 });
 
-// Register endpoint
-router.post('/register', async (req, res) => {
-  try {
-    const validationResult = registerSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid registration data',
-          details: validationResult.error.errors
-        }
-      });
-    }
-
-    const { email, username, password, firstName, lastName, role } = validationResult.data;
-    
-    // Mock user creation
-    const user = {
-      id: `user-${Date.now()}`,
-      email,
-      username,
-      firstName: firstName || '',
-      lastName: lastName || '',
-      role: role || 'agent',
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    res.status(201).json({
-      success: true,
-      user,
-      accessToken: `token-${user.id}-${Date.now()}`,
-      refreshToken: `refresh-${user.id}-${Date.now()}`,
-      expiresIn: 3600
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'REGISTRATION_ERROR',
-        message: 'Registration failed',
-        category: 'authentication'
-      }
-    });
-  }
-});
-
-// Refresh token endpoint
-router.post('/refresh', async (req, res) => {
-  try {
-    const validationResult = refreshTokenSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid refresh token data',
-          details: validationResult.error.errors
-        }
-      });
-    }
-
-    const { refreshToken } = validationResult.data;
-    
-    // Mock token refresh - in real implementation, validate the refresh token
-    if (refreshToken.startsWith('refresh-') || refreshToken.startsWith('hardcoded-refresh-token-')) {
-      const userId = refreshToken.includes('admin') ? 'admin-1' : `user-${Date.now()}`;
-      
-      res.json({
-        success: true,
-        user: {
-          id: userId,
-          username: 'refreshed-user',
-          email: 'user@onekeel.com',
-          role: 'agent',
-          active: true
-        },
-        accessToken: `token-${userId}-${Date.now()}`,
-        refreshToken: `refresh-${userId}-${Date.now()}`,
-        expiresIn: 3600
-      });
-    } else {
-      return res.status(401).json({ 
-        success: false,
-        error: {
-          code: 'INVALID_REFRESH_TOKEN',
-          message: 'Invalid refresh token'
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'TOKEN_REFRESH_ERROR',
-        message: 'Token refresh failed',
-        category: 'authentication'
-      }
-    });
-  }
-});
-
-// Logout endpoint
-router.post('/logout', async (req, res) => {
-  try {
-    const refreshToken = req.body.refreshToken;
-    
-    // Mock logout - in real implementation, invalidate the tokens
-    res.json({ 
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'LOGOUT_ERROR',
-        message: 'Logout failed',
-        category: 'authentication'
-      }
-    });
-  }
-});
-
-// Get current user
+// Get current user endpoint
 router.get('/me', async (req, res) => {
-  try {
-    // Mock current user - in real implementation, get from auth token
-    const user = {
+  // If SKIP_AUTH is true, return admin user
+  if (skipAuth) {
+    return res.json({
+      success: true,
+      user: {
+        id: 'admin-1',
+        email: 'admin@onekeel.com',
+        username: 'admin',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+        active: true
+      }
+    });
+  }
+
+  // Check for authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'MISSING_AUTH',
+        message: 'Authorization header required'
+      }
+    });
+  }
+
+  // Mock authentication - in production, verify JWT token here
+  return res.json({
+    success: true,
+    user: {
       id: 'admin-1',
       email: 'admin@onekeel.com',
       username: 'admin',
       firstName: 'Admin',
       lastName: 'User',
       role: 'admin',
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    res.json({ 
-      success: true,
-      user 
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'USER_FETCH_ERROR',
-        message: 'Failed to get user',
-        category: 'authentication'
-      }
-    });
-  }
-});
-
-// Change password
-router.post('/change-password', async (req, res) => {
-  try {
-    const validationResult = changePasswordSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid password change data',
-          details: validationResult.error.errors
-        }
-      });
+      active: true
     }
-
-    const { currentPassword, newPassword } = validationResult.data;
-    
-    // Mock password change
-    res.json({ 
-      success: true,
-      message: 'Password changed successfully. Please log in again.'
-    });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'PASSWORD_CHANGE_ERROR',
-        message: 'Failed to change password',
-        category: 'authentication'
-      }
-    });
-  }
+  });
 });
 
-// Create default admin (development only)
-router.post('/create-default-admin', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(403).json({ 
-      success: false,
-      error: {
-        code: 'FORBIDDEN',
-        message: 'Not allowed in production'
-      }
-    });
-  }
-  
-  try {
-    res.json({ 
+// Logout endpoint
+router.post('/logout', async (req, res) => {
+  return res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+// Refresh token endpoint
+router.post('/refresh', async (req, res) => {
+  // If SKIP_AUTH is true, always refresh
+  if (skipAuth) {
+    return res.json({
       success: true,
-      message: 'Default admin created',
-      credentials: {
-        email: 'admin@onekeel.com',
-        username: 'admin',
-        password: 'password123' // Only shown in development
-      }
-    });
-  } catch (error) {
-    console.error('Create default admin error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'ADMIN_CREATE_ERROR',
-        message: 'Failed to create default admin',
-        category: 'authentication'
-      }
+      accessToken: 'skip-auth-token-' + Date.now(),
+      refreshToken: 'skip-auth-refresh-' + Date.now(),
+      expiresIn: 86400
     });
   }
+
+  return res.json({
+    success: true,
+    accessToken: 'refreshed-token-' + Date.now(),
+    refreshToken: 'refreshed-refresh-' + Date.now(),
+    expiresIn: 3600
+  });
 });
 
 export default router;
