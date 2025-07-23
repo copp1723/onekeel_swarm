@@ -1,137 +1,105 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../db/client';
+import { conversations, leads } from '../db/schema';
+import { eq, and, or, sql, desc } from 'drizzle-orm';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
-
-// Validation schemas
-const conversationQuerySchema = z.object({
-  leadId: z.string().optional(),
-  channel: z.enum(['email', 'sms', 'chat']).optional(),
-  status: z.enum(['active', 'completed', 'paused']).optional(),
-  agentType: z.enum(['overlord', 'email', 'sms', 'chat']).optional(),
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(1000)).optional()
-});
-
-const createConversationSchema = z.object({
-  leadId: z.string().min(1),
-  channel: z.enum(['email', 'sms', 'chat']),
-  agentType: z.enum(['overlord', 'email', 'sms', 'chat'])
-});
-
-const addMessageSchema = z.object({
-  role: z.enum(['agent', 'lead']),
-  content: z.string().min(1),
-  timestamp: z.string().optional()
-});
-
-// Mock conversations data
-const mockConversations = [
-  {
-    id: 'conv-1',
-    leadId: 'lead-1',
-    channel: 'email',
-    agentType: 'email',
-    status: 'active',
-    messages: [
-      {
-        role: 'agent',
-        content: 'Hello! Thank you for your interest in our services.',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        role: 'lead',
-        content: 'Hi, I\'m interested in getting a loan.',
-        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-      }
-    ],
-    startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    endedAt: null,
-    qualificationScore: 75,
-    goalProgress: ['interested'],
-    crossChannelContext: {}
-  },
-  {
-    id: 'conv-2',
-    leadId: 'lead-2',
-    channel: 'sms',
-    agentType: 'sms',
-    status: 'active',
-    messages: [
-      {
-        role: 'agent',
-        content: 'Hi! Following up on your loan inquiry.',
-        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-      }
-    ],
-    startedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    endedAt: null,
-    qualificationScore: 60,
-    goalProgress: ['contacted'],
-    crossChannelContext: {}
-  }
-];
 
 // Get all conversations
 router.get('/', async (req, res) => {
   try {
-    const validationResult = conversationQuerySchema.safeParse(req.query);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid query parameters',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const { 
+      leadId, 
+      channel, 
+      status, 
+      agentType,
+      limit = 50, 
+      offset = 0, 
+      sort = 'startedAt', 
+      order = 'desc' 
+    } = req.query;
 
-    const { leadId, channel, status, agentType, limit } = validationResult.data;
+    // Build query conditions
+    const conditions = [];
     
-    let filteredConversations = [...mockConversations];
-    
-    // Apply filters
     if (leadId) {
-      filteredConversations = filteredConversations.filter(conv => conv.leadId === leadId);
+      conditions.push(eq(conversations.leadId, leadId as string));
     }
     
     if (channel) {
-      filteredConversations = filteredConversations.filter(conv => conv.channel === channel);
+      conditions.push(eq(conversations.channel, channel as any));
     }
     
     if (status) {
-      filteredConversations = filteredConversations.filter(conv => conv.status === status);
+      conditions.push(eq(conversations.status, status as string));
     }
     
     if (agentType) {
-      filteredConversations = filteredConversations.filter(conv => conv.agentType === agentType);
+      conditions.push(eq(conversations.agentType, agentType as any));
     }
-    
-    // Apply limit
-    if (limit) {
-      filteredConversations = filteredConversations.slice(0, limit);
+
+    // Execute query with lead info
+    const query = db
+      .select({
+        conversation: conversations,
+        lead: {
+          id: leads.id,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          email: leads.email,
+          phone: leads.phone
+        }
+      })
+      .from(conversations)
+      .leftJoin(leads, eq(conversations.leadId, leads.id))
+      .limit(Number(limit))
+      .offset(Number(offset));
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
-    
-    // Get active conversation counts by channel
-    const activeConversationsByChannel = {
-      email: mockConversations.filter(c => c.channel === 'email' && c.status === 'active').length,
-      sms: mockConversations.filter(c => c.channel === 'sms' && c.status === 'active').length,
-      chat: mockConversations.filter(c => c.channel === 'chat' && c.status === 'active').length
-    };
-    
+
+    // Add sorting
+    if (order === 'desc') {
+      query.orderBy(desc(conversations[sort as keyof typeof conversations]));
+    } else {
+      query.orderBy(conversations[sort as keyof typeof conversations]);
+    }
+
+    const results = await query;
+
+    // Get total count
+    const countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(conversations);
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count }] = await countQuery;
+
+    // Format results
+    const conversationList = results.map(r => ({
+      ...r.conversation,
+      lead: r.lead
+    }));
+
     res.json({
       success: true,
-      conversations: filteredConversations,
-      activeConversationsByChannel,
-      total: filteredConversations.length,
-      limit: limit || 50
+      conversations: conversationList,
+      total: count,
+      offset: Number(offset),
+      limit: Number(limit)
     });
   } catch (error) {
-    console.error('Error in conversations endpoint:', error);
+    console.error('Error fetching conversations:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'CONVERSATIONS_ERROR',
+        code: 'CONVERSATION_FETCH_ERROR',
         message: 'Failed to fetch conversations',
         category: 'database'
       }
@@ -139,13 +107,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single conversation
+// Get conversation by ID
 router.get('/:id', async (req, res) => {
   try {
-    const conversation = mockConversations.find(c => c.id === req.params.id);
+    const { id } = req.params;
     
-    if (!conversation) {
-      return res.status(404).json({ 
+    const [result] = await db
+      .select({
+        conversation: conversations,
+        lead: {
+          id: leads.id,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          email: leads.email,
+          phone: leads.phone
+        }
+      })
+      .from(conversations)
+      .leftJoin(leads, eq(conversations.leadId, leads.id))
+      .where(eq(conversations.id, id))
+      .limit(1);
+
+    if (!result) {
+      return res.status(404).json({
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
@@ -153,14 +137,17 @@ router.get('/:id', async (req, res) => {
         }
       });
     }
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      conversation 
+      conversation: {
+        ...result.conversation,
+        lead: result.lead
+      }
     });
   } catch (error) {
     console.error('Error fetching conversation:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_FETCH_ERROR',
@@ -171,46 +158,40 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new conversation
-router.post('/', async (req, res) => {
+// Create conversation
+const createConversationSchema = z.object({
+  leadId: z.string().uuid().optional(),
+  channel: z.enum(['email', 'sms', 'chat']),
+  agentType: z.enum(['email', 'sms', 'chat', 'voice']).optional(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string(),
+    timestamp: z.string().datetime().optional()
+  })).default([]),
+  metadata: z.record(z.any()).optional()
+});
+
+router.post('/', validateRequest({ body: createConversationSchema }), async (req, res) => {
   try {
-    const validationResult = createConversationSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid conversation data',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const conversationData = req.body;
     
-    const { leadId, channel, agentType } = validationResult.data;
-    
-    const newConversation = {
-      id: `conv-${Date.now()}`,
-      leadId,
-      channel,
-      agentType,
-      status: 'active',
-      messages: [],
-      startedAt: new Date().toISOString(),
-      endedAt: null,
-      qualificationScore: 50,
-      goalProgress: [],
-      crossChannelContext: {}
-    };
-    
-    mockConversations.push(newConversation);
-    
-    res.status(201).json({ 
+    const [newConversation] = await db
+      .insert(conversations)
+      .values({
+        ...conversationData,
+        status: 'active',
+        startedAt: new Date(),
+        lastMessageAt: new Date()
+      })
+      .returning();
+
+    res.status(201).json({
       success: true,
       conversation: newConversation
     });
   } catch (error) {
     console.error('Error creating conversation:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_CREATE_ERROR',
@@ -222,23 +203,25 @@ router.post('/', async (req, res) => {
 });
 
 // Add message to conversation
-router.post('/:id/messages', async (req, res) => {
+const addMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string().min(1)
+});
+
+router.post('/:id/messages', validateRequest({ body: addMessageSchema }), async (req, res) => {
   try {
-    const validationResult = addMessageSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid message data',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const { id } = req.params;
+    const { role, content } = req.body;
     
-    const conversationIndex = mockConversations.findIndex(c => c.id === req.params.id);
-    if (conversationIndex === -1) {
-      return res.status(404).json({ 
+    // Get current conversation
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, id))
+      .limit(1);
+
+    if (!conversation) {
+      return res.status(404).json({
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
@@ -246,25 +229,32 @@ router.post('/:id/messages', async (req, res) => {
         }
       });
     }
-    
-    const { role, content, timestamp } = validationResult.data;
-    const message = {
+
+    // Add message to messages array
+    const messages = conversation.messages as any[] || [];
+    messages.push({
       role,
       content,
-      timestamp: timestamp || new Date().toISOString()
-    };
-    
-    const conversation = mockConversations[conversationIndex];
-    conversation.messages.push(message);
-    
-    res.json({ 
+      timestamp: new Date().toISOString()
+    });
+
+    // Update conversation
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set({
+        messages,
+        lastMessageAt: new Date()
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+
+    res.json({
       success: true,
-      conversation,
-      message 
+      conversation: updatedConversation
     });
   } catch (error) {
-    console.error('Error adding message to conversation:', error);
-    res.status(500).json({ 
+    console.error('Error adding message:', error);
+    res.status(500).json({
       success: false,
       error: {
         code: 'MESSAGE_ADD_ERROR',
@@ -278,21 +268,37 @@ router.post('/:id/messages', async (req, res) => {
 // Update conversation status
 router.patch('/:id/status', async (req, res) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
-    
-    if (!['active', 'completed', 'paused'].includes(status)) {
-      return res.status(400).json({ 
+
+    const validStatuses = ['active', 'completed', 'abandoned'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_STATUS',
-          message: 'Invalid status. Must be one of: active, completed, paused'
+          message: 'Invalid conversation status',
+          validStatuses
         }
       });
     }
-    
-    const conversationIndex = mockConversations.findIndex(c => c.id === req.params.id);
-    if (conversationIndex === -1) {
-      return res.status(404).json({ 
+
+    const updates: any = {
+      status
+    };
+
+    if (status === 'completed' || status === 'abandoned') {
+      updates.endedAt = new Date();
+    }
+
+    const [updatedConversation] = await db
+      .update(conversations)
+      .set(updates)
+      .where(eq(conversations.id, id))
+      .returning();
+
+    if (!updatedConversation) {
+      return res.status(404).json({
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
@@ -300,24 +306,17 @@ router.patch('/:id/status', async (req, res) => {
         }
       });
     }
-    
-    const conversation = mockConversations[conversationIndex];
-    conversation.status = status;
-    
-    if (status === 'completed') {
-      conversation.endedAt = new Date().toISOString();
-    }
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      conversation 
+      conversation: updatedConversation
     });
   } catch (error) {
     console.error('Error updating conversation status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
-        code: 'STATUS_UPDATE_ERROR',
+        code: 'CONVERSATION_UPDATE_ERROR',
         message: 'Failed to update conversation status',
         category: 'database'
       }
@@ -325,62 +324,17 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// Get conversations by lead ID
-router.get('/lead/:leadId', async (req, res) => {
+// Delete conversation
+router.delete('/:id', async (req, res) => {
   try {
-    const conversations = mockConversations.filter(c => c.leadId === req.params.leadId);
+    const { id } = req.params;
     
-    res.json({ 
-      success: true,
-      conversations,
-      total: conversations.length 
-    });
-  } catch (error) {
-    console.error('Error fetching conversations for lead:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'LEAD_CONVERSATIONS_ERROR',
-        message: 'Failed to fetch conversations for lead',
-        category: 'database'
-      }
-    });
-  }
-});
+    const [deletedConversation] = await db
+      .delete(conversations)
+      .where(eq(conversations.id, id))
+      .returning();
 
-// Get active conversations by channel
-router.get('/active/by-channel', async (req, res) => {
-  try {
-    const activeConversations = {
-      email: mockConversations.filter(c => c.channel === 'email' && c.status === 'active').length,
-      sms: mockConversations.filter(c => c.channel === 'sms' && c.status === 'active').length,
-      chat: mockConversations.filter(c => c.channel === 'chat' && c.status === 'active').length
-    };
-    
-    res.json({ 
-      success: true,
-      conversations: activeConversations
-    });
-  } catch (error) {
-    console.error('Error fetching active conversations by channel:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'ACTIVE_CONVERSATIONS_ERROR',
-        message: 'Failed to fetch active conversations by channel',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Complete/close conversation
-router.put('/:id/complete', async (req, res) => {
-  try {
-    const { outcome, notes } = req.body;
-    
-    const conversationIndex = mockConversations.findIndex(c => c.id === req.params.id);
-    if (conversationIndex === -1) {
+    if (!deletedConversation) {
       return res.status(404).json({
         success: false,
         error: {
@@ -390,133 +344,59 @@ router.put('/:id/complete', async (req, res) => {
       });
     }
 
-    const conversation = mockConversations[conversationIndex];
-    conversation.status = 'completed';
-    conversation.endedAt = new Date().toISOString();
-    
-    // Add completion message
-    conversation.messages.push({
-      role: 'agent',
-      content: `[SYSTEM] Conversation completed. Outcome: ${outcome}. Notes: ${notes || 'None'}`,
-      timestamp: new Date().toISOString()
-    });
-
     res.json({
       success: true,
-      data: {
-        id: conversation.id,
-        status: 'completed',
-        outcome,
-        notes,
-        completedAt: conversation.endedAt
-      }
+      message: 'Conversation deleted successfully'
     });
   } catch (error) {
-    console.error('Error completing conversation:', error);
+    console.error('Error deleting conversation:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'CONVERSATION_COMPLETE_ERROR',
-        message: 'Failed to complete conversation',
+        code: 'CONVERSATION_DELETE_ERROR',
+        message: 'Failed to delete conversation',
         category: 'database'
       }
     });
   }
 });
 
-// Trigger handover to human agent
-router.post('/:id/handover', async (req, res) => {
+// Get conversation statistics
+router.get('/stats/summary', async (req, res) => {
   try {
-    const { reason, priority = 'medium', notes } = req.body;
-    
-    const conversationIndex = mockConversations.findIndex(c => c.id === req.params.id);
-    if (conversationIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'CONVERSATION_NOT_FOUND',
-          message: 'Conversation not found'
-        }
-      });
-    }
+    const stats = await db
+      .select({
+        totalConversations: sql<number>`count(*)::int`,
+        activeConversations: sql<number>`count(*) filter (where status = 'active')::int`,
+        completedConversations: sql<number>`count(*) filter (where status = 'completed')::int`,
+        abandonedConversations: sql<number>`count(*) filter (where status = 'abandoned')::int`,
+        avgMessagesPerConversation: sql<number>`avg(jsonb_array_length(messages))::int`
+      })
+      .from(conversations);
 
-    const conversation = mockConversations[conversationIndex];
-    conversation.status = 'handed_over';
-    
-    // Add handover message
-    conversation.messages.push({
-      role: 'agent',
-      content: `[SYSTEM] Conversation handed over to human agent. Reason: ${reason}. Priority: ${priority}. Notes: ${notes || 'None'}`,
-      timestamp: new Date().toISOString()
-    });
+    const channelStats = await db
+      .select({
+        channel: conversations.channel,
+        count: sql<number>`count(*)::int`
+      })
+      .from(conversations)
+      .groupBy(conversations.channel);
 
     res.json({
       success: true,
-      data: {
-        conversationId: conversation.id,
-        handoverStatus: 'initiated',
-        reason,
-        priority,
-        notes,
-        handoverTime: new Date().toISOString(),
-        status: 'handed_over'
+      stats: {
+        ...stats[0],
+        byChannel: channelStats
       }
     });
   } catch (error) {
-    console.error('Error triggering handover:', error);
+    console.error('Error fetching conversation stats:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'HANDOVER_ERROR',
-        message: 'Failed to trigger handover',
-        category: 'processing'
-      }
-    });
-  }
-});
-
-// Get conversation analytics
-router.get('/analytics', async (req, res) => {
-  try {
-    const { timeframe = '30d', agentType = 'email' } = req.query;
-    
-    // Calculate analytics from mock data
-    const totalConversations = mockConversations.length;
-    const activeConversations = mockConversations.filter(c => c.status === 'active').length;
-    const completedConversations = mockConversations.filter(c => c.status === 'completed').length;
-    
-    const analytics = {
-      totalConversations,
-      activeConversations,
-      completedConversations,
-      averageMessages: Math.round(
-        mockConversations.reduce((sum, c) => sum + c.messages.length, 0) / totalConversations
-      ),
-      channelDistribution: {
-        email: mockConversations.filter(c => c.channel === 'email').length,
-        sms: mockConversations.filter(c => c.channel === 'sms').length,
-        chat: mockConversations.filter(c => c.channel === 'chat').length
-      },
-      timeframe,
-      agentType,
-      period: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        end: new Date().toISOString()
-      }
-    };
-
-    res.json({
-      success: true,
-      data: analytics
-    });
-  } catch (error) {
-    console.error('Error fetching conversation analytics:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'ANALYTICS_ERROR',
-        message: 'Failed to fetch conversation analytics',
-        category: 'processing'
+        code: 'STATS_FETCH_ERROR',
+        message: 'Failed to fetch conversation statistics',
+        category: 'database'
       }
     });
   }

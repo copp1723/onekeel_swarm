@@ -1,183 +1,97 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../db/client';
+import { leads, communications, conversations, leadCampaignEnrollments } from '../db/schema';
+import { eq, and, or, ilike, sql, desc, inArray } from 'drizzle-orm';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
-// Validation schemas
-const leadsQuerySchema = z.object({
-  limit: z.string().optional().transform(val => val ? parseInt(val) : 50),
-  offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
-  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'lost']).optional(),
-  source: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  search: z.string().optional(),
-  campaignId: z.string().optional()
-});
-
-const updateLeadSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'lost']).optional(),
-  qualificationScore: z.number().min(0).max(100).optional(),
-  metadata: z.record(z.any()).optional(),
-  campaignId: z.string().optional()
-});
-
-const createLeadSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  source: z.string().default('manual'),
-  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'lost']).default('new'),
-  metadata: z.record(z.any()).optional(),
-  campaignId: z.string().optional()
-});
-
-const sendMessageSchema = z.object({
-  channel: z.enum(['email', 'sms', 'chat']),
-  content: z.string().min(1),
-  subject: z.string().optional()
-});
-
-// Mock leads data
-const mockLeads = [
-  {
-    id: 'lead-1',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1-555-0101',
-    status: 'new',
-    source: 'website',
-    qualificationScore: 75,
-    campaignId: 'campaign-1',
-    metadata: {
-      loanType: 'auto',
-      creditScore: 720,
-      income: 75000
-    },
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'lead-2',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    email: 'jane.smith@example.com',
-    phone: '+1-555-0102',
-    status: 'contacted',
-    source: 'referral',
-    qualificationScore: 85,
-    campaignId: 'campaign-1',
-    metadata: {
-      loanType: 'personal',
-      creditScore: 780,
-      income: 95000
-    },
-    createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'lead-3',
-    firstName: 'Bob',
-    lastName: 'Johnson',
-    email: 'bob.johnson@example.com',
-    phone: '+1-555-0103',
-    status: 'qualified',
-    source: 'advertisement',
-    qualificationScore: 95,
-    campaignId: 'campaign-2',
-    metadata: {
-      loanType: 'mortgage',
-      creditScore: 810,
-      income: 120000
-    },
-    createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-  }
-];
-
-// Get all leads with filtering and pagination
+// Get all leads
 router.get('/', async (req, res) => {
   try {
-    const validationResult = leadsQuerySchema.safeParse(req.query);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid query parameters',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const { 
+      status, 
+      source, 
+      assignedChannel,
+      search, 
+      limit = 50, 
+      offset = 0, 
+      sort = 'createdAt', 
+      order = 'desc' 
+    } = req.query;
 
-    const { limit, offset, status, source, startDate, endDate, search, campaignId } = validationResult.data;
-    
-    // Apply filters
-    let filteredLeads = [...mockLeads];
+    // Build query conditions
+    const conditions = [];
     
     if (status) {
-      filteredLeads = filteredLeads.filter(lead => lead.status === status);
+      conditions.push(eq(leads.status, status as any));
     }
     
     if (source) {
-      filteredLeads = filteredLeads.filter(lead => lead.source === source);
+      conditions.push(eq(leads.source, source as string));
     }
     
-    if (campaignId) {
-      filteredLeads = filteredLeads.filter(lead => lead.campaignId === campaignId);
+    if (assignedChannel) {
+      conditions.push(eq(leads.assignedChannel, assignedChannel as any));
     }
     
-    // Date filtering
-    if (startDate || endDate) {
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
-      
-      filteredLeads = filteredLeads.filter(lead => {
-        const leadDate = new Date(lead.createdAt);
-        if (start && leadDate < start) return false;
-        if (end && leadDate > end) return false;
-        return true;
-      });
-    }
-    
-    // Search filtering
     if (search) {
-      const searchTerm = search.toLowerCase();
-      filteredLeads = filteredLeads.filter(lead =>
-        lead.firstName?.toLowerCase().includes(searchTerm) ||
-        lead.lastName?.toLowerCase().includes(searchTerm) ||
-        lead.email?.toLowerCase().includes(searchTerm) ||
-        lead.phone?.includes(searchTerm) ||
-        lead.source?.toLowerCase().includes(searchTerm)
+      const searchPattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(leads.firstName, searchPattern),
+          ilike(leads.lastName, searchPattern),
+          ilike(leads.email, searchPattern),
+          ilike(leads.phone, searchPattern)
+        )
       );
     }
-    
-    // Apply pagination
-    const total = filteredLeads.length;
-    const paginatedLeads = filteredLeads.slice(offset, offset + limit);
-    
+
+    // Execute query
+    const query = db
+      .select()
+      .from(leads)
+      .limit(Number(limit))
+      .offset(Number(offset));
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+
+    // Add sorting
+    if (order === 'desc') {
+      query.orderBy(desc(leads[sort as keyof typeof leads]));
+    } else {
+      query.orderBy(leads[sort as keyof typeof leads]);
+    }
+
+    const leadList = await query;
+
+    // Get total count
+    const countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(leads);
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count }] = await countQuery;
+
     res.json({
       success: true,
-      leads: paginatedLeads,
-      pagination: {
-        total,
-        limit,
-        offset,
-        pages: Math.ceil(total / limit)
-      }
+      leads: leadList,
+      total: count,
+      offset: Number(offset),
+      limit: Number(limit)
     });
   } catch (error) {
     console.error('Error fetching leads:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'LEADS_FETCH_ERROR',
+        code: 'LEAD_FETCH_ERROR',
         message: 'Failed to fetch leads',
         category: 'database'
       }
@@ -185,84 +99,17 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get lead statistics
-router.get('/stats', async (req, res) => {
-  try {
-    const statusCounts = mockLeads.reduce((acc, lead) => {
-      acc[lead.status] = (acc[lead.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const total = mockLeads.length;
-    const recentLeads = mockLeads
-      .filter(lead => new Date(lead.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-      .length;
-    
-    const stats = {
-      total,
-      byStatus: statusCounts,
-      recent: recentLeads,
-      averageScore: Math.round(mockLeads.reduce((sum, lead) => sum + lead.qualificationScore, 0) / total),
-      lastUpdated: new Date().toISOString()
-    };
-    
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (error) {
-    console.error('Error fetching lead stats:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'STATS_ERROR',
-        message: 'Failed to fetch lead statistics',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Get lead statistics summary (alias for compatibility)
-router.get('/stats/summary', async (req, res) => {
-  try {
-    const statusCounts = mockLeads.reduce((acc, lead) => {
-      acc[lead.status] = (acc[lead.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const total = mockLeads.length;
-    const recentLeads = mockLeads
-      .filter(lead => new Date(lead.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
-    
-    res.json({
-      success: true,
-      data: {
-        total,
-        statusCounts,
-        recentLeads
-      }
-    });
-  } catch (error) {
-    console.error('Failed to fetch lead statistics:', error);
-    // Return empty stats on error to prevent crashes
-    res.json({
-      success: true,
-      data: {
-        total: 0,
-        statusCounts: { new: 0, contacted: 0, qualified: 0, converted: 0, lost: 0 },
-        recentLeads: []
-      }
-    });
-  }
-});
-
-// Get single lead by ID
+// Get lead by ID with details
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const lead = mockLeads.find(l => l.id === id);
     
+    const [lead] = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.id, id))
+      .limit(1);
+
     if (!lead) {
       return res.status(404).json({
         success: false,
@@ -272,10 +119,36 @@ router.get('/:id', async (req, res) => {
         }
       });
     }
-    
+
+    // Get communications
+    const communicationsList = await db
+      .select()
+      .from(communications)
+      .where(eq(communications.leadId, id))
+      .orderBy(desc(communications.createdAt))
+      .limit(10);
+
+    // Get conversations
+    const conversationsList = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.leadId, id))
+      .orderBy(desc(conversations.startedAt));
+
+    // Get campaign enrollments
+    const enrollments = await db
+      .select()
+      .from(leadCampaignEnrollments)
+      .where(eq(leadCampaignEnrollments.leadId, id));
+
     res.json({
       success: true,
-      lead
+      lead: {
+        ...lead,
+        communications: communicationsList,
+        conversations: conversationsList,
+        campaigns: enrollments
+      }
     });
   } catch (error) {
     console.error('Error fetching lead:', error);
@@ -283,116 +156,6 @@ router.get('/:id', async (req, res) => {
       success: false,
       error: {
         code: 'LEAD_FETCH_ERROR',
-        message: 'Failed to fetch lead',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Get comprehensive lead details
-router.get('/:id/details', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const lead = mockLeads.find(l => l.id === id);
-    
-    if (!lead) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
-      });
-    }
-    
-    // Mock related data
-    const conversations = [
-      {
-        id: 'conv-1',
-        leadId: id,
-        channel: 'email',
-        agentType: 'email',
-        status: 'active',
-        messages: [
-          {
-            role: 'agent',
-            content: 'Hello! Thank you for your interest in our services.',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            role: 'lead',
-            content: 'Hi, I\'m interested in getting a loan.',
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-          }
-        ],
-        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        endedAt: null
-      }
-    ];
-    
-    const communications = [
-      {
-        id: 'comm-1',
-        leadId: id,
-        channel: 'email',
-        direction: 'outbound',
-        content: 'Welcome email sent',
-        status: 'delivered',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'comm-2',
-        leadId: id,
-        channel: 'email',
-        direction: 'inbound',
-        content: 'Reply received',
-        status: 'received',
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-      }
-    ];
-    
-    const decisions = [
-      {
-        id: 'decision-1',
-        leadId: id,
-        agentType: 'email',
-        decision: 'send_follow_up',
-        reasoning: 'Lead showed interest in initial email',
-        context: { openRate: 1, responseTime: 3600 },
-        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-      }
-    ];
-    
-    // Calculate engagement metrics
-    const engagementMetrics = {
-      totalInteractions: communications.length,
-      emailsSent: communications.filter(c => c.channel === 'email' && c.direction === 'outbound').length,
-      emailsReceived: communications.filter(c => c.channel === 'email' && c.direction === 'inbound').length,
-      smsSent: communications.filter(c => c.channel === 'sms' && c.direction === 'outbound').length,
-      smsReceived: communications.filter(c => c.channel === 'sms' && c.direction === 'inbound').length,
-      chatMessages: conversations.filter(c => c.channel === 'chat').reduce((sum, c) => sum + c.messages.length, 0),
-      lastContactDate: communications.length > 0 
-        ? communications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt
-        : null
-    };
-    
-    res.json({
-      success: true,
-      data: {
-        lead,
-        conversations,
-        communications,
-        decisions,
-        engagementMetrics
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching lead details:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEAD_DETAILS_ERROR',
         message: 'Failed to fetch lead details',
         category: 'database'
       }
@@ -400,142 +163,62 @@ router.get('/:id/details', async (req, res) => {
   }
 });
 
-// Get lead conversation history
-router.get('/:id/conversations', async (req, res) => {
+// Create lead
+const createLeadSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  source: z.string().default('api'),
+  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'rejected']).default('new'),
+  qualificationScore: z.number().min(0).max(100).optional(),
+  assignedChannel: z.enum(['email', 'sms', 'chat']).optional(),
+  boberdooId: z.string().optional(),
+  campaignId: z.string().uuid().optional(),
+  creditScore: z.number().optional(),
+  income: z.number().optional(),
+  employer: z.string().optional(),
+  jobTitle: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
+  notes: z.string().optional()
+});
+
+router.post('/', validateRequest({ body: createLeadSchema }), async (req, res) => {
   try {
-    const { id } = req.params;
+    const leadData = req.body;
     
-    // Mock conversations for the lead
-    const conversations = [
-      {
-        id: 'conv-1',
-        leadId: id,
-        channel: 'email',
-        agentType: 'email',
-        status: 'active',
-        messages: [
-          {
-            role: 'agent',
-            content: 'Hello! Thank you for your interest in our services.',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            role: 'lead',
-            content: 'Hi, I\'m interested in getting a loan.',
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
+    // Check for duplicate email
+    if (leadData.email) {
+      const [existing] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.email, leadData.email))
+        .limit(1);
+      
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 'DUPLICATE_LEAD',
+            message: 'A lead with this email already exists',
+            leadId: existing.id
           }
-        ],
-        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        endedAt: null,
-        messageCount: 2,
-        duration: null
+        });
       }
-    ];
-    
-    res.json({
-      success: true,
-      conversations
-    });
-  } catch (error) {
-    console.error('Error fetching conversations:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CONVERSATIONS_ERROR',
-        message: 'Failed to fetch conversations',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Get lead timeline
-router.get('/:id/timeline', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Mock timeline events
-    const timeline = [
-      {
-        type: 'communication',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        channel: 'email',
-        direction: 'outbound',
-        status: 'delivered',
-        content: 'Welcome email sent...'
-      },
-      {
-        type: 'communication',
-        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        channel: 'email',
-        direction: 'inbound',
-        status: 'received',
-        content: 'Reply received...'
-      },
-      {
-        type: 'decision',
-        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        agent: 'email',
-        decision: 'send_follow_up',
-        reasoning: 'Lead showed interest in initial email'
-      },
-      {
-        type: 'conversation',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        channel: 'email',
-        status: 'active',
-        messageCount: 2
-      }
-    ];
-    
-    res.json({
-      success: true,
-      timeline
-    });
-  } catch (error) {
-    console.error('Error fetching timeline:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'TIMELINE_ERROR',
-        message: 'Failed to fetch timeline',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Create new lead
-router.post('/', async (req, res) => {
-  try {
-    const validationResult = createLeadSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid lead data',
-          details: validationResult.error.errors
-        }
-      });
     }
-
-    const leadData = validationResult.data;
-    const newLead = {
-      id: `lead-${Date.now()}`,
-      ...leadData,
-      qualificationScore: 50, // Default score
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    // In a real implementation, this would be saved to the database
-    mockLeads.push(newLead);
+    
+    const [newLead] = await db
+      .insert(leads)
+      .values({
+        ...leadData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
     res.status(201).json({
       success: true,
-      lead: newLead,
-      message: 'Lead created successfully'
+      lead: newLead
     });
   } catch (error) {
     console.error('Error creating lead:', error);
@@ -550,25 +233,24 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update lead information
-router.patch('/:id', async (req, res) => {
+// Update lead
+const updateLeadSchema = createLeadSchema.partial();
+
+router.put('/:id', validateRequest({ body: updateLeadSchema }), async (req, res) => {
   try {
     const { id } = req.params;
-    const validationResult = updateLeadSchema.safeParse(req.body);
+    const updates = req.body;
     
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid update data',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const [updatedLead] = await db
+      .update(leads)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(leads.id, id))
+      .returning();
 
-    const leadIndex = mockLeads.findIndex(l => l.id === id);
-    if (leadIndex === -1) {
+    if (!updatedLead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -578,20 +260,9 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
-    // Update the lead
-    const updates = validationResult.data;
-    const updatedLead = {
-      ...mockLeads[leadIndex],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockLeads[leadIndex] = updatedLead;
-
     res.json({
       success: true,
-      lead: updatedLead,
-      message: 'Lead updated successfully'
+      lead: updatedLead
     });
   } catch (error) {
     console.error('Error updating lead:', error);
@@ -610,9 +281,13 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const leadIndex = mockLeads.findIndex(l => l.id === id);
     
-    if (leadIndex === -1) {
+    const [deletedLead] = await db
+      .delete(leads)
+      .where(eq(leads.id, id))
+      .returning();
+
+    if (!deletedLead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -621,8 +296,6 @@ router.delete('/:id', async (req, res) => {
         }
       });
     }
-
-    mockLeads.splice(leadIndex, 1);
 
     res.json({
       success: true,
@@ -641,25 +314,106 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Send manual message to lead
-router.post('/:id/send-message', async (req, res) => {
+// Bulk import leads
+router.post('/import', async (req, res) => {
   try {
-    const { id } = req.params;
-    const validationResult = sendMessageSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
+    const { leads: leadData } = req.body;
+
+    if (!Array.isArray(leadData) || leadData.length === 0) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid message data',
-          details: validationResult.error.errors
+          code: 'INVALID_REQUEST',
+          message: 'leads must be a non-empty array'
         }
       });
     }
 
-    const lead = mockLeads.find(l => l.id === id);
-    if (!lead) {
+    // Validate and prepare leads
+    const validLeads = [];
+    const errors = [];
+
+    for (let i = 0; i < leadData.length; i++) {
+      try {
+        const validated = createLeadSchema.parse(leadData[i]);
+        validLeads.push({
+          ...validated,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      } catch (error) {
+        errors.push({
+          row: i + 1,
+          error: error instanceof Error ? error.message : 'Validation failed'
+        });
+      }
+    }
+
+    if (validLeads.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'ALL_LEADS_INVALID',
+          message: 'All leads failed validation',
+          errors
+        }
+      });
+    }
+
+    // Insert valid leads
+    const insertedLeads = await db
+      .insert(leads)
+      .values(validLeads)
+      .onConflictDoNothing()
+      .returning();
+
+    res.json({
+      success: true,
+      imported: insertedLeads.length,
+      failed: errors.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error('Error importing leads:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'LEAD_IMPORT_ERROR',
+        message: 'Failed to import leads',
+        category: 'database'
+      }
+    });
+  }
+});
+
+// Update lead status
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_STATUS',
+          message: 'Invalid lead status',
+          validStatuses
+        }
+      });
+    }
+
+    const [updatedLead] = await db
+      .update(leads)
+      .set({
+        status: status as any,
+        updatedAt: new Date()
+      })
+      .where(eq(leads.id, id))
+      .returning();
+
+    if (!updatedLead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -669,32 +423,18 @@ router.post('/:id/send-message', async (req, res) => {
       });
     }
 
-    const { channel, content, subject } = validationResult.data;
-    
-    // Mock message sending
-    const messageResult = {
-      id: `msg-${Date.now()}`,
-      channel,
-      content,
-      subject,
-      to: channel === 'email' ? lead.email : lead.phone,
-      status: 'sent',
-      timestamp: new Date().toISOString()
-    };
-
     res.json({
       success: true,
-      data: messageResult,
-      message: 'Message sent successfully'
+      lead: updatedLead
     });
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('Error updating lead status:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'MESSAGE_SEND_ERROR',
-        message: 'Failed to send message',
-        category: 'processing'
+        code: 'LEAD_STATUS_UPDATE_ERROR',
+        message: 'Failed to update lead status',
+        category: 'database'
       }
     });
   }

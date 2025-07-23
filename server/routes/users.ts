@@ -1,112 +1,102 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../db/client';
+import { users, auditLogs } from '../db/schema';
+import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
+import { validateRequest } from '../middleware/validation';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
-
-// Validation schemas
-const updateUserSchema = z.object({
-  email: z.string().email().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  role: z.enum(['admin', 'manager', 'agent', 'viewer']).optional(),
-  active: z.boolean().optional(),
-  metadata: z.record(z.any()).optional()
-});
-
-const userQuerySchema = z.object({
-  role: z.enum(['admin', 'manager', 'agent', 'viewer']).optional(),
-  active: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
-  search: z.string().optional()
-});
-
-// Mock users data
-const mockUsers = [
-  {
-    id: 'user-1',
-    email: 'admin@onekeel.com',
-    username: 'admin',
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'admin',
-    active: true,
-    metadata: {},
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString()
-  },
-  {
-    id: 'user-2',
-    email: 'manager@onekeel.com',
-    username: 'manager',
-    firstName: 'Manager',
-    lastName: 'User',
-    role: 'manager',
-    active: true,
-    metadata: {},
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastLoginAt: new Date(Date.now() - 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'user-3',
-    email: 'agent@onekeel.com',
-    username: 'agent',
-    firstName: 'Agent',
-    lastName: 'User',
-    role: 'agent',
-    active: true,
-    metadata: {},
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    lastLoginAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  }
-];
 
 // Get all users
 router.get('/', async (req, res) => {
   try {
-    const validationResult = userQuerySchema.safeParse(req.query);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid query parameters',
-          details: validationResult.error.errors
-        }
-      });
-    }
+    const { 
+      role, 
+      active, 
+      search,
+      limit = 50, 
+      offset = 0, 
+      sort = 'createdAt', 
+      order = 'desc' 
+    } = req.query;
 
-    const { role, active, search } = validationResult.data;
+    // Build query conditions
+    const conditions = [];
     
-    let filteredUsers = [...mockUsers];
-    
-    // Apply filters
     if (role) {
-      filteredUsers = filteredUsers.filter(user => user.role === role);
+      conditions.push(eq(users.role, role as any));
     }
     
     if (active !== undefined) {
-      filteredUsers = filteredUsers.filter(user => user.active === active);
+      conditions.push(eq(users.active, active === 'true'));
     }
     
     if (search) {
-      const searchTerm = search.toLowerCase();
-      filteredUsers = filteredUsers.filter(user =>
-        user.firstName?.toLowerCase().includes(searchTerm) ||
-        user.lastName?.toLowerCase().includes(searchTerm) ||
-        user.email?.toLowerCase().includes(searchTerm) ||
-        user.username?.toLowerCase().includes(searchTerm)
+      const searchPattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(users.firstName, searchPattern),
+          ilike(users.lastName, searchPattern),
+          ilike(users.email, searchPattern),
+          ilike(users.username, searchPattern)
+        )
       );
     }
-    
-    res.json({ 
+
+    // Execute query
+    const query = db
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        active: users.active,
+        metadata: users.metadata,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        lastLoginAt: users.lastLoginAt
+      })
+      .from(users)
+      .limit(Number(limit))
+      .offset(Number(offset));
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
+    }
+
+    // Add sorting
+    if (order === 'desc') {
+      query.orderBy(desc(users[sort as keyof typeof users]));
+    } else {
+      query.orderBy(users[sort as keyof typeof users]);
+    }
+
+    const userList = await query;
+
+    // Get total count
+    const countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users);
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count }] = await countQuery;
+
+    res.json({
       success: true,
-      users: filteredUsers 
+      users: userList,
+      total: count,
+      offset: Number(offset),
+      limit: Number(limit)
     });
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'USERS_FETCH_ERROR',
@@ -120,10 +110,28 @@ router.get('/', async (req, res) => {
 // Get single user
 router.get('/:id', async (req, res) => {
   try {
-    const user = mockUsers.find(u => u.id === req.params.id);
+    const { id } = req.params;
     
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        active: users.active,
+        metadata: users.metadata,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        lastLoginAt: users.lastLoginAt
+      })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
         error: {
           code: 'USER_NOT_FOUND',
@@ -131,14 +139,14 @@ router.get('/:id', async (req, res) => {
         }
       });
     }
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      user 
+      user
     });
   } catch (error) {
     console.error('Error fetching user:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'USER_FETCH_ERROR',
@@ -149,24 +157,147 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update user
-router.put('/:id', async (req, res) => {
+// Create user
+const createUserSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(3).max(50),
+  password: z.string().min(8),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  role: z.enum(['admin', 'manager', 'agent', 'viewer']).default('viewer'),
+  metadata: z.record(z.any()).optional()
+});
+
+router.post('/', validateRequest({ body: createUserSchema }), async (req, res) => {
   try {
-    const validationResult = updateUserSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
+    const userData = req.body;
+    
+    // Check for duplicate email or username
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.email, userData.email),
+          eq(users.username, userData.username)
+        )
+      )
+      .limit(1);
+    
+    if (existing) {
+      return res.status(409).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid user data',
-          details: validationResult.error.errors
+          code: 'DUPLICATE_USER',
+          message: existing.email === userData.email 
+            ? 'A user with this email already exists'
+            : 'A user with this username already exists'
         }
       });
     }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        ...userData,
+        passwordHash: hashedPassword,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        active: users.active,
+        metadata: users.metadata,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt
+      });
 
-    const userIndex = mockUsers.findIndex(u => u.id === req.params.id);
-    if (userIndex === -1) {
-      return res.status(404).json({ 
+    res.status(201).json({
+      success: true,
+      user: newUser
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_CREATE_ERROR',
+        message: 'Failed to create user',
+        category: 'database'
+      }
+    });
+  }
+});
+
+// Update user
+const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  role: z.enum(['admin', 'manager', 'agent', 'viewer']).optional(),
+  active: z.boolean().optional(),
+  metadata: z.record(z.any()).optional()
+});
+
+router.put('/:id', validateRequest({ body: updateUserSchema }), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // Check if email is being updated and if it's already taken
+    if (updates.email) {
+      const [existing] = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.email, updates.email),
+          sql`id != ${id}`
+        ))
+        .limit(1);
+      
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 'DUPLICATE_EMAIL',
+            message: 'A user with this email already exists'
+          }
+        });
+      }
+    }
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        active: users.active,
+        metadata: users.metadata,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        lastLoginAt: users.lastLoginAt
+      });
+
+    if (!updatedUser) {
+      return res.status(404).json({
         success: false,
         error: {
           code: 'USER_NOT_FOUND',
@@ -175,22 +306,13 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    const updates = validationResult.data;
-    const updatedUser = {
-      ...mockUsers[userIndex],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockUsers[userIndex] = updatedUser;
-    
-    res.json({ 
-      success: true, 
-      user: updatedUser 
+    res.json({
+      success: true,
+      user: updatedUser
     });
   } catch (error) {
     console.error('Error updating user:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'USER_UPDATE_ERROR',
@@ -204,9 +326,17 @@ router.put('/:id', async (req, res) => {
 // Toggle user active status
 router.patch('/:id/toggle', async (req, res) => {
   try {
-    const userIndex = mockUsers.findIndex(u => u.id === req.params.id);
-    if (userIndex === -1) {
-      return res.status(404).json({ 
+    const { id } = req.params;
+    
+    // Get current status
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
         success: false,
         error: {
           code: 'USER_NOT_FOUND',
@@ -215,23 +345,36 @@ router.patch('/:id/toggle', async (req, res) => {
       });
     }
 
-    const user = mockUsers[userIndex];
-    const updatedUser = {
-      ...user,
-      active: !user.active,
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockUsers[userIndex] = updatedUser;
-    
-    res.json({ 
-      success: true, 
+    // Toggle status
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        active: !user.active,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning({
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        active: users.active,
+        metadata: users.metadata,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+        lastLoginAt: users.lastLoginAt
+      });
+
+    res.json({
+      success: true,
       user: updatedUser,
       message: `User ${updatedUser.active ? 'activated' : 'deactivated'} successfully`
     });
   } catch (error) {
     console.error('Error toggling user status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'USER_TOGGLE_ERROR',
@@ -242,47 +385,166 @@ router.patch('/:id/toggle', async (req, res) => {
   }
 });
 
+// Update user password
+const updatePasswordSchema = z.object({
+  currentPassword: z.string().optional(), // Optional for admin reset
+  newPassword: z.string().min(8)
+});
+
+router.patch('/:id/password', validateRequest({ body: updatePasswordSchema }), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    const requestingUserId = (req as any).userId; // From auth middleware
+    const requestingUserRole = (req as any).userRole; // From auth middleware
+    
+    // Get user
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+    }
+
+    // Check permissions
+    if (requestingUserId !== id && requestingUserRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You can only change your own password'
+        }
+      });
+    }
+
+    // Verify current password if not admin
+    if (requestingUserRole !== 'admin' || requestingUserId === id) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'CURRENT_PASSWORD_REQUIRED',
+            message: 'Current password is required'
+          }
+        });
+      }
+
+      const validPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!validPassword) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'INVALID_PASSWORD',
+            message: 'Current password is incorrect'
+          }
+        });
+      }
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await db
+      .update(users)
+      .set({
+        passwordHash: hashedPassword,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id));
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PASSWORD_UPDATE_ERROR',
+        message: 'Failed to update password',
+        category: 'database'
+      }
+    });
+  }
+});
+
+// Delete user
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [deletedUser] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning();
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_DELETE_ERROR',
+        message: 'Failed to delete user',
+        category: 'database'
+      }
+    });
+  }
+});
+
 // Get user activity/audit logs
 router.get('/:id/activity', async (req, res) => {
   try {
-    const { days = '30' } = req.query;
+    const { id } = req.params;
+    const { days = '30', limit = 100 } = req.query;
     
-    // Mock activity data
-    const activity = [
-      {
-        id: 'activity-1',
-        action: 'login',
-        resource: 'auth',
-        timestamp: new Date().toISOString(),
-        ipAddress: '192.168.1.1',
-        userAgent: 'Mozilla/5.0...'
-      },
-      {
-        id: 'activity-2',
-        action: 'view',
-        resource: 'leads',
-        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        ipAddress: '192.168.1.1',
-        userAgent: 'Mozilla/5.0...'
-      },
-      {
-        id: 'activity-3',
-        action: 'create',
-        resource: 'campaign',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        ipAddress: '192.168.1.1',
-        userAgent: 'Mozilla/5.0...'
-      }
-    ];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - Number(days));
     
-    res.json({ 
+    const logs = await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.userId, id),
+          sql`created_at >= ${startDate}`
+        )
+      )
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(Number(limit));
+
+    res.json({
       success: true,
-      activity,
+      activity: logs,
       period: `${days} days`
     });
   } catch (error) {
     console.error('Error fetching user activity:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: {
         code: 'ACTIVITY_FETCH_ERROR',
@@ -293,71 +555,48 @@ router.get('/:id/activity', async (req, res) => {
   }
 });
 
-// Get user's recent actions
-router.get('/:id/audit-logs', async (req, res) => {
+// Get user stats
+router.get('/:id/stats', async (req, res) => {
   try {
-    const { limit = '100' } = req.query;
+    const { id } = req.params;
     
-    // Mock audit logs
-    const logs = [
-      {
-        id: 'log-1',
-        userId: req.params.id,
-        action: 'update',
-        resource: 'lead',
-        resourceId: 'lead-123',
-        changes: { status: 'qualified' },
-        timestamp: new Date().toISOString(),
-        ipAddress: '192.168.1.1'
-      },
-      {
-        id: 'log-2',
-        userId: req.params.id,
-        action: 'create',
-        resource: 'campaign',
-        resourceId: 'campaign-456',
-        changes: { name: 'New Campaign' },
-        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        ipAddress: '192.168.1.1'
-      }
-    ];
-    
-    res.json({ 
-      success: true,
-      logs: logs.slice(0, parseInt(limit as string))
-    });
-  } catch (error) {
-    console.error('Error fetching audit logs:', error);
-    res.status(500).json({ 
-      success: false,
-      error: {
-        code: 'AUDIT_LOGS_ERROR',
-        message: 'Failed to fetch audit logs',
-        category: 'database'
-      }
-    });
-  }
-});
+    // Get various stats for the user
+    const loginCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.userId, id),
+          eq(auditLogs.action, 'login')
+        )
+      );
 
-// Cleanup expired sessions
-router.post('/cleanup-sessions', async (req, res) => {
-  try {
-    // Mock cleanup
-    const cleaned = Math.floor(Math.random() * 10) + 1;
-    
-    res.json({ 
+    const recentActions = await db
+      .select({
+        action: auditLogs.action,
+        count: sql<number>`count(*)::int`
+      })
+      .from(auditLogs)
+      .where(eq(auditLogs.userId, id))
+      .groupBy(auditLogs.action)
+      .orderBy(desc(sql`count(*)`))
+      .limit(5);
+
+    res.json({
       success: true,
-      cleaned,
-      message: `Cleaned up ${cleaned} expired sessions`
+      stats: {
+        totalLogins: loginCount[0]?.count || 0,
+        recentActions
+      }
     });
   } catch (error) {
-    console.error('Error cleaning sessions:', error);
-    res.status(500).json({ 
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({
       success: false,
       error: {
-        code: 'SESSION_CLEANUP_ERROR',
-        message: 'Failed to cleanup sessions',
-        category: 'system'
+        code: 'STATS_FETCH_ERROR',
+        message: 'Failed to fetch user statistics',
+        category: 'database'
       }
     });
   }

@@ -1,217 +1,109 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../db/client';
+import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
+import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
+import { validateRequest } from '../middleware/validation';
 
 const router = Router();
-
-// Validation schemas
-const campaignSettingsSchema = z.object({
-  goals: z.array(z.string()).min(1),
-  qualificationCriteria: z.object({
-    minScore: z.number().min(0).max(100),
-    requiredFields: z.array(z.string()),
-    requiredGoals: z.array(z.string())
-  }),
-  handoverCriteria: z.object({
-    qualificationScore: z.number().min(0).max(100),
-    conversationLength: z.number().min(1),
-    timeThreshold: z.number().min(1),
-    keywordTriggers: z.array(z.string()),
-    goalCompletionRequired: z.array(z.string()),
-    handoverRecipients: z.array(z.object({
-      name: z.string().min(1),
-      email: z.string().email(),
-      role: z.string(),
-      priority: z.enum(['high', 'medium', 'low'])
-    }))
-  }),
-  channelPreferences: z.object({
-    primary: z.enum(['email', 'sms', 'chat']),
-    fallback: z.array(z.enum(['email', 'sms', 'chat']))
-  }),
-  touchSequence: z.array(
-    z.object({
-      templateId: z.string().min(1),
-      delayDays: z.number().min(0),
-      delayHours: z.number().min(0).max(23),
-      conditions: z.any().optional(),
-    })
-  ),
-  assignedAgents: z.array(z.object({
-    agentId: z.string(),
-    channels: z.array(z.enum(['email', 'sms', 'chat'])),
-    role: z.enum(['primary', 'secondary', 'fallback']),
-    capabilities: z.object({
-      email: z.boolean(),
-      sms: z.boolean(),
-      chat: z.boolean()
-    })
-  })).optional(),
-  coordinationStrategy: z.enum(['round_robin', 'priority_based', 'channel_specific']).optional(),
-  messageCoordination: z.object({
-    allowMultipleAgents: z.boolean(),
-    messageGap: z.number().min(1).max(1440),
-    handoffEnabled: z.boolean(),
-    syncSchedules: z.boolean()
-  }).optional()
-});
-
-const campaignSchema = z.object({
-  name: z.string().min(1).max(255),
-  description: z.string().optional(),
-  settings: campaignSettingsSchema,
-  selectedLeads: z.array(z.string()).optional(),
-  active: z.boolean().default(true)
-});
-
-const updateCampaignSchema = campaignSchema.partial();
-
-const triggerCampaignSchema = z.object({
-  campaignId: z.string().min(1),
-  leadIds: z.array(z.string()).min(1),
-  templateSequence: z.array(z.string()).optional()
-});
 
 // Get all campaigns
 router.get('/', async (req, res) => {
   try {
-    const { active, limit, offset, type } = req.query;
+    const { active, type, search, limit = 50, offset = 0, sort = 'createdAt', order = 'desc' } = req.query;
+
+    // Build query conditions
+    const conditions = [];
     
-    // Mock campaign data
-    const campaigns = [
-      {
-        id: 'campaign-1',
-        name: 'Auto Loan Outreach',
-        description: 'Primary campaign for auto loan leads',
-        type: type === 'multi-agent' ? 'multi-agent' : 'standard',
-        status: 'active',
-        settings: {
-          goals: ['Convert leads to applications'],
-          qualificationCriteria: {
-            minScore: 60,
-            requiredFields: ['email', 'phone'],
-            requiredGoals: ['interested']
-          },
-          handoverCriteria: {
-            qualificationScore: 80,
-            conversationLength: 5,
-            timeThreshold: 30,
-            keywordTriggers: ['ready', 'apply', 'interested'],
-            goalCompletionRequired: ['qualified'],
-            handoverRecipients: [
-              {
-                name: 'Sales Team',
-                email: 'sales@company.com',
-                role: 'Sales Representative',
-                priority: 'high'
-              }
-            ]
-          },
-          channelPreferences: {
-            primary: 'email',
-            fallback: ['sms', 'chat']
-          },
-          touchSequence: [
-            { templateId: 'template-1', delayDays: 0, delayHours: 0 },
-            { templateId: 'template-2', delayDays: 1, delayHours: 0 },
-            { templateId: 'template-1', delayDays: 3, delayHours: 0 }
-          ],
-          ...(type === 'multi-agent' && {
-            assignedAgents: [
-              {
-                agentId: 'agent-1',
-                channels: ['email'],
-                role: 'primary',
-                capabilities: { email: true, sms: false, chat: false }
-              },
-              {
-                agentId: 'agent-2',
-                channels: ['sms'],
-                role: 'secondary',
-                capabilities: { email: false, sms: true, chat: false }
-              }
-            ],
-            coordinationStrategy: 'channel_specific',
-            messageCoordination: {
-              allowMultipleAgents: true,
-              messageGap: 60,
-              handoffEnabled: true,
-              syncSchedules: true
-            }
-          })
-        },
-        stats: {
-          totalLeads: 150,
-          emailsSent: 450,
-          opensCount: 180,
-          clicksCount: 45,
-          repliesCount: 12,
-          conversionsCount: 8
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        id: 'campaign-2',
-        name: 'Credit Repair Follow-up',
-        description: 'Follow-up campaign for credit repair leads',
-        type: 'standard',
-        status: active === 'true' ? 'active' : 'draft',
-        settings: {
-          goals: ['Educate about credit repair'],
-          qualificationCriteria: {
-            minScore: 50,
-            requiredFields: ['email'],
-            requiredGoals: ['interested']
-          },
-          handoverCriteria: {
-            qualificationScore: 70,
-            conversationLength: 3,
-            timeThreshold: 60,
-            keywordTriggers: ['help', 'assistance'],
-            goalCompletionRequired: ['educated'],
-            handoverRecipients: []
-          },
-          channelPreferences: {
-            primary: 'email',
-            fallback: ['sms']
-          },
-          touchSequence: []
-        },
-        stats: {
-          totalLeads: 75,
-          emailsSent: 150,
-          opensCount: 60,
-          clicksCount: 15,
-          repliesCount: 5,
-          conversionsCount: 2
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-
-    let filteredCampaigns = campaigns;
-    if (active === 'true') {
-      filteredCampaigns = campaigns.filter(c => c.status === 'active');
+    if (active !== undefined) {
+      conditions.push(eq(campaigns.active, active === 'true'));
     }
+    
     if (type) {
-      filteredCampaigns = filteredCampaigns.filter(c => c.type === type);
+      conditions.push(eq(campaigns.type, type as any));
+    }
+    
+    if (search) {
+      const searchPattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(campaigns.name, searchPattern),
+          ilike(campaigns.description, searchPattern)
+        )
+      );
     }
 
-    // Apply pagination
-    let paginatedCampaigns = filteredCampaigns;
-    if (limit || offset) {
-      const start = parseInt(offset as string) || 0;
-      const end = start + (parseInt(limit as string) || filteredCampaigns.length);
-      paginatedCampaigns = filteredCampaigns.slice(start, end);
+    // Execute query
+    const query = db
+      .select()
+      .from(campaigns)
+      .limit(Number(limit))
+      .offset(Number(offset));
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
+
+    // Add sorting
+    if (order === 'desc') {
+      query.orderBy(desc(campaigns[sort as keyof typeof campaigns]));
+    } else {
+      query.orderBy(campaigns[sort as keyof typeof campaigns]);
+    }
+
+    const campaignList = await query;
+
+    // Get total count
+    const countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(campaigns);
+
+    if (conditions.length > 0) {
+      countQuery.where(and(...conditions));
+    }
+
+    const [{ count }] = await countQuery;
+
+    // Get enrollment stats for each campaign
+    const campaignIds = campaignList.map(c => c.id);
+    const enrollmentStats = await db
+      .select({
+        campaignId: leadCampaignEnrollments.campaignId,
+        totalLeads: sql<number>`count(*)::int`,
+        activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
+        completedLeads: sql<number>`count(*) filter (where completed = true)::int`
+      })
+      .from(leadCampaignEnrollments)
+      .where(sql`campaign_id = ANY(${campaignIds})`)
+      .groupBy(leadCampaignEnrollments.campaignId);
+
+    // Merge stats with campaigns
+    const campaignsWithStats = campaignList.map(campaign => {
+      const stats = enrollmentStats.find(s => s.campaignId === campaign.id) || {
+        totalLeads: 0,
+        activeLeads: 0,
+        completedLeads: 0
+      };
+      
+      return {
+        ...campaign,
+        stats: {
+          totalLeads: stats.totalLeads,
+          activeLeads: stats.activeLeads,
+          completedLeads: stats.completedLeads,
+          conversionRate: stats.totalLeads > 0 
+            ? (stats.completedLeads / stats.totalLeads * 100).toFixed(1) 
+            : 0
+        }
+      };
+    });
 
     res.json({
       success: true,
-      campaigns: paginatedCampaigns,
-      total: filteredCampaigns.length,
-      offset: parseInt(offset as string) || 0,
-      limit: parseInt(limit as string) || filteredCampaigns.length
+      campaigns: campaignsWithStats,
+      total: count,
+      offset: Number(offset),
+      limit: Number(limit)
     });
   } catch (error) {
     console.error('Error fetching campaigns:', error);
@@ -226,55 +118,43 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get single campaign
+// Get campaign by ID
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Mock campaign lookup
-    const campaign = {
-      id,
-      name: 'Sample Campaign',
-      description: 'Sample campaign description',
-      type: 'standard',
-      status: 'active',
-      settings: {
-        goals: ['Convert leads'],
-        qualificationCriteria: {
-          minScore: 60,
-          requiredFields: ['email'],
-          requiredGoals: ['interested']
-        },
-        handoverCriteria: {
-          qualificationScore: 80,
-          conversationLength: 5,
-          timeThreshold: 30,
-          keywordTriggers: ['ready'],
-          goalCompletionRequired: ['qualified'],
-          handoverRecipients: []
-        },
-        channelPreferences: {
-          primary: 'email',
-          fallback: ['sms']
-        },
-        touchSequence: []
-      },
-      stats: {
-        totalLeads: 100,
-        emailsSent: 200,
-        opensCount: 80,
-        clicksCount: 20,
-        repliesCount: 5,
-        conversionsCount: 3
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id))
+      .limit(1);
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+
+    // Get enrollment stats
+    const stats = await db
+      .select({
+        totalLeads: sql<number>`count(*)::int`,
+        activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
+        completedLeads: sql<number>`count(*) filter (where completed = true)::int`
+      })
+      .from(leadCampaignEnrollments)
+      .where(eq(leadCampaignEnrollments.campaignId, id));
 
     res.json({
       success: true,
-      campaign,
-      stats: campaign.stats
+      campaign: {
+        ...campaign,
+        stats: stats[0] || { totalLeads: 0, activeLeads: 0, completedLeads: 0 }
+      }
     });
   } catch (error) {
     console.error('Error fetching campaign:', error);
@@ -290,44 +170,33 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create campaign
-router.post('/', async (req, res) => {
-  try {
-    const validationResult = campaignSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid campaign data',
-          details: validationResult.error.errors
-        }
-      });
-    }
+const createCampaignSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().optional(),
+  type: z.enum(['drip', 'blast', 'trigger']).default('drip'),
+  targetCriteria: z.record(z.any()).optional(),
+  settings: z.record(z.any()).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional()
+});
 
-    const { name, description, settings, active } = validationResult.data;
+router.post('/', validateRequest({ body: createCampaignSchema }), async (req, res) => {
+  try {
+    const campaignData = req.body;
     
-    const campaign = {
-      id: `campaign-${Date.now()}`,
-      name,
-      description,
-      type: settings.assignedAgents ? 'multi-agent' : 'standard',
-      status: active ? 'active' : 'draft',
-      settings,
-      stats: {
-        totalLeads: 0,
-        emailsSent: 0,
-        opensCount: 0,
-        clicksCount: 0,
-        repliesCount: 0,
-        conversionsCount: 0
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    const [newCampaign] = await db
+      .insert(campaigns)
+      .values({
+        ...campaignData,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
     res.status(201).json({
       success: true,
-      campaign
+      campaign: newCampaign
     });
   } catch (error) {
     console.error('Error creating campaign:', error);
@@ -343,32 +212,35 @@ router.post('/', async (req, res) => {
 });
 
 // Update campaign
-router.put('/:id', async (req, res) => {
+const updateCampaignSchema = createCampaignSchema.partial();
+
+router.put('/:id', validateRequest({ body: updateCampaignSchema }), async (req, res) => {
   try {
     const { id } = req.params;
-    const validationResult = updateCampaignSchema.safeParse(req.body);
+    const updates = req.body;
     
-    if (!validationResult.success) {
-      return res.status(400).json({
+    const [updatedCampaign] = await db
+      .update(campaigns)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(campaigns.id, id))
+      .returning();
+
+    if (!updatedCampaign) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid campaign data',
-          details: validationResult.error.errors
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
         }
       });
     }
 
-    const updates = validationResult.data;
-    const campaign = {
-      id,
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-
     res.json({
       success: true,
-      campaign
+      campaign: updatedCampaign
     });
   } catch (error) {
     console.error('Error updating campaign:', error);
@@ -383,41 +255,25 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Toggle campaign active status
-router.patch('/:id/toggle', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const campaign = {
-      id,
-      name: 'Sample Campaign',
-      active: true, // Mock toggle logic
-      status: 'active',
-      updatedAt: new Date().toISOString()
-    };
-
-    res.json({
-      success: true,
-      campaign,
-      message: `Campaign ${campaign.active ? 'activated' : 'deactivated'} successfully`
-    });
-  } catch (error) {
-    console.error('Error toggling campaign:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CAMPAIGN_TOGGLE_ERROR',
-        message: 'Failed to toggle campaign status',
-        category: 'database'
-      }
-    });
-  }
-});
-
 // Delete campaign
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    const [deletedCampaign] = await db
+      .delete(campaigns)
+      .where(eq(campaigns.id, id))
+      .returning();
+
+    if (!deletedCampaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
 
     res.json({
       success: true,
@@ -436,394 +292,114 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Clone campaign
-router.post('/:id/clone', async (req, res) => {
+// Toggle campaign active status
+router.patch('/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    
+    // Get current status
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id))
+      .limit(1);
 
-    if (!name) {
-      return res.status(400).json({
+    if (!campaign) {
+      return res.status(404).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'New campaign name is required'
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
         }
       });
     }
 
-    const cloned = {
-      id: `campaign-${Date.now()}`,
-      name,
-      description: 'Cloned campaign',
-      type: 'standard',
-      status: 'draft',
-      settings: {
-        goals: ['Convert leads'],
-        qualificationCriteria: {
-          minScore: 60,
-          requiredFields: ['email'],
-          requiredGoals: ['interested']
-        },
-        handoverCriteria: {
-          qualificationScore: 80,
-          conversationLength: 5,
-          timeThreshold: 30,
-          keywordTriggers: ['ready'],
-          goalCompletionRequired: ['qualified'],
-          handoverRecipients: []
-        },
-        channelPreferences: {
-          primary: 'email',
-          fallback: ['sms']
-        },
-        touchSequence: []
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Toggle status
+    const [updatedCampaign] = await db
+      .update(campaigns)
+      .set({
+        active: !campaign.active,
+        updatedAt: new Date()
+      })
+      .where(eq(campaigns.id, id))
+      .returning();
 
-    res.status(201).json({
+    res.json({
       success: true,
-      campaign: cloned,
-      message: 'Campaign cloned successfully'
+      campaign: updatedCampaign
     });
   } catch (error) {
-    console.error('Error cloning campaign:', error);
+    console.error('Error toggling campaign:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'CAMPAIGN_CLONE_ERROR',
-        message: 'Failed to clone campaign',
+        code: 'CAMPAIGN_TOGGLE_ERROR',
+        message: 'Failed to toggle campaign status',
         category: 'database'
       }
     });
   }
 });
 
-// Get campaign statistics
-router.get('/:id/stats', async (req, res) => {
+// Assign leads to campaign
+router.post('/:id/assign-leads', async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const stats = {
+    const { leadIds } = req.body;
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'leadIds must be a non-empty array'
+        }
+      });
+    }
+
+    // Check if campaign exists
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id))
+      .limit(1);
+
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+
+    // Enroll leads
+    const enrollments = leadIds.map(leadId => ({
+      leadId,
       campaignId: id,
-      totalLeads: 150,
-      emailsSent: 450,
-      opensCount: 180,
-      clicksCount: 45,
-      repliesCount: 12,
-      conversionsCount: 8,
-      openRate: 0.4,
-      clickRate: 0.25,
-      replyRate: 0.067,
-      conversionRate: 0.053,
-      topPerformingTemplates: [
-        { templateId: '1', name: 'Welcome Series', openRate: 0.45 },
-        { templateId: '2', name: 'Follow-up', openRate: 0.38 }
-      ],
-      engagement: {
-        byDay: Array.from({ length: 7 }, (_, i) => ({
-          day: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-          opens: Math.floor(Math.random() * 30) + 10,
-          clicks: Math.floor(Math.random() * 15) + 5
-        }))
-      }
-    };
+      status: 'active' as const,
+      currentStep: 0,
+      completed: false,
+      enrolledAt: new Date()
+    }));
+
+    await db
+      .insert(leadCampaignEnrollments)
+      .values(enrollments)
+      .onConflictDoNothing();
 
     res.json({
       success: true,
-      stats
+      message: `${leadIds.length} leads assigned to campaign`
     });
   } catch (error) {
-    console.error('Error fetching campaign stats:', error);
+    console.error('Error assigning leads:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'STATS_FETCH_ERROR',
-        message: 'Failed to fetch campaign statistics',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Campaign execution endpoints
-router.post('/execution/trigger', async (req, res) => {
-  try {
-    const validationResult = triggerCampaignSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid trigger data',
-          details: validationResult.error.errors
-        }
-      });
-    }
-
-    const { campaignId, leadIds, templateSequence } = validationResult.data;
-
-    res.json({
-      success: true,
-      message: `Campaign triggered for ${leadIds.length} leads`,
-      data: {
-        campaignId,
-        leadCount: leadIds.length,
-        templateCount: templateSequence?.length || 'default',
-        executionId: `exec-${Date.now()}`
-      }
-    });
-  } catch (error) {
-    console.error('Failed to trigger campaign:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CAMPAIGN_TRIGGER_ERROR',
-        message: 'Failed to trigger campaign',
-        category: 'processing'
-      }
-    });
-  }
-});
-
-router.post('/execution/auto-assign', async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      message: 'Auto-assignment completed',
-      data: {
-        assignedLeads: 25,
-        campaigns: 3
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Failed to auto-assign leads:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'AUTO_ASSIGN_ERROR',
-        message: 'Failed to auto-assign leads',
-        category: 'processing'
-      }
-    });
-  }
-});
-
-router.get('/execution/stats/:campaignId?', async (req, res) => {
-  try {
-    const { campaignId } = req.params;
-    
-    const stats = {
-      total: 100,
-      scheduled: 25,
-      executing: 5,
-      completed: 65,
-      failed: 5,
-      campaignId: campaignId || 'all'
-    };
-
-    res.json({
-      success: true,
-      data: stats,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Failed to get execution stats:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'EXECUTION_STATS_ERROR',
-        message: 'Failed to get execution statistics',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Multi-agent campaign specific endpoints
-router.get('/multi-agent', async (req, res) => {
-  try {
-    const { active, limit, offset } = req.query;
-    
-    // Filter for multi-agent campaigns only
-    const multiAgentCampaigns = [
-      {
-        id: 'multi-campaign-1',
-        name: 'Multi-Channel Outreach',
-        description: 'Campaign with multiple agents across channels',
-        type: 'multi-agent',
-        status: 'active',
-        settings: {
-          goals: ['Convert leads via multiple touchpoints'],
-          assignedAgents: [
-            {
-              agentId: 'agent-1',
-              channels: ['email'],
-              role: 'primary',
-              capabilities: { email: true, sms: false, chat: false }
-            },
-            {
-              agentId: 'agent-2', 
-              channels: ['sms'],
-              role: 'secondary',
-              capabilities: { email: false, sms: true, chat: false }
-            }
-          ],
-          coordinationStrategy: 'channel_specific',
-          messageCoordination: {
-            allowMultipleAgents: true,
-            messageGap: 60,
-            handoffEnabled: true,
-            syncSchedules: true
-          }
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ];
-
-    let filteredCampaigns = multiAgentCampaigns;
-    if (active === 'true') {
-      filteredCampaigns = multiAgentCampaigns.filter(c => c.status === 'active');
-    }
-
-    res.json({
-      success: true,
-      campaigns: filteredCampaigns,
-      total: filteredCampaigns.length
-    });
-  } catch (error) {
-    console.error('Error fetching multi-agent campaigns:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'MULTI_AGENT_FETCH_ERROR',
-        message: 'Failed to fetch multi-agent campaigns',
-        category: 'database'
-      }
-    });
-  }
-});
-
-router.get('/:id/coordination', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const coordination = {
-      campaignId: id,
-      strategy: 'channel_specific',
-      activeAgents: [
-        { agentId: 'agent-1', channel: 'email', status: 'active', lastAction: new Date().toISOString() },
-        { agentId: 'agent-2', channel: 'sms', status: 'standby', lastAction: null }
-      ],
-      messageGap: 60,
-      syncSchedules: true
-    };
-
-    res.json({
-      success: true,
-      coordination
-    });
-  } catch (error) {
-    console.error('Error fetching coordination status:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'COORDINATION_ERROR',
-        message: 'Failed to fetch coordination status',
-        category: 'processing'
-      }
-    });
-  }
-});
-
-router.post('/:id/coordinate-lead', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { leadId, strategy } = req.body;
-
-    if (!leadId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Lead ID is required'
-        }
-      });
-    }
-
-    const coordinations = [
-      {
-        agentId: 'agent-1',
-        channel: 'email',
-        scheduledFor: new Date().toISOString(),
-        action: 'send_welcome_email'
-      },
-      {
-        agentId: 'agent-2',
-        channel: 'sms',
-        scheduledFor: new Date(Date.now() + 3600000).toISOString(), // 1 hour later
-        action: 'send_follow_up_sms'
-      }
-    ];
-
-    res.json({
-      success: true,
-      coordinations,
-      message: `Coordinated ${coordinations.length} agent actions for lead ${leadId}`
-    });
-  } catch (error) {
-    console.error('Error coordinating agents for lead:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEAD_COORDINATION_ERROR',
-        message: 'Failed to coordinate agents for lead',
-        category: 'processing'
-      }
-    });
-  }
-});
-
-// Get available leads for campaign assignment
-router.get('/available-leads', async (req, res) => {
-  try {
-    const availableLeads = [
-      {
-        id: 'lead-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        phone: '+1234567890',
-        source: 'website',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'lead-2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane@example.com',
-        phone: '+1234567891',
-        source: 'referral',
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    res.json({
-      success: true,
-      leads: availableLeads,
-      total: availableLeads.length
-    });
-  } catch (error) {
-    console.error('Error fetching available leads:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEADS_FETCH_ERROR',
-        message: 'Failed to fetch available leads',
+        code: 'LEAD_ASSIGN_ERROR',
+        message: 'Failed to assign leads to campaign',
         category: 'database'
       }
     });
