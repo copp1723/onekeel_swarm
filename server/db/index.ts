@@ -9,13 +9,12 @@ import { db } from './client';
 import { 
   leads, 
   conversations, 
-  agentDecisions, 
   campaigns, 
   communications,
   agentConfigurations,
   users,
   auditLogs,
-  analytics,
+  analyticsEvents,
   clients,
   templates as emailTemplates,
   leadCampaignEnrollments
@@ -160,7 +159,7 @@ export class AgentDecisionsRepository {
       decision,
       reasoning,
       metadata,
-      createdAt: new Date()
+      timestamp: new Date()
     };
     
     // Handle both positional and object-based arguments
@@ -168,12 +167,42 @@ export class AgentDecisionsRepository {
       Object.assign(data, leadId);
     }
     
-    const [agentDecision] = await db.insert(agentDecisions).values(data).returning();
-    return agentDecision;
+    // Store agent decisions as analytics events with type 'agent_decision'
+    const [event] = await db.insert(analyticsEvents).values({
+      eventType: 'agent_decision',
+      eventName: `${data.agentType}_decision`,
+      userId: null,
+      metadata: data,
+      timestamp: new Date()
+    }).returning();
+    
+    return {
+      id: event.id,
+      leadId: data.leadId,
+      agentType: data.agentType,
+      decision: data.decision,
+      reasoning: data.reasoning,
+      metadata: data.metadata,
+      createdAt: event.timestamp
+    };
   }
   
   static async findByLeadId(leadId: string) {
-    return await db.select().from(agentDecisions).where(eq(agentDecisions.leadId, leadId));
+    const events = await db.select().from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.eventType, 'agent_decision'),
+        sql`metadata->>'leadId' = ${leadId}`
+      ));
+    
+    return events.map(e => ({
+      id: e.id,
+      leadId: e.metadata?.leadId,
+      agentType: e.metadata?.agentType,
+      decision: e.metadata?.decision,
+      reasoning: e.metadata?.reasoning,
+      metadata: e.metadata?.metadata,
+      createdAt: e.timestamp
+    }));
   }
 }
 
@@ -292,7 +321,7 @@ export class AuditLogRepository {
 
 export class AnalyticsRepository {
   static async create(data: any) {
-    const [analytic] = await db.insert(analytics).values({
+    const [analytic] = await db.insert(analyticsEvents).values({
       ...data,
       timestamp: new Date()
     }).returning();

@@ -30,6 +30,75 @@ export const validate = (schema: z.ZodType<any, any>) => {
   };
 };
 
+// Validation middleware that accepts schemas for different parts of the request
+export const validateRequest = (schemas: {
+  body?: z.ZodType<any, any>;
+  query?: z.ZodType<any, any>;
+  params?: z.ZodType<any, any>;
+}) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Validate body if schema provided
+      if (schemas.body) {
+        const bodyResult = schemas.body.safeParse(req.body);
+        if (!bodyResult.success) {
+          const validationError = fromZodError(bodyResult.error);
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Body validation failed',
+              details: validationError.toString(),
+              errors: bodyResult.error.errors
+            }
+          });
+        }
+        req.body = bodyResult.data;
+      }
+      
+      // Validate query if schema provided
+      if (schemas.query) {
+        const queryResult = schemas.query.safeParse(req.query);
+        if (!queryResult.success) {
+          const validationError = fromZodError(queryResult.error);
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Query validation failed',
+              details: validationError.toString(),
+              errors: queryResult.error.errors
+            }
+          });
+        }
+        req.query = queryResult.data;
+      }
+      
+      // Validate params if schema provided
+      if (schemas.params) {
+        const paramsResult = schemas.params.safeParse(req.params);
+        if (!paramsResult.success) {
+          const validationError = fromZodError(paramsResult.error);
+          return res.status(400).json({
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Params validation failed',
+              details: validationError.toString(),
+              errors: paramsResult.error.errors
+            }
+          });
+        }
+        req.params = paramsResult.data;
+      }
+      
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
 // Query validation middleware
 export const validateQuery = (schema: z.ZodType<any, any>) => {
   return (req: Request, res: Response, next: NextFunction) => {
