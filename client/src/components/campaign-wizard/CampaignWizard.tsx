@@ -200,8 +200,9 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
   const renderStepContent = () => {
     console.log('Campaign Wizard: Rendering step', currentStep);
-    switch (currentStep) {
-      case 'basics':
+    try {
+      switch (currentStep) {
+        case 'basics':
         return (
           <div className="space-y-4">
             <div>
@@ -904,8 +905,21 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
           </div>
         );
 
-      default:
-        return null;
+        default:
+          return (
+            <div className="p-4 text-center">
+              <p>Step not implemented: {currentStep}</p>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('Campaign Wizard render error:', error);
+      return (
+        <div className="p-4 text-center text-red-600">
+          <p>Error rendering step: {currentStep}</p>
+          <p className="text-sm">{error instanceof Error ? error.message : 'Unknown error'}</p>
+        </div>
+      );
     }
   };
 
