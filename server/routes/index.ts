@@ -3,6 +3,7 @@ import { Router } from 'express';
 // Import all route modules
 import authRoutes from './auth';
 import agentsRoutes from './agents';
+import agentTemplatesRoutes from './agent-templates';
 import campaignsRoutes from './campaigns';
 import emailRoutes from './email';
 import leadsRoutes from './leads';
@@ -19,6 +20,7 @@ const router = Router();
 // Mount all routes with their respective prefixes
 router.use('/auth', authRoutes);
 router.use('/agents', agentsRoutes);
+router.use('/agent-templates', agentTemplatesRoutes);
 router.use('/campaigns', campaignsRoutes);
 router.use('/email', emailRoutes);
 router.use('/leads', leadsRoutes);
@@ -40,6 +42,7 @@ router.get('/health', (req, res) => {
     routes: [
       '/auth',
       '/agents', 
+      '/agent-templates',
       '/campaigns',
       '/email',
       '/leads',
@@ -83,6 +86,19 @@ router.get('/docs', (req, res) => {
           'GET /agents/type/:type',
           'GET /agents/active/:type',
           'GET /agents/decisions/lead/:leadId'
+        ]
+      },
+      '/agent-templates': {
+        description: 'Preconfigured agent templates with sophisticated system prompts',
+        endpoints: [
+          'GET /agent-templates',
+          'GET /agent-templates/:id',
+          'GET /agent-templates/category/:category',
+          'POST /agent-templates',
+          'PUT /agent-templates/:id',
+          'DELETE /agent-templates/:id',
+          'POST /agent-templates/:id/clone',
+          'POST /agent-templates/:id/create-agent'
         ]
       },
       '/campaigns': {
@@ -216,6 +232,7 @@ export function registerRoutes(app: any) {
 export {
   authRoutes,
   agentsRoutes,
+  agentTemplatesRoutes,
   campaignsRoutes,
   emailRoutes,
   leadsRoutes,

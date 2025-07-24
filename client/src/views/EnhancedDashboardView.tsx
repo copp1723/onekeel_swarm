@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PerformanceMetrics } from '@/components/dashboard/PerformanceMetrics';
+import { ReportingSnapshot } from '@/components/dashboard/ReportingSnapshot';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useTerminology } from '@/hooks/useTerminology';
 import { 
@@ -183,6 +184,13 @@ export const EnhancedDashboardView: React.FC = () => {
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Key Performance Indicators</h2>
         <PerformanceMetrics />
+      </div>
+
+      {/* Reporting Snapshot */}
+      <div className="mb-6">
+        <ReportingSnapshot 
+          onViewAll={() => window.location.href = '/campaigns'} 
+        />
       </div>
 
       {/* Campaign Performance */}

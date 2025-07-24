@@ -113,6 +113,40 @@ export const agentConfigurations = pgTable('agent_configurations', {
   }
 });
 
+// Agent Templates table - for preconfigured agent templates
+export const agentTemplates = pgTable('agent_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  type: agentTypeEnum('type').notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  
+  // Core Configuration
+  systemPrompt: text('system_prompt').notNull(),
+  contextNote: text('context_note'),
+  temperature: integer('temperature').default(7),
+  maxTokens: integer('max_tokens').default(500),
+  
+  // Template-specific settings
+  configurableParams: jsonb('configurable_params').default([]),
+  defaultParams: jsonb('default_params').default({}),
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    nameIdx: index('agent_templates_name_idx').on(table.name),
+    typeIdx: index('agent_templates_type_idx').on(table.type),
+    categoryIdx: index('agent_templates_category_idx').on(table.category),
+    isDefaultIdx: index('agent_templates_is_default_idx').on(table.isDefault)
+  }
+});
+
 // Leads table - core business entity
 export const leads = pgTable('leads', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -607,6 +641,9 @@ export type NewClient = typeof clients.$inferInsert;
 
 export type AgentConfiguration = typeof agentConfigurations.$inferSelect;
 export type NewAgentConfiguration = typeof agentConfigurations.$inferInsert;
+
+export type AgentTemplate = typeof agentTemplates.$inferSelect;
+export type NewAgentTemplate = typeof agentTemplates.$inferInsert;
 
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;

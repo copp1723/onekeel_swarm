@@ -13,7 +13,7 @@ export const DashboardView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -77,7 +77,7 @@ export const DashboardView: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">New lead imported</p>
+                  <p className="text-sm font-medium">New contact imported</p>
                   <p className="text-xs text-gray-500">john.doe@example.com</p>
                 </div>
                 <span className="text-xs text-gray-500">2 min ago</span>
@@ -94,7 +94,7 @@ export const DashboardView: React.FC = () => {
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Email sent</p>
-                  <p className="text-xs text-gray-500">Welcome email to 45 leads</p>
+                  <p className="text-xs text-gray-500">Welcome email to 45 contacts</p>
                 </div>
                 <span className="text-xs text-gray-500">1 hour ago</span>
               </div>
@@ -112,8 +112,8 @@ export const DashboardView: React.FC = () => {
           <CardContent>
             <div className="space-y-3">
               <button className="w-full text-left p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                <div className="font-medium">Import Leads</div>
-                <div className="text-sm text-gray-500">Upload CSV file with lead data</div>
+                <div className="font-medium">Import Contacts</div>
+                <div className="text-sm text-gray-500">Upload CSV file with contact data</div>
               </button>
               <button className="w-full text-left p-3 rounded-lg border hover:bg-gray-50 transition-colors">
                 <div className="font-medium">Create Campaign</div>

@@ -7,6 +7,88 @@ import { validateRequest } from '../middleware/validation';
 
 const router = Router();
 
+// Get campaign metrics for reporting
+router.get('/metrics', async (req, res) => {
+  try {
+    const { limit = 5, sort = 'recent' } = req.query;
+    
+    // Mock data for now - replace with real DB queries
+    const campaigns = [
+      {
+        id: '1',
+        name: 'Q4 Car Loan Refinance',
+        status: 'active',
+        metrics: {
+          sent: 2456,
+          openRate: 68.5,
+          replyRate: 12.3,
+          handovers: 89,
+          conversionRate: 8.7
+        }
+      },
+      {
+        id: '2',
+        name: 'Holiday Personal Loan',
+        status: 'completed',
+        metrics: {
+          sent: 1823,
+          openRate: 72.1,
+          replyRate: 15.8,
+          handovers: 124,
+          conversionRate: 11.2
+        }
+      },
+      {
+        id: '3',
+        name: 'Auto Loan Re-engage',
+        status: 'active',
+        metrics: {
+          sent: 945,
+          openRate: 45.3,
+          replyRate: 8.9,
+          handovers: 34,
+          conversionRate: 4.2
+        }
+      },
+      {
+        id: '4',
+        name: 'New Year Special',
+        status: 'completed',
+        metrics: {
+          sent: 3210,
+          openRate: 55.7,
+          replyRate: 10.2,
+          handovers: 145,
+          conversionRate: 9.8
+        }
+      },
+      {
+        id: '5',
+        name: 'Summer Promo',
+        status: 'paused',
+        metrics: {
+          sent: 1567,
+          openRate: 62.3,
+          replyRate: 13.5,
+          handovers: 78,
+          conversionRate: 7.4
+        }
+      }
+    ];
+    
+    res.json({
+      success: true,
+      campaigns: campaigns.slice(0, Number(limit))
+    });
+  } catch (error) {
+    console.error('Error fetching campaign metrics:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch campaign metrics' 
+    });
+  }
+});
+
 // Get all campaigns
 router.get('/', async (req, res) => {
   try {

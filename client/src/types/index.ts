@@ -37,4 +37,47 @@ export interface Campaign {
   status: string;
   createdAt: string;
   updatedAt: string;
-} 
+}
+
+export type AgentType = 'email' | 'sms' | 'chat' | 'overlord';
+
+export interface UnifiedAgentConfig {
+  id: string;
+  name: string;
+  type: AgentType;
+  active: boolean;
+  isActive?: boolean;
+  role?: string;
+  endGoal?: string;
+  systemPrompt?: string;
+  contextNote?: string;
+  temperature: number;
+  maxTokens: number;
+  personality?: string | { tone: string; style: string; traits: string[] };
+  tone?: string;
+  responseLength?: string;
+  domainExpertise?: string[];
+  instructions?: string[] | { dos: string[]; donts: string[] };
+  apiModel?: string;
+  capabilities?: Record<string, boolean>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: AgentType;
+  category: string;
+  isDefault: boolean;
+  systemPrompt: string;
+  contextNote?: string;
+  temperature: number;
+  maxTokens: number;
+  configurableParams: string[];
+  defaultParams: Record<string, string>;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}

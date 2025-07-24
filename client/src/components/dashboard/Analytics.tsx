@@ -25,8 +25,8 @@ export function DashboardAnalytics() {
       {/* Lead Activity Chart */}
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>Weekly Lead Activity</CardTitle>
-          <CardDescription>Leads received and qualified this week</CardDescription>
+          <CardTitle>Weekly Contact Activity</CardTitle>
+          <CardDescription>Contacts received and qualified this week</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -35,7 +35,7 @@ export function DashboardAnalytics() {
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="leads" fill="#3B82F6" name="Total Leads" />
+              <Bar dataKey="leads" fill="#3B82F6" name="Total Contacts" />
               <Bar dataKey="qualified" fill="#10B981" name="Qualified" />
             </BarChart>
           </ResponsiveContainer>
@@ -45,8 +45,8 @@ export function DashboardAnalytics() {
       {/* Status Distribution */}
       <Card className="col-span-1">
         <CardHeader>
-          <CardTitle>Lead Status Distribution</CardTitle>
-          <CardDescription>Current status breakdown of all leads</CardDescription>
+          <CardTitle>Contact Status Distribution</CardTitle>
+          <CardDescription>Current status breakdown of all contacts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center">
@@ -99,7 +99,7 @@ export function QuickActions() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer">
             <div className="w-8 h-8 bg-blue-500 rounded-full mb-2"></div>
-            <span className="text-sm font-medium text-gray-900">Import Leads</span>
+            <span className="text-sm font-medium text-gray-900">Import Contacts</span>
           </div>
           <div className="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors cursor-pointer">
             <div className="w-8 h-8 bg-green-500 rounded-full mb-2"></div>

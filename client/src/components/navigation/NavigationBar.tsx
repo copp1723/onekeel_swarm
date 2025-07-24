@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Target, 
-  Settings, 
-  ChevronDown, 
+import {
+  Users,
+  Target,
+  Settings,
+  ChevronDown,
   Activity,
   Brain,
   Copy,
   Building,
   UserCog,
-  Flag
+  Flag,
+  Sparkles
 } from 'lucide-react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,41 +67,14 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   // Define navigation structures
   const legacyNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'leads', label: useContactsTerminology ? 'Contacts' : 'Leads', icon: Users },
-    { id: 'conversations', label: 'Conversations', icon: Brain },
-    { id: 'agents', label: 'Agents', icon: Brain },
-    { id: 'campaigns', label: 'Campaigns', icon: Target },
-    { id: 'templates', label: 'Templates', icon: Copy },
-    { id: 'clients', label: 'Clients', icon: Building },
-    { id: 'branding', label: 'Branding', icon: Settings }
+    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
+    { id: 'conversations', label: 'Communication', icon: Brain }
   ];
 
   const modernNavigation: NavigationItem[] = [
-    { 
-      id: 'people-group',
-      label: useContactsTerminology ? 'Contacts' : 'People',
-      icon: Users,
-      views: ['dashboard', 'leads', 'conversations']
-    },
-    { 
-      id: 'campaigns', 
-      label: 'Campaigns', 
-      icon: Target 
-    },
-    {
-      id: 'settings-group',
-      label: 'Settings',
-      icon: Settings,
-      views: ['agents', 'templates', 'clients', 'branding'],
-      children: [
-        { id: 'agents', label: 'Agents', icon: Brain },
-        { id: 'templates', label: 'Templates', icon: Copy },
-        { id: 'clients', label: 'Clients', icon: Building },
-        { id: 'branding', label: 'Branding', icon: Settings },
-        { id: 'users' as ViewType, label: 'Users', icon: UserCog, adminOnly: true },
-        { id: 'feature-flags' as ViewType, label: 'Feature Flags', icon: Flag, adminOnly: true }
-      ]
-    }
+    { id: 'dashboard', label: 'Dashboard', icon: Activity },
+    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
+    { id: 'conversations', label: 'Communication', icon: Brain }
   ];
 
   const navigation = useNewNavigation ? modernNavigation : legacyNavigation;

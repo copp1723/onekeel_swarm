@@ -202,7 +202,7 @@ const mockInsights: AIInsight[] = [
     id: '1',
     type: 'pattern',
     title: 'Email-SMS Sequence Optimization',
-    description: 'Leads respond 34% better when SMS follows email within 2-4 hours rather than immediately.',
+    description: 'Contacts respond 34% better when SMS follows email within 2-4 hours rather than immediately.',
     confidence: 87,
     impact: 'high',
     actionable: true
@@ -211,7 +211,7 @@ const mockInsights: AIInsight[] = [
     id: '2',
     type: 'optimization',
     title: 'Channel Preference Learning',
-    description: 'Chat agent identifies lead preferences 23% faster when email agent shares initial interaction context.',
+    description: 'Chat agent identifies contact preferences 23% faster when email agent shares initial interaction context.',
     confidence: 92,
     impact: 'medium',
     actionable: true
@@ -220,7 +220,7 @@ const mockInsights: AIInsight[] = [
     id: '3',
     type: 'prediction',
     title: 'Qualification Timing',
-    description: 'Leads are 45% more likely to qualify when contacted between 10-11 AM on weekdays.',
+    description: 'Contacts are 45% more likely to qualify when contacted between 10-11 AM on weekdays.',
     confidence: 78,
     impact: 'high',
     actionable: false
