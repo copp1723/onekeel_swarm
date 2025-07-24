@@ -22,6 +22,7 @@ import { communicationHubService } from './services/communication-hub-service';
 import { StartupService } from './services/startup-service';
 import { WebSocketMessageHandler } from './websocket/message-handler';
 import { LeadProcessor } from './services/lead-processor';
+import { initializeCronJobs } from './services/cron-service';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -246,6 +247,14 @@ server.listen(config.port, async () => {
   } else {
     logger.info('Email monitor not started - IMAP configuration missing');
   }
+  
+  // Initialize cron jobs
+  try {
+    await initializeCronJobs();
+    logger.info('Cron jobs initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize cron jobs', error as Error);
+  }
 });
 
 // Graceful shutdown
@@ -262,6 +271,9 @@ const shutdown = async () => {
   
   await enhancedEmailMonitor.stop();
   if (memoryMonitor) clearInterval(memoryMonitor);
+  
+  // Shutdown cron service
+  cronService.clearAllTasks();
   
   server.close(async () => {
     try {
