@@ -10,6 +10,26 @@ const router = Router();
 // Mount templates sub-router
 router.use('/templates', emailTemplatesRouter);
 
+// Email configuration status endpoint
+router.get('/config/status', (req, res) => {
+  const status = {
+    configured: false,
+    domain: process.env.MAILGUN_DOMAIN || null,
+    apiKeyPresent: !!process.env.MAILGUN_API_KEY,
+    fromEmail: process.env.MAILGUN_FROM_EMAIL || null,
+    provider: process.env.EMAIL_PROVIDER || 'mailgun'
+  };
+  
+  // Check if service is properly configured
+  status.configured = !!emailService.service && status.apiKeyPresent && !!status.domain;
+  
+  res.json({
+    success: true,
+    data: status,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Email schedule routes
 router.get('/schedules', async (req, res) => {
   try {
@@ -137,11 +157,18 @@ router.post('/send', validateRequest({ body: sendEmailSchema }), async (req, res
     
     // Check if email service is configured
     if (!emailService.service) {
+      const configStatus = {
+        domain: process.env.MAILGUN_DOMAIN || 'Not set',
+        apiKeyPresent: !!process.env.MAILGUN_API_KEY,
+        configured: false
+      };
+      
       return res.status(503).json({
         success: false,
         error: {
           code: 'EMAIL_NOT_CONFIGURED',
           message: 'Email service is not properly configured.',
+          details: configStatus
         }
       });
     }
@@ -178,11 +205,18 @@ router.post('/test', validateRequest({
     
     // Check if email service is configured
     if (!emailService.service) {
+      const configStatus = {
+        domain: process.env.MAILGUN_DOMAIN || 'Not set',
+        apiKeyPresent: !!process.env.MAILGUN_API_KEY,
+        configured: false
+      };
+      
       return res.status(503).json({
         success: false,
         error: {
           code: 'EMAIL_NOT_CONFIGURED',
           message: 'Email service is not properly configured.',
+          details: configStatus
         }
       });
     }

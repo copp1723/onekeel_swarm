@@ -1,5 +1,6 @@
 import { EmailService, EmailProviderConfig } from './types';
 import { MailgunService } from './providers/mailgun';
+import { MockEmailService } from './providers/mock';
 
 export class EmailServiceFactory {
   static createService(config: EmailProviderConfig): EmailService {
@@ -31,9 +32,13 @@ export class EmailServiceFactory {
   static createServiceFromEnv(): EmailService | null {
     const provider = process.env.EMAIL_PROVIDER as 'mailgun' | 'sendgrid' | 'ses' | 'smtp' | undefined;
     
-    if (!provider) {
-      console.warn('No email provider configured');
-      return null;
+    // If no provider configured or we're using mock database, use mock email service
+    const dbUrl = process.env.DATABASE_URL || '';
+    const useMock = !provider || dbUrl.startsWith('mock://') || process.env.USE_MOCK_EMAIL === 'true';
+    
+    if (useMock) {
+      console.log('Using mock email service (no email provider configured or mock mode)');
+      return new MockEmailService();
     }
 
     switch (provider) {
