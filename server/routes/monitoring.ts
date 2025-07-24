@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
+import { db } from '../db/client';
+import { leads, conversations, campaigns, communications, leadCampaignEnrollments } from '../db/schema';
+import { sql, gte, and, eq } from 'drizzle-orm';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -700,6 +704,110 @@ campaigns_active_total 8
   } catch (error) {
     console.error('Error generating metrics:', error);
     res.status(500).send('Error retrieving metrics');
+  }
+});
+
+// Get performance metrics for dashboard
+router.get('/performance', requireAuth, async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // Get total leads count
+    const [{ totalLeads }] = await db
+      .select({ totalLeads: sql<number>`count(*)::int` })
+      .from(leads);
+    
+    // Get new leads today
+    const [{ newLeadsToday }] = await db
+      .select({ newLeadsToday: sql<number>`count(*)::int` })
+      .from(leads)
+      .where(gte(leads.createdAt, today));
+    
+    // Get active conversations
+    const [{ activeConversations }] = await db
+      .select({ activeConversations: sql<number>`count(*)::int` })
+      .from(conversations)
+      .where(eq(conversations.status, 'active'));
+    
+    // Get conversion metrics
+    const [{ totalConverted }] = await db
+      .select({ totalConverted: sql<number>`count(*)::int` })
+      .from(leads)
+      .where(eq(leads.status, 'converted'));
+    
+    const conversionRate = totalLeads > 0 ? (totalConverted / totalLeads * 100) : 0;
+    
+    // Get campaign engagement
+    const campaignStats = await db
+      .select({
+        totalSent: sql<number>`count(distinct ${leadCampaignEnrollments.leadId})::int`,
+        totalCompleted: sql<number>`count(case when ${leadCampaignEnrollments.completed} then 1 end)::int`
+      })
+      .from(leadCampaignEnrollments);
+    
+    const campaignEngagement = campaignStats[0].totalSent > 0 
+      ? (campaignStats[0].totalCompleted / campaignStats[0].totalSent * 100) 
+      : 0;
+    
+    // Get response metrics
+    const [{ totalResponses }] = await db
+      .select({ totalResponses: sql<number>`count(*)::int` })
+      .from(communications)
+      .where(
+        and(
+          eq(communications.direction, 'inbound'),
+          gte(communications.createdAt, thisMonth)
+        )
+      );
+    
+    const [{ totalOutbound }] = await db
+      .select({ totalOutbound: sql<number>`count(*)::int` })
+      .from(communications)
+      .where(
+        and(
+          eq(communications.direction, 'outbound'),
+          gte(communications.createdAt, thisMonth)
+        )
+      );
+    
+    const responseRate = totalOutbound > 0 ? (totalResponses / totalOutbound * 100) : 0;
+    
+    // Calculate average response time (mock for now)
+    const avgResponseTime = '2.3 min';
+    
+    // Calculate total revenue (mock for now - would come from actual revenue data)
+    const totalRevenue = totalConverted * 1000; // $1000 per conversion as example
+    
+    res.json({
+      success: true,
+      metrics: {
+        totalLeads,
+        newLeadsToday,
+        activeConversations,
+        conversionRate: parseFloat(conversionRate.toFixed(1)),
+        campaignEngagement: parseFloat(campaignEngagement.toFixed(1)),
+        responseRate: parseFloat(responseRate.toFixed(1)),
+        totalRevenue,
+        avgResponseTime
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching performance metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'METRICS_FETCH_ERROR',
+        message: 'Failed to fetch performance metrics',
+        category: 'database'
+      }
+    });
   }
 });
 

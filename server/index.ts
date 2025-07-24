@@ -15,6 +15,7 @@ import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
+import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { enhancedEmailMonitor } from './services/enhanced-email-monitor-mock';
 import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
@@ -126,6 +127,9 @@ app.get('/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// Apply terminology middleware before routes
+applyTerminologyMiddleware(app);
 
 // Register all routes
 registerRoutes(app);

@@ -6,11 +6,13 @@ import agentsRoutes from './agents';
 import campaignsRoutes from './campaigns';
 import emailRoutes from './email';
 import leadsRoutes from './leads';
+import contactsRoutes from './contacts';
 import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
 import featureFlagsRoutes from './feature-flags';
+import navigationRoutes from './navigation-aliases';
 
 const router = Router();
 
@@ -20,11 +22,13 @@ router.use('/agents', agentsRoutes);
 router.use('/campaigns', campaignsRoutes);
 router.use('/email', emailRoutes);
 router.use('/leads', leadsRoutes);
+router.use('/contacts', contactsRoutes); // Dual terminology support
 router.use('/conversations', conversationsRoutes);
 router.use('/clients', clientsRoutes);
 router.use('/users', usersRoutes);
 router.use('/monitoring', monitoringRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
+router.use('/navigation', navigationRoutes); // Navigation configuration and aliases
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {
@@ -39,11 +43,13 @@ router.get('/health', (req, res) => {
       '/campaigns',
       '/email',
       '/leads',
+      '/contacts',
       '/conversations',
       '/clients',
       '/users',
       '/monitoring',
-      '/feature-flags'
+      '/feature-flags',
+      '/navigation'
     ]
   });
 });
@@ -117,6 +123,19 @@ router.get('/docs', (req, res) => {
           'POST /leads/:id/send-message'
         ]
       },
+      '/contacts': {
+        description: 'Contact management and tracking (dual terminology support)',
+        endpoints: [
+          'GET /contacts',
+          'GET /contacts/:id',
+          'POST /contacts',
+          'PUT /contacts/:id',
+          'DELETE /contacts/:id',
+          'POST /contacts/import',
+          'PATCH /contacts/:id/status',
+          'GET /contacts/meta/terminology'
+        ]
+      },
       '/conversations': {
         description: 'Conversation management across channels',
         endpoints: [
@@ -172,6 +191,14 @@ router.get('/docs', (req, res) => {
           'POST /feature-flags/admin/:flagKey/enable',
           'GET /feature-flags/health'
         ]
+      },
+      '/navigation': {
+        description: 'Navigation configuration and route aliases',
+        endpoints: [
+          'GET /navigation/config',
+          'GET /navigation/route-aliases',
+          'GET /navigation/breadcrumbs'
+        ]
       }
     }
   });
@@ -192,9 +219,11 @@ export {
   campaignsRoutes,
   emailRoutes,
   leadsRoutes,
+  contactsRoutes,
   conversationsRoutes,
   clientsRoutes,
   usersRoutes,
   monitoringRoutes,
-  featureFlagsRoutes
+  featureFlagsRoutes,
+  navigationRoutes
 };

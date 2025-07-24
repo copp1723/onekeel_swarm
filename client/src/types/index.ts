@@ -6,7 +6,9 @@ export type ViewType =
   | 'agents'
   | 'campaigns'
   | 'clients'
-  | 'templates';
+  | 'templates'
+  | 'users'
+  | 'feature-flags';
 
 export interface User {
   id: string;
