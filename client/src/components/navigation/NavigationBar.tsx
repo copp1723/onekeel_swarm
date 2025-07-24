@@ -10,7 +10,9 @@ import {
   Building,
   UserCog,
   Flag,
-  Sparkles
+  Sparkles,
+  Mail,
+  Palette
 } from 'lucide-react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +44,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 }) => {
   const { user } = useAuth();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const [showAgentsDropdown, setShowAgentsDropdown] = useState(false);
   
   // Feature flags
   const { enabled: useNewNavigation } = useFeatureFlag('ui.new-navigation');
@@ -50,13 +53,21 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const dropdown = document.getElementById('settings-dropdown');
-      const button = document.getElementById('settings-button');
+      const settingsDropdown = document.getElementById('settings-dropdown');
+      const settingsButton = document.getElementById('settings-button');
+      const agentsDropdown = document.getElementById('agents-dropdown');
+      const agentsButton = document.getElementById('agents-button');
       
-      if (dropdown && button && 
-          !dropdown.contains(event.target as Node) && 
-          !button.contains(event.target as Node)) {
+      if (settingsDropdown && settingsButton && 
+          !settingsDropdown.contains(event.target as Node) && 
+          !settingsButton.contains(event.target as Node)) {
         setShowSettingsDropdown(false);
+      }
+      
+      if (agentsDropdown && agentsButton && 
+          !agentsDropdown.contains(event.target as Node) && 
+          !agentsButton.contains(event.target as Node)) {
+        setShowAgentsDropdown(false);
       }
     };
     
@@ -68,13 +79,45 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   const legacyNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain }
+    { id: 'conversations', label: 'Communication', icon: Brain },
+    { id: 'agents', label: 'Agents', icon: Brain },
+    {
+      id: 'settings-group',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        { id: 'branding', label: 'Branding', icon: Palette },
+        { id: 'email-settings', label: 'Email Settings', icon: Mail },
+        { id: 'users', label: 'Users', icon: Users, adminOnly: true },
+        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
+      ]
+    }
   ];
 
   const modernNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain }
+    { id: 'conversations', label: 'Communication', icon: Brain },
+    { 
+      id: 'agents-group', 
+      label: 'Agents', 
+      icon: Brain,
+      children: [
+        { id: 'agents', label: 'My Agents', icon: UserCog },
+        { id: 'agent-templates', label: 'Agent Templates', icon: Copy }
+      ]
+    },
+    {
+      id: 'settings-group',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        { id: 'branding', label: 'Branding', icon: Palette },
+        { id: 'email-settings', label: 'Email Settings', icon: Mail },
+        { id: 'users', label: 'Users', icon: Users, adminOnly: true },
+        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
+      ]
+    }
   ];
 
   const navigation = useNewNavigation ? modernNavigation : legacyNavigation;
@@ -91,6 +134,10 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   const handleNavigationClick = (item: NavigationItem) => {
     if (item.id === 'settings-group') {
       setShowSettingsDropdown(!showSettingsDropdown);
+      setShowAgentsDropdown(false);
+    } else if (item.id === 'agents-group') {
+      setShowAgentsDropdown(!showAgentsDropdown);
+      setShowSettingsDropdown(false);
     } else if (item.id === 'people-group') {
       // Default to leads/contacts view when clicking people tab
       setActiveView('leads');

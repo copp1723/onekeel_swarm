@@ -4,11 +4,13 @@ export type ViewType =
   | 'conversations'
   | 'branding'
   | 'agents'
+  | 'agent-templates'
   | 'campaigns'
   | 'clients'
   | 'templates'
   | 'users'
-  | 'feature-flags';
+  | 'feature-flags'
+  | 'email-settings';
 
 export interface User {
   id: string;

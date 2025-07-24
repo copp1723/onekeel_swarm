@@ -152,6 +152,127 @@ router.post('/send', validateRequest({ body: sendEmailSchema }), async (req, res
   }
 });
 
+// Test email endpoint
+router.post('/test', validateRequest({ 
+  body: z.object({
+    to: z.string().email(),
+    type: z.enum(['simple', 'template', 'campaign']).default('simple')
+  })
+}), async (req, res) => {
+  try {
+    const { to, type } = req.body;
+    
+    // Check if email service is configured
+    if (!mailgunService.isConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_CONFIGURED',
+          message: 'Email service is not properly configured. Please check MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables.',
+          details: mailgunService.getStatus()
+        }
+      });
+    }
+    
+    let result;
+    
+    switch (type) {
+      case 'simple':
+        // Send a simple test email
+        result = await mailgunService.sendEmail({
+          to,
+          subject: 'Test Email from OneKeel Swarm',
+          html: `
+            <h2>Test Email Successfully Sent!</h2>
+            <p>This is a test email from your OneKeel Swarm system.</p>
+            <p>If you're receiving this, your email configuration is working correctly.</p>
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+              Sent at: ${new Date().toLocaleString()}<br>
+              Domain: ${process.env.MAILGUN_DOMAIN || 'Not configured'}
+            </p>
+          `,
+          text: 'Test Email Successfully Sent! This is a test email from your OneKeel Swarm system.'
+        });
+        break;
+        
+      case 'template':
+        // Send a test email using a template
+        const templateVars = {
+          firstName: 'Test',
+          lastName: 'User',
+          email: to,
+          companyName: 'OneKeel Swarm'
+        };
+        
+        result = await mailgunService.sendEmail({
+          to,
+          subject: mailgunService.processTemplate('Welcome {{firstName}}!', templateVars),
+          html: mailgunService.processTemplate(`
+            <h2>Welcome {{firstName}} {{lastName}}!</h2>
+            <p>This is a test template email from {{companyName}}.</p>
+            <p>Your email {{email}} has been successfully added to our system.</p>
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+              This demonstrates variable replacement in email templates.
+            </p>
+          `, templateVars)
+        });
+        break;
+        
+      case 'campaign':
+        // Send a test campaign-style email
+        result = await mailgunService.sendEmail({
+          to,
+          subject: 'Special Offer Just for You!',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #333;">Exclusive Offer Inside!</h1>
+              <p>Hi there,</p>
+              <p>This is a test of our campaign email system. In a real campaign, this would include:</p>
+              <ul>
+                <li>Personalized content based on lead data</li>
+                <li>Dynamic offers and CTAs</li>
+                <li>Tracking pixels for open rates</li>
+                <li>Click tracking for engagement metrics</li>
+              </ul>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="#" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">
+                  Click Here to Learn More
+                </a>
+              </div>
+              <p style="color: #666; font-size: 12px; margin-top: 30px;">
+                This is a test email. In production, this would include unsubscribe links and proper tracking.
+              </p>
+            </div>
+          `
+        });
+        break;
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        result,
+        type,
+        to,
+        timestamp: new Date().toISOString(),
+        emailService: mailgunService.getStatus()
+      }
+    });
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'TEST_EMAIL_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to send test email',
+        category: 'email'
+      }
+    });
+  }
+});
+
 // Email monitoring routes
 router.get('/monitoring/rules', async (req, res) => {
   try {

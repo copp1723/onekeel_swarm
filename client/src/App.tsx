@@ -33,6 +33,7 @@ import { AgentManagementView } from '@/views/AgentManagementView';
 import { MultiAgentCampaignView } from '@/views/MultiAgentCampaignView';
 import { UsersView } from '@/views/UsersView';
 import { FeatureFlagDashboard } from '@/components/FeatureFlagDashboard';
+import { EmailSettingsView } from '@/views/EmailSettingsView';
 
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -53,6 +54,7 @@ function AppContent() {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const terminology = useTerminology();
   const { enabled: useEnhancedDashboard } = useFeatureFlag('ui.enhanced-dashboard');
+  const { enabled: useNewNavigation } = useFeatureFlag('ui.new-navigation');
 
 
   if (isLoading) {
@@ -147,16 +149,18 @@ function AppContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && (useEnhancedDashboard ? <EnhancedDashboardView /> : <DashboardView />)}
-        {activeView === 'clients' && <ClientManagementView />}
-        {activeView === 'leads' && <LeadsView onImportLeads={() => setShowImport(true)} />}
-        {activeView === 'agents' && <AgentsView />}
-        {activeView === 'campaigns' && <CampaignsView />}
-        {activeView === 'templates' && <TemplateLibraryView />}
         {activeView === 'intelligence' && <CampaignIntelligenceView />}
         {activeView === 'conversations' && <ConversationsView />}
+        {activeView === 'leads' && <LeadsView />}
         {activeView === 'branding' && <BrandingManagementView />}
-        {activeView === ('users' as ViewType) && <UsersView />}
-        {activeView === ('feature-flags' as ViewType) && <FeatureFlagDashboard />}
+        {activeView === 'agents' && <AgentsView />}
+        {activeView === 'agent-templates' && <AgentManagementView />}
+        {activeView === 'campaigns' && <CampaignsView />}
+        {activeView === 'clients' && <ClientManagementView />}
+        {activeView === 'templates' && <TemplateLibraryView />}
+        {activeView === 'users' && <UsersView />}
+        {activeView === 'feature-flags' && <FeatureFlagDashboard />}
+        {activeView === 'email-settings' && <EmailSettingsView />}
       </div>
     </div>
   );
