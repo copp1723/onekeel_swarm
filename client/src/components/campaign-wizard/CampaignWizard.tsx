@@ -293,7 +293,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
           
           Papa.parse(file, {
             header: true,
-            complete: (results) => {
+            complete: (results: Papa.ParseResult<any>) => {
               if (results.errors.length > 0) {
                 setCsvError(`CSV parsing error: ${results.errors[0].message}`);
                 return;
@@ -319,7 +319,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
               let foundEmail = false;
               let foundFirstName = false;
               
-              limitedHeaders.forEach((header) => {
+              limitedHeaders.forEach((header: string) => {
                 const headerLower = header.toLowerCase().trim();
                 
                 // Check for email variations
@@ -362,7 +362,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
               // Process contacts with limited columns
               const contacts = results.data.map((row: any) => {
                 const contact: any = {};
-                limitedHeaders.forEach((header) => {
+                limitedHeaders.forEach((header: string) => {
                   contact[header] = row[header];
                 });
                 return contact;
@@ -382,7 +382,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
                 }
               }));
             },
-            error: (error) => {
+            error: (error: Error) => {
               setCsvError(`Error reading file: ${error.message}`);
             }
           });
