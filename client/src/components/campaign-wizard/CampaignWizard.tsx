@@ -181,7 +181,9 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
   const handleNext = () => {
     const stepIndex = steps.findIndex(s => s.id === currentStep);
     if (stepIndex < steps.length - 1) {
-      setCurrentStep(steps[stepIndex + 1].id);
+      const nextStep = steps[stepIndex + 1].id;
+      console.log('Campaign Wizard: Moving from', currentStep, 'to', nextStep);
+      setCurrentStep(nextStep);
     }
   };
 
@@ -197,6 +199,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
   };
 
   const renderStepContent = () => {
+    console.log('Campaign Wizard: Rendering step', currentStep);
     switch (currentStep) {
       case 'basics':
         return (

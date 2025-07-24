@@ -3,19 +3,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
-import { CampaignWizard } from '@/components/campaign-wizard';
+import { CampaignWizardWrapper } from '@/components/campaign-wizard';
 
 export const CampaignsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load agents
-    fetch('/api/agents')
-      .then(res => res.json())
-      .then(data => setAgents(data.agents || []))
-      .catch(console.error);
+    // Load agents with proper error handling
+    const loadAgents = async () => {
+      try {
+        setAgentsLoading(true);
+        setAgentsError(null);
+        
+        const response = await fetch('/api/agents');
+        if (!response.ok) {
+          throw new Error(`Failed to load agents: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setAgents(data.agents || []);
+      } catch (error) {
+        console.error('Error loading agents:', error);
+        setAgentsError(error instanceof Error ? error.message : 'Unknown error');
+        
+        // Set fallback agents if API fails
+        setAgents([
+          { id: 'fallback-1', name: 'Email Agent', type: 'email' },
+          { id: 'fallback-2', name: 'Sales Agent', type: 'email' }
+        ]);
+      } finally {
+        setAgentsLoading(false);
+      }
+    };
+
+    loadAgents();
   }, []);
 
   return (
@@ -28,13 +53,15 @@ export const CampaignsView: React.FC = () => {
         <div className="flex items-center space-x-2">
           <Button 
             onClick={() => setShowWizard(true)} 
-            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
+            disabled={agentsLoading}
+            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
           >
             <Wand2 className="h-4 w-4" />
-            <span>Create Campaign</span>
+            <span>{agentsLoading ? 'Loading...' : 'Create Campaign'}</span>
           </Button>
           <Button 
             onClick={() => setShowCreateForm(true)} 
+            disabled={agentsLoading}
             variant="outline"
             className="flex items-center space-x-2"
           >
@@ -44,8 +71,8 @@ export const CampaignsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Campaign Wizard Sidebar */}
-      <CampaignWizard
+      {/* Campaign Wizard with Error Boundary */}
+      <CampaignWizardWrapper
         isOpen={showWizard}
         onClose={() => setShowWizard(false)}
         onComplete={(campaign) => {
