@@ -29,6 +29,7 @@ interface AgentConfiguratorProps {
 export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfiguratorProps) {
   const [formData, setFormData] = useState({
     name: '',
+    type: 'email' as 'email' | 'sms' | 'chat' | 'overlord',
     role: '',
     endGoal: '',
     instructions: {
@@ -210,12 +211,16 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
     // Clean up empty instructions and expertise
     const cleanedData = {
       ...formData,
+      active: formData.isActive, // Map isActive to active for API
       instructions: {
         dos: formData.instructions.dos.filter(d => d.trim() !== ''),
         donts: formData.instructions.donts.filter(d => d.trim() !== '')
       },
       domainExpertise: formData.domainExpertise.filter(e => e.trim() !== '')
     };
+    
+    // Remove the isActive field since we mapped it to active
+    delete (cleanedData as any).isActive;
 
     onSave(cleanedData);
   };
@@ -234,7 +239,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Agent Name</Label>
               <Input
@@ -266,6 +271,23 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                 placeholder="e.g., Senior Account Executive"
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">Agent Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => handleInputChange('type', value)}
+              >
+                <SelectTrigger id="type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Email Agent</SelectItem>
+                  <SelectItem value="sms">SMS Agent</SelectItem>
+                  <SelectItem value="chat">Chat Agent</SelectItem>
+                  <SelectItem value="overlord">Overlord Agent</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
