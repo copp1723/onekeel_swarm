@@ -4,6 +4,8 @@ import { db } from '../db/client';
 import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { campaignExecutionEngine } from '../services/campaign-execution-engine';
+import { EmailServiceFactory } from '../services/email/factory';
 
 const router = Router();
 
@@ -483,6 +485,92 @@ router.post('/:id/assign-leads', async (req, res) => {
         code: 'LEAD_ASSIGN_ERROR',
         message: 'Failed to assign leads to campaign',
         category: 'database'
+      }
+    });
+  }
+});
+
+// Campaign execution trigger endpoint
+const triggerCampaignSchema = z.object({
+  campaignId: z.string().min(1),
+  leadIds: z.array(z.string()).min(1),
+  templates: z.array(z.object({
+    subject: z.string(),
+    body: z.string()
+  })).optional()
+});
+
+router.post('/execution/trigger', validateRequest(triggerCampaignSchema), async (req, res) => {
+  try {
+    const { campaignId, leadIds, templates } = req.body;
+    
+    // Get lead details from database
+    const leadDetails = await db
+      .select()
+      .from(leads)
+      .where(sql`${leads.id} IN (${sql.join(leadIds.map(id => sql`${id}`), sql`, `)})`)
+      .limit(leadIds.length);
+    
+    if (leadDetails.length === 0) {
+      throw new Error('No valid leads found');
+    }
+    
+    // Send first template email to each lead
+    const emailService = EmailServiceFactory.create();
+    let emailsSent = 0;
+    const errors: string[] = [];
+    
+    for (const lead of leadDetails) {
+      try {
+        // Use the first template if provided
+        const template = templates && templates[0] ? templates[0] : {
+          subject: 'Your Auto Loan Pre-Approval is Ready',
+          body: `Hello ${lead.name || 'there'},\n\nGreat news! You've been pre-approved for an auto loan with competitive rates.`
+        };
+        
+        const result = await emailService.sendEmail({
+          to: lead.email,
+          subject: template.subject,
+          html: `<div style="font-family: Arial, sans-serif;">${template.body.replace(/\n/g, '<br>')}</div>`,
+          text: template.body
+        });
+        
+        if (result.success) {
+          emailsSent++;
+        } else {
+          errors.push(`Failed to send to ${lead.email}: ${result.error}`);
+        }
+      } catch (error) {
+        errors.push(`Error sending to ${lead.email}: ${error}`);
+      }
+    }
+    
+    // Also trigger the campaign execution engine for follow-ups
+    try {
+      await campaignExecutionEngine.triggerCampaign(campaignId, leadIds);
+    } catch (error) {
+      console.error('Campaign execution engine error:', error);
+    }
+    
+    res.json({
+      success: true,
+      message: `Campaign triggered for ${leadDetails.length} leads. ${emailsSent} emails sent.`,
+      data: {
+        campaignId,
+        leadCount: leadDetails.length,
+        emailsSent,
+        errors: errors.length > 0 ? errors : undefined,
+        executionId: `exec-${Date.now()}`
+      }
+    });
+  } catch (error) {
+    console.error('Failed to trigger campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CAMPAIGN_TRIGGER_ERROR',
+        message: 'Failed to trigger campaign',
+        details: error instanceof Error ? error.message : 'Unknown error'
       }
     });
   }

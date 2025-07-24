@@ -82,6 +82,40 @@ export const CampaignsView: React.FC = () => {
     try {
       setError(null);
       
+      // First, create leads from CSV contacts if they exist
+      let leadIds: string[] = [];
+      if (campaignData.audience.contacts && campaignData.audience.contacts.length > 0) {
+        const { contacts, headerMapping } = campaignData.audience;
+        
+        // Create leads from CSV data
+        for (const contact of contacts) {
+          try {
+            const leadPayload = {
+              email: contact[headerMapping.email],
+              name: contact[headerMapping.firstName] || 'Unknown',
+              phone: contact[headerMapping.phone] || '',
+              source: 'csv_import',
+              metadata: contact
+            };
+            
+            const leadResponse = await fetch('/api/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(leadPayload)
+            });
+            
+            if (leadResponse.ok) {
+              const leadResult = await leadResponse.json();
+              if (leadResult.lead && leadResult.lead.id) {
+                leadIds.push(leadResult.lead.id);
+              }
+            }
+          } catch (error) {
+            console.error('Error creating lead:', error);
+          }
+        }
+      }
+      
       // Transform wizard data to match API schema
       const payload = {
         name: campaignData.name,
@@ -111,7 +145,7 @@ export const CampaignsView: React.FC = () => {
             delayHours: 0
           }))
         },
-        selectedLeads: campaignData.audience.leadIds || [],
+        selectedLeads: leadIds,
         active: true
       };
 
@@ -130,7 +164,7 @@ export const CampaignsView: React.FC = () => {
       const result = await response.json();
       
       // Trigger the campaign to start sending emails
-      if (result.campaign && result.campaign.id && campaignData.audience.leadIds && campaignData.audience.leadIds.length > 0) {
+      if (result.campaign && result.campaign.id && leadIds.length > 0) {
         const triggerResponse = await fetch('/api/campaigns/execution/trigger', {
           method: 'POST',
           headers: {
@@ -138,7 +172,7 @@ export const CampaignsView: React.FC = () => {
           },
           body: JSON.stringify({
             campaignId: result.campaign.id,
-            leadIds: campaignData.audience.leadIds,
+            leadIds: leadIds,
             templates: campaignData.templates // Pass the generated templates
           })
         });
