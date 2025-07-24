@@ -128,8 +128,33 @@ export const CampaignsView: React.FC = () => {
       }
 
       const result = await response.json();
-      setSuccessMessage(`Campaign "${campaignData.name}" created successfully!`);
-      setTimeout(() => setSuccessMessage(null), 5000);
+      
+      // Trigger the campaign to start sending emails
+      if (result.campaign && result.campaign.id && campaignData.audience.leadIds && campaignData.audience.leadIds.length > 0) {
+        const triggerResponse = await fetch('/api/campaigns/execution/trigger', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            campaignId: result.campaign.id,
+            leadIds: campaignData.audience.leadIds,
+            templates: campaignData.templates // Pass the generated templates
+          })
+        });
+        
+        if (!triggerResponse.ok) {
+          console.error('Failed to trigger campaign:', await triggerResponse.text());
+          setSuccessMessage(`Campaign "${campaignData.name}" created but not started. Please trigger manually.`);
+        } else {
+          const triggerResult = await triggerResponse.json();
+          setSuccessMessage(`Campaign "${campaignData.name}" created and started! Sending emails to ${triggerResult.data.leadCount} leads.`);
+        }
+      } else {
+        setSuccessMessage(`Campaign "${campaignData.name}" created successfully!`);
+      }
+      
+      setTimeout(() => setSuccessMessage(null), 7000);
       
       // Reload campaigns list
       await loadCampaigns();
