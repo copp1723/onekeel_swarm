@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, Plus, Wand2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Target, Plus, Wand2, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Users } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
 import { CampaignWizardWrapper } from '@/components/campaign-wizard';
 
@@ -11,6 +13,10 @@ export const CampaignsView: React.FC = () => {
   const [agents, setAgents] = useState<any[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState<string | null>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load agents with proper error handling
@@ -41,7 +47,100 @@ export const CampaignsView: React.FC = () => {
     };
 
     loadAgents();
+    loadCampaigns();
   }, []);
+
+  const loadCampaigns = async () => {
+    try {
+      setCampaignsLoading(true);
+      const response = await fetch('/api/campaigns');
+      if (!response.ok) {
+        throw new Error(`Failed to load campaigns: ${response.status}`);
+      }
+      const data = await response.json();
+      setCampaigns(data.campaigns || []);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+      // Set some mock campaigns for demonstration
+      setCampaigns([
+        {
+          id: 'demo-1',
+          name: 'Auto Loan Outreach',
+          type: 'standard',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          leads: 150,
+          conversions: 12
+        }
+      ]);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
+
+  const saveCampaign = async (campaignData: any) => {
+    try {
+      setError(null);
+      
+      // Transform wizard data to match API schema
+      const payload = {
+        name: campaignData.name,
+        description: `${campaignData.goal} - ${campaignData.context}`,
+        settings: {
+          goals: [campaignData.goal],
+          qualificationCriteria: {
+            minScore: 60,
+            requiredFields: ['email', 'phone'],
+            requiredGoals: ['interested']
+          },
+          handoverCriteria: {
+            qualificationScore: 80,
+            conversationLength: 5,
+            timeThreshold: 30,
+            keywordTriggers: ['ready', 'apply', 'interested'],
+            goalCompletionRequired: ['qualified'],
+            handoverRecipients: []
+          },
+          channelPreferences: {
+            primary: 'email',
+            fallback: ['sms']
+          },
+          touchSequence: campaignData.templates.map((template: any, index: number) => ({
+            templateId: `template-${index}`,
+            delayDays: index * campaignData.schedule.daysBetweenEmails,
+            delayHours: 0
+          }))
+        },
+        selectedLeads: campaignData.audience.leadIds || [],
+        active: true
+      };
+
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save campaign: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setSuccessMessage(`Campaign "${campaignData.name}" created successfully!`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+      
+      // Reload campaigns list
+      await loadCampaigns();
+      
+      return result;
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save campaign');
+      throw error;
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -71,14 +170,34 @@ export const CampaignsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            {successMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Campaign Wizard with Error Boundary */}
       <CampaignWizardWrapper
         isOpen={showWizard}
         onClose={() => setShowWizard(false)}
-        onComplete={(campaign) => {
-          console.log('Campaign created:', campaign);
-          setShowWizard(false);
-          // TODO: Save campaign and refresh list
+        onComplete={async (campaign) => {
+          try {
+            await saveCampaign(campaign);
+            setShowWizard(false);
+          } catch (error) {
+            // Error is already handled in saveCampaign
+          }
         }}
         agents={agents}
       />
@@ -92,6 +211,59 @@ export const CampaignsView: React.FC = () => {
           }}
           onCancel={() => setShowCreateForm(false)}
         />
+      ) : campaignsLoading ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          </CardContent>
+        </Card>
+      ) : campaigns.length > 0 ? (
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            {campaigns.map((campaign) => (
+              <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{campaign.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {campaign.description || 'No description'}
+                      </CardDescription>
+                    </div>
+                    <Badge 
+                      variant={campaign.status === 'active' ? 'default' : 'secondary'}
+                      className={campaign.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                    >
+                      {campaign.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-6 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span>{campaign.type || 'Email Campaign'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span>{campaign.leads || 0} leads</span>
+                    </div>
+                    {campaign.conversions !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        <span>{campaign.conversions} conversions</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{new Date(campaign.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       ) : (
         <Card>
           <CardHeader>

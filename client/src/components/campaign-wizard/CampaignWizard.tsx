@@ -927,35 +927,35 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-[500px] sm:max-w-[500px]">
-        <SheetHeader>
+      <SheetContent className="w-[600px] sm:max-w-[600px] h-full overflow-hidden flex flex-col">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle>Create Campaign</SheetTitle>
           <SheetDescription>
             Follow the wizard to set up your AI-powered campaign
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6">
+        <div className="flex-1 overflow-hidden flex flex-col mt-6">
           {/* Progress Steps */}
-          <div className="mb-8">
+          <div className="mb-6 flex-shrink-0">
             <div className="flex items-center justify-between relative">
               {steps.map((step, index) => (
                 <div key={step.id} className="flex flex-col items-center relative z-10">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                       index <= currentStepIndex
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-200 text-gray-400'
                     }`}
                   >
-                    {step.icon}
+                    {React.cloneElement(step.icon as React.ReactElement, { className: 'h-3 w-3' })}
                   </div>
-                  <span className="text-xs mt-2 text-center max-w-[60px]">
+                  <span className="text-xs mt-1 text-center max-w-[50px] leading-tight">
                     {step.label}
                   </span>
                 </div>
               ))}
-              <div className="absolute top-5 left-0 right-0 h-[2px] bg-gray-200 -z-10">
+              <div className="absolute top-4 left-0 right-0 h-[2px] bg-gray-200 -z-10">
                 <div
                   className="h-full bg-purple-600 transition-all duration-300"
                   style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
@@ -964,13 +964,15 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
             </div>
           </div>
 
-          {/* Step Content */}
-          <div className="min-h-[300px]">
-            {renderStepContent()}
+          {/* Step Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto px-1 min-h-0">
+            <div className="pb-4">
+              {renderStepContent()}
+            </div>
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between mt-8 pt-4 border-t">
+          {/* Navigation - Fixed at bottom */}
+          <div className="flex justify-between pt-4 border-t flex-shrink-0">
             <Button
               variant="outline"
               onClick={handlePrevious}
