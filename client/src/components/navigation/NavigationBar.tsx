@@ -81,6 +81,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
     { id: 'conversations', label: 'Communication', icon: Brain },
     { id: 'agents', label: 'Agents', icon: Brain },
+    { id: 'agent-templates', label: 'Agent Templates', icon: Copy },
     {
       id: 'settings-group',
       label: 'Settings',
