@@ -89,6 +89,124 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
 
+  // Define onDrop callback for file upload - must be defined at top level for hooks
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setCsvError('');
+    
+    if (acceptedFiles.length === 0) {
+      return;
+    }
+    
+    const file = acceptedFiles[0];
+    setUploadedFileName(file.name);
+    
+    Papa.parse(file, {
+      header: true,
+      complete: (results: Papa.ParseResult<any>) => {
+        if (results.errors.length > 0) {
+          setCsvError(`CSV parsing error: ${results.errors[0].message}`);
+          return;
+        }
+        
+        if (!results.data || results.data.length === 0) {
+          setCsvError('CSV file is empty');
+          return;
+        }
+        
+        // Get headers
+        const headers = results.meta.fields || [];
+        if (headers.length === 0) {
+          setCsvError('No headers found in CSV file');
+          return;
+        }
+        
+        // Limit to first 10 columns
+        const limitedHeaders = headers.slice(0, 10);
+        
+        // Auto-map headers for First Name and Email
+        const headerMapping: Record<string, string> = {};
+        let foundEmail = false;
+        let foundFirstName = false;
+        
+        limitedHeaders.forEach((header: string) => {
+          const headerLower = header.toLowerCase().trim();
+          
+          // Check for email variations
+          if (!foundEmail && (
+            headerLower === 'email' ||
+            headerLower === 'email address' ||
+            headerLower === 'emailaddress' ||
+            headerLower === 'e-mail' ||
+            headerLower === 'mail'
+          )) {
+            headerMapping['email'] = header;
+            foundEmail = true;
+          }
+          
+          // Check for first name variations
+          if (!foundFirstName && (
+            headerLower === 'first name' ||
+            headerLower === 'firstname' ||
+            headerLower === 'first_name' ||
+            headerLower === 'fname' ||
+            headerLower === 'given name' ||
+            headerLower === 'givenname'
+          )) {
+            headerMapping['firstName'] = header;
+            foundFirstName = true;
+          }
+        });
+        
+        // Validation
+        if (!foundEmail) {
+          setCsvError('Required column "Email" not found. Please ensure your CSV has a column with email addresses.');
+          return;
+        }
+        
+        if (!foundFirstName) {
+          setCsvError('Required column "First Name" not found. Please ensure your CSV has a column with first names.');
+          return;
+        }
+        
+        // Process contacts with limited columns
+        const contacts = results.data.map((row: any) => {
+          const contact: any = {};
+          limitedHeaders.forEach((header: string) => {
+            contact[header] = row[header];
+          });
+          return contact;
+        }).filter((contact: any) => {
+          // Filter out empty rows
+          return contact[headerMapping['email']] && contact[headerMapping['firstName']];
+        });
+        
+        // Update campaign data
+        setCampaignData(prev => ({
+          ...prev,
+          audience: {
+            ...prev.audience,
+            contacts: contacts,
+            headerMapping: headerMapping,
+            targetCount: contacts.length
+          }
+        }));
+      },
+      error: (error: Error) => {
+        setCsvError(`Error reading file: ${error.message}`);
+      }
+    });
+  }, [setCampaignData, setCsvError, setUploadedFileName]);
+
+  // useDropzone hook must be called at top level
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv']
+    },
+    maxFiles: 1
+  });
+
   const enhanceWithAI = (field: string) => {
     // Simulate AI enhancement
     if (field === 'description') {
@@ -285,122 +403,6 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
         );
 
       case 'audience':
-        const onDrop = useCallback((acceptedFiles: File[]) => {
-          setCsvError('');
-          
-          if (acceptedFiles.length === 0) {
-            return;
-          }
-          
-          const file = acceptedFiles[0];
-          setUploadedFileName(file.name);
-          
-          Papa.parse(file, {
-            header: true,
-            complete: (results: Papa.ParseResult<any>) => {
-              if (results.errors.length > 0) {
-                setCsvError(`CSV parsing error: ${results.errors[0].message}`);
-                return;
-              }
-              
-              if (!results.data || results.data.length === 0) {
-                setCsvError('CSV file is empty');
-                return;
-              }
-              
-              // Get headers
-              const headers = results.meta.fields || [];
-              if (headers.length === 0) {
-                setCsvError('No headers found in CSV file');
-                return;
-              }
-              
-              // Limit to first 10 columns
-              const limitedHeaders = headers.slice(0, 10);
-              
-              // Auto-map headers for First Name and Email
-              const headerMapping: Record<string, string> = {};
-              let foundEmail = false;
-              let foundFirstName = false;
-              
-              limitedHeaders.forEach((header: string) => {
-                const headerLower = header.toLowerCase().trim();
-                
-                // Check for email variations
-                if (!foundEmail && (
-                  headerLower === 'email' ||
-                  headerLower === 'email address' ||
-                  headerLower === 'emailaddress' ||
-                  headerLower === 'e-mail' ||
-                  headerLower === 'mail'
-                )) {
-                  headerMapping['email'] = header;
-                  foundEmail = true;
-                }
-                
-                // Check for first name variations
-                if (!foundFirstName && (
-                  headerLower === 'first name' ||
-                  headerLower === 'firstname' ||
-                  headerLower === 'first_name' ||
-                  headerLower === 'fname' ||
-                  headerLower === 'given name' ||
-                  headerLower === 'givenname'
-                )) {
-                  headerMapping['firstName'] = header;
-                  foundFirstName = true;
-                }
-              });
-              
-              // Validation
-              if (!foundEmail) {
-                setCsvError('Required column "Email" not found. Please ensure your CSV has a column with email addresses.');
-                return;
-              }
-              
-              if (!foundFirstName) {
-                setCsvError('Required column "First Name" not found. Please ensure your CSV has a column with first names.');
-                return;
-              }
-              
-              // Process contacts with limited columns
-              const contacts = results.data.map((row: any) => {
-                const contact: any = {};
-                limitedHeaders.forEach((header: string) => {
-                  contact[header] = row[header];
-                });
-                return contact;
-              }).filter((contact: any) => {
-                // Filter out empty rows
-                return contact[headerMapping['email']] && contact[headerMapping['firstName']];
-              });
-              
-              // Update campaign data
-              setCampaignData(prev => ({
-                ...prev,
-                audience: {
-                  ...prev.audience,
-                  contacts: contacts,
-                  headerMapping: headerMapping,
-                  targetCount: contacts.length
-                }
-              }));
-            },
-            error: (error: Error) => {
-              setCsvError(`Error reading file: ${error.message}`);
-            }
-          });
-        }, [setCampaignData, setCsvError, setUploadedFileName]);
-        
-        const { getRootProps, getInputProps, isDragActive } = useDropzone({
-          onDrop,
-          accept: {
-            'text/csv': ['.csv'],
-            'application/vnd.ms-excel': ['.csv']
-          },
-          maxFiles: 1
-        });
-        
         return (
           <div className="space-y-4">
             <div className="bg-blue-50 p-4 rounded-lg">

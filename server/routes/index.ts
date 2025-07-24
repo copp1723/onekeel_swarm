@@ -1,10 +1,10 @@
 import { Router } from 'express';
+import { apiDocumentationService } from '../services/api-documentation';
 
 // Import all route modules
 import authRoutes from './auth';
-import agentsRoutes from './agents';
+import { getAgentsRouter, getCampaignsRouter, getFeatureFlagsRouter } from './router-selector';
 import agentTemplatesRoutes from './agent-templates';
-import campaignsRoutes from './campaigns';
 import emailRoutes from './email';
 import leadsRoutes from './leads';
 import contactsRoutes from './contacts';
@@ -12,8 +12,12 @@ import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
-import featureFlagsRoutes from './feature-flags';
 import navigationRoutes from './navigation-aliases';
+
+// Get the appropriate routers based on environment
+const agentsRoutes = getAgentsRouter();
+const campaignsRoutes = getCampaignsRouter();
+const featureFlagsRoutes = getFeatureFlagsRouter();
 
 const router = Router();
 
@@ -57,8 +61,13 @@ router.get('/health', (req, res) => {
   });
 });
 
-// API documentation endpoint
+// API documentation endpoint with enhanced documentation service
 router.get('/docs', (req, res) => {
+  apiDocumentationService.handleDocsRequest(req, res);
+});
+
+// Legacy docs endpoint for backwards compatibility
+router.get('/docs/legacy', (req, res) => {
   res.json({
     title: 'OneKeel Swarm API',
     version: '1.0.0',

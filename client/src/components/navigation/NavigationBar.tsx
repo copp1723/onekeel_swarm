@@ -12,7 +12,8 @@ import {
   Flag,
   Sparkles,
   Mail,
-  Palette
+  Palette,
+  MessageCircle
 } from 'lucide-react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,10 +80,16 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   const legacyNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'campaigns', label: 'Campaigns', icon: Target },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain },
-    { id: 'agents', label: 'Agents', icon: Brain },
-    { id: 'agent-templates', label: 'Agent Templates', icon: Copy },
+    { id: 'conversations', label: 'Communication', icon: MessageCircle },
+    {
+      id: 'agents-group',
+      label: 'Agents',
+      icon: Brain,
+      children: [
+        { id: 'agents', label: 'My Agents', icon: UserCog },
+        { id: 'agent-templates', label: 'Templates', icon: Copy }
+      ]
+    },
     {
       id: 'settings-group',
       label: 'Settings',
@@ -99,15 +106,14 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   const modernNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'campaigns', label: 'Campaigns', icon: Target },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain },
+    { id: 'conversations', label: 'Communication', icon: MessageCircle },
     { 
       id: 'agents-group', 
       label: 'Agents', 
       icon: Brain,
       children: [
         { id: 'agents', label: 'My Agents', icon: UserCog },
-        { id: 'agent-templates', label: 'Agent Templates', icon: Copy }
+        { id: 'agent-templates', label: 'Templates', icon: Copy }
       ]
     },
     {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
-import { mailgunService, emailTemplateManager, emailScheduler } from '../services/email';
+import emailService, { emailTemplateManager, emailScheduler } from '../services/email';
 import emailTemplatesRouter from './email-templates-db';
 
 const router = Router();
@@ -12,7 +12,7 @@ router.use('/templates', emailTemplatesRouter);
 // Email schedule routes
 router.get('/schedules', async (req, res) => {
   try {
-    const schedules = emailScheduler.getSchedules();
+    const schedules = emailScheduler.getAllSchedules();
     res.json({
       success: true,
       data: schedules,
@@ -127,12 +127,25 @@ router.post('/send', validateRequest({ body: sendEmailSchema }), async (req, res
       }
       
       const rendered = emailTemplateManager.renderTemplate(emailData.templateId, emailData.variables || {});
-      emailData.subject = rendered.subject || emailData.subject;
-      emailData.html = rendered.html;
-      emailData.text = rendered.text;
+      if (rendered) {
+        emailData.subject = rendered.subject || emailData.subject;
+        emailData.html = rendered.html;
+        emailData.text = rendered.text;
+      }
     }
     
-    const result = await mailgunService.sendEmail(emailData);
+    // Check if email service is configured
+    if (!emailService.service) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_CONFIGURED',
+          message: 'Email service is not properly configured.',
+        }
+      });
+    }
+    
+    const result = await emailService.service.sendEmail(emailData);
     
     res.json({
       success: true,
@@ -163,13 +176,12 @@ router.post('/test', validateRequest({
     const { to, type } = req.body;
     
     // Check if email service is configured
-    if (!mailgunService.isConfigured()) {
+    if (!emailService.service) {
       return res.status(503).json({
         success: false,
         error: {
           code: 'EMAIL_NOT_CONFIGURED',
-          message: 'Email service is not properly configured. Please check MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables.',
-          details: mailgunService.getStatus()
+          message: 'Email service is not properly configured.',
         }
       });
     }
@@ -179,7 +191,7 @@ router.post('/test', validateRequest({
     switch (type) {
       case 'simple':
         // Send a simple test email
-        result = await mailgunService.sendEmail({
+        result = await emailService.service.sendEmail({
           to,
           subject: 'Test Email from OneKeel Swarm',
           html: `
@@ -205,10 +217,10 @@ router.post('/test', validateRequest({
           companyName: 'OneKeel Swarm'
         };
         
-        result = await mailgunService.sendEmail({
+        result = await emailService.service.sendEmail({
           to,
-          subject: mailgunService.processTemplate('Welcome {{firstName}}!', templateVars),
-          html: mailgunService.processTemplate(`
+          subject: emailService.service.processTemplate('Welcome {{firstName}}!', templateVars),
+          html: emailService.service.processTemplate(`
             <h2>Welcome {{firstName}} {{lastName}}!</h2>
             <p>This is a test template email from {{companyName}}.</p>
             <p>Your email {{email}} has been successfully added to our system.</p>
@@ -222,7 +234,7 @@ router.post('/test', validateRequest({
         
       case 'campaign':
         // Send a test campaign-style email
-        result = await mailgunService.sendEmail({
+        result = await emailService.service.sendEmail({
           to,
           subject: 'Special Offer Just for You!',
           html: `
@@ -257,7 +269,7 @@ router.post('/test', validateRequest({
         type,
         to,
         timestamp: new Date().toISOString(),
-        emailService: mailgunService.getStatus()
+        emailService: emailService.service.getStatus()
       }
     });
   } catch (error) {
