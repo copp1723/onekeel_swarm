@@ -107,10 +107,16 @@ export const useFeatureFlag = (flagKey: string) => {
 
     try {
       const context: FeatureFlagContext = {
-        userId: user?.id,
-        userRole: user?.role as any,
         environment: (import.meta.env.VITE_ENVIRONMENT || 'development') as any,
       };
+
+      // Only add user fields if they exist (don't send null values)
+      if (user?.id) {
+        context.userId = user.id;
+      }
+      if (user?.role) {
+        context.userRole = user.role as any;
+      }
 
       const isEnabled = await featureFlagClient.isEnabled(flagKey, context);
       setEnabled(isEnabled);
@@ -153,10 +159,16 @@ export const useFeatureFlags = (flagKeys: string[]) => {
 
     try {
       const context: FeatureFlagContext = {
-        userId: user?.id,
-        userRole: user?.role as any,
         environment: (import.meta.env.VITE_ENVIRONMENT || 'development') as any,
       };
+
+      // Only add user fields if they exist (don't send null values)
+      if (user?.id) {
+        context.userId = user.id;
+      }
+      if (user?.role) {
+        context.userRole = user.role as any;
+      }
 
       const results: Record<string, boolean> = {};
       
@@ -201,10 +213,16 @@ export const useAllFeatureFlags = () => {
 
     try {
       const context: FeatureFlagContext = {
-        userId: user?.id,
-        userRole: user?.role as any,
         environment: (import.meta.env.VITE_ENVIRONMENT || 'development') as any,
       };
+
+      // Only add user fields if they exist (don't send null values)
+      if (user?.id) {
+        context.userId = user.id;
+      }
+      if (user?.role) {
+        context.userRole = user.role as any;
+      }
 
       const allFlags = await featureFlagClient.getAllFlags(context);
       setFlags(allFlags);
