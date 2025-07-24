@@ -8,7 +8,7 @@ import { CampaignWizardWrapper } from '@/components/campaign-wizard';
 export const CampaignsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [agents, setAgents] = useState([]);
+  const [agents, setAgents] = useState<any[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState<string | null>(null);
 
