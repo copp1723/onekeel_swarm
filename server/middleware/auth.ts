@@ -175,6 +175,9 @@ export const ownsResourceOr = (ownerIdParam: string, ...allowedRoles: Array<'adm
   };
 };
 
+// Alias for backward compatibility
+export const requireAuth = authenticate;
+
 // Role hierarchy helper
 export const roleHierarchy = {
   admin: 4,
