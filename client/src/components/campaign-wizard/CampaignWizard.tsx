@@ -24,7 +24,8 @@ import {
   Clock,
   Zap,
   Plus,
-  FileText
+  FileText,
+  Upload
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -39,6 +40,8 @@ type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'sch
 export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [datasets, setDatasets] = useState<any[]>([]);
+  const [csvError, setCsvError] = useState<string>('');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [campaignData, setCampaignData] = useState({
     name: '',
     description: '',
@@ -64,7 +67,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
         link: ''
       }
     },
-    templates: [],
+    templates: [] as any[],
     schedule: {
       startDate: '',
       totalEmails: 5,
@@ -272,43 +275,227 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
         );
 
       case 'audience':
+        const onDrop = useCallback((acceptedFiles: File[]) => {
+          setCsvError('');
+          
+          if (acceptedFiles.length === 0) {
+            return;
+          }
+          
+          const file = acceptedFiles[0];
+          setUploadedFileName(file.name);
+          
+          Papa.parse(file, {
+            header: true,
+            complete: (results) => {
+              if (results.errors.length > 0) {
+                setCsvError(`CSV parsing error: ${results.errors[0].message}`);
+                return;
+              }
+              
+              if (!results.data || results.data.length === 0) {
+                setCsvError('CSV file is empty');
+                return;
+              }
+              
+              // Get headers
+              const headers = results.meta.fields || [];
+              if (headers.length === 0) {
+                setCsvError('No headers found in CSV file');
+                return;
+              }
+              
+              // Limit to first 10 columns
+              const limitedHeaders = headers.slice(0, 10);
+              
+              // Auto-map headers for First Name and Email
+              const headerMapping: Record<string, string> = {};
+              let foundEmail = false;
+              let foundFirstName = false;
+              
+              limitedHeaders.forEach((header) => {
+                const headerLower = header.toLowerCase().trim();
+                
+                // Check for email variations
+                if (!foundEmail && (
+                  headerLower === 'email' ||
+                  headerLower === 'email address' ||
+                  headerLower === 'emailaddress' ||
+                  headerLower === 'e-mail' ||
+                  headerLower === 'mail'
+                )) {
+                  headerMapping['email'] = header;
+                  foundEmail = true;
+                }
+                
+                // Check for first name variations
+                if (!foundFirstName && (
+                  headerLower === 'first name' ||
+                  headerLower === 'firstname' ||
+                  headerLower === 'first_name' ||
+                  headerLower === 'fname' ||
+                  headerLower === 'given name' ||
+                  headerLower === 'givenname'
+                )) {
+                  headerMapping['firstName'] = header;
+                  foundFirstName = true;
+                }
+              });
+              
+              // Validation
+              if (!foundEmail) {
+                setCsvError('Required column "Email" not found. Please ensure your CSV has a column with email addresses.');
+                return;
+              }
+              
+              if (!foundFirstName) {
+                setCsvError('Required column "First Name" not found. Please ensure your CSV has a column with first names.');
+                return;
+              }
+              
+              // Process contacts with limited columns
+              const contacts = results.data.map((row: any) => {
+                const contact: any = {};
+                limitedHeaders.forEach((header) => {
+                  contact[header] = row[header];
+                });
+                return contact;
+              }).filter((contact: any) => {
+                // Filter out empty rows
+                return contact[headerMapping['email']] && contact[headerMapping['firstName']];
+              });
+              
+              // Update campaign data
+              setCampaignData(prev => ({
+                ...prev,
+                audience: {
+                  ...prev.audience,
+                  contacts: contacts,
+                  headerMapping: headerMapping,
+                  targetCount: contacts.length
+                }
+              }));
+            },
+            error: (error) => {
+              setCsvError(`Error reading file: ${error.message}`);
+            }
+          });
+        }, [setCampaignData, setCsvError, setUploadedFileName]);
+        
+        const { getRootProps, getInputProps, isDragActive } = useDropzone({
+          onDrop,
+          accept: {
+            'text/csv': ['.csv'],
+            'application/vnd.ms-excel': ['.csv']
+          },
+          maxFiles: 1
+        });
+        
         return (
           <div className="space-y-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="flex items-center space-x-2 mb-2">
                 <FileText className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Select Dataset</h4>
+                <h4 className="font-medium text-blue-900">Upload Contact List</h4>
               </div>
               <p className="text-sm text-blue-700">
-                Choose the dataset from your uploads that contains your target contacts.
+                Upload a CSV file with your contact list. The file must include "First Name" and "Email" columns.
               </p>
             </div>
-            <div className="space-y-3">
-              <select
-                className="w-full border rounded p-2"
-                value={campaignData.audience.datasetId}
-                onChange={(e) =>
-                  setCampaignData(prev => ({
-                    ...prev,
-                    audience: { ...prev.audience, datasetId: e.target.value }
-                  }))
-                }
-              >
-                <option value="" disabled>
-                  Select a dataset
-                </option>
-                {datasets.map((dataset: any) => (
-                  <option key={dataset.id} value={dataset.id}>
-                    {dataset.name}
-                  </option>
-                ))}
-              </select>
-              {!campaignData.audience.datasetId && (
-                <div className="text-center py-8 text-gray-500">
-                  No dataset selected. Please choose a dataset from your uploads.
+            
+            {campaignData.audience.contacts.length === 0 ? (
+              <div>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  {isDragActive ? (
+                    <p className="text-sm text-blue-600">Drop the CSV file here...</p>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Drag and drop a CSV file here, or click to select
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Only CSV files are accepted
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                {csvError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">{csvError}</p>
+                  </div>
+                )}
+                
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">CSV Requirements:</h5>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Must include "First Name" and "Email" columns (auto-detected)</li>
+                    <li>• Maximum 10 columns will be imported</li>
+                    <li>• Common column variations are supported (e.g., "firstname", "email address")</li>
+                    <li>• Empty rows will be automatically filtered out</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-medium text-green-900">CSV Uploaded Successfully</h5>
+                    <Badge variant="outline" className="bg-green-100 text-green-700">
+                      {campaignData.audience.contacts.length} contacts
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-green-700">File: {uploadedFileName}</p>
+                </div>
+                
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Mapped Columns:</h5>
+                  <div className="space-y-1">
+                    <div className="flex items-center text-sm">
+                      <span className="text-gray-600 w-24">First Name:</span>
+                      <span className="font-mono text-xs bg-white px-2 py-1 rounded">
+                        {campaignData.audience.headerMapping.firstName}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <span className="text-gray-600 w-24">Email:</span>
+                      <span className="font-mono text-xs bg-white px-2 py-1 rounded">
+                        {campaignData.audience.headerMapping.email}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCampaignData(prev => ({
+                        ...prev,
+                        audience: {
+                          ...prev.audience,
+                          contacts: [],
+                          headerMapping: {},
+                          targetCount: 0
+                        }
+                      }));
+                      setUploadedFileName('');
+                      setCsvError('');
+                    }}
+                  >
+                    Upload Different File
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         );
 
