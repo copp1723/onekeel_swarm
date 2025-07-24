@@ -32,16 +32,25 @@ export class EmailServiceFactory {
   static createServiceFromEnv(): EmailService | null {
     const provider = process.env.EMAIL_PROVIDER as 'mailgun' | 'sendgrid' | 'ses' | 'smtp' | undefined;
     
-    // If no provider configured or we're using mock database, use mock email service
-    const dbUrl = process.env.DATABASE_URL || '';
-    const useMock = !provider || dbUrl.startsWith('mock://') || process.env.USE_MOCK_EMAIL === 'true';
+    // Auto-detect provider if not explicitly set
+    let detectedProvider = provider;
+    if (!provider) {
+      if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
+        detectedProvider = 'mailgun';
+        console.log('Auto-detected Mailgun configuration');
+      }
+    }
+    
+    // If no provider configured, use mock email service
+    // Don't use mock just because database is mock - email can still work!
+    const useMock = !detectedProvider || process.env.USE_MOCK_EMAIL === 'true';
     
     if (useMock) {
       console.log('Using mock email service (no email provider configured or mock mode)');
       return new MockEmailService();
     }
 
-    switch (provider) {
+    switch (detectedProvider) {
       case 'mailgun':
         if (!process.env.MAILGUN_API_KEY || !process.env.MAILGUN_DOMAIN || !process.env.MAILGUN_FROM_EMAIL) {
           console.warn('Mailgun configuration incomplete. Required: MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM_EMAIL');
