@@ -118,7 +118,13 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
   const generateEmailTemplates = () => {
     // Simulate AI template generation based on offer details
-    const templates = [];
+    const templates: Array<{
+      id: string;
+      subject: string;
+      body: string;
+      order: number;
+      daysSinceStart: number;
+    }> = [];
     const totalEmails = campaignData.schedule.totalEmails;
     
     for (let i = 0; i < totalEmails; i++) {

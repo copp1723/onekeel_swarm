@@ -10,7 +10,9 @@ export type ViewType =
   | 'templates'
   | 'users'
   | 'feature-flags'
-  | 'email-settings';
+  | 'email-settings'
+  | 'intelligence'
+  | 'analytics';
 
 export interface User {
   id: string;
@@ -43,6 +45,22 @@ export interface Campaign {
 
 export type AgentType = 'email' | 'sms' | 'chat' | 'overlord';
 
+export interface AgentCapabilities {
+  canSendEmails: boolean;
+  canSendSMS: boolean;
+  canChat: boolean;
+  canSchedule: boolean;
+  canAnalyze: boolean;
+  canPersonalize: boolean;
+  canFollowUp: boolean;
+  canSegment: boolean;
+  canReport: boolean;
+  canIntegrate: boolean;
+  email?: boolean;
+  sms?: boolean;
+  chat?: boolean;
+}
+
 export interface UnifiedAgentConfig {
   id: string;
   name: string;
@@ -61,9 +79,27 @@ export interface UnifiedAgentConfig {
   domainExpertise?: string[];
   instructions?: string[] | { dos: string[]; donts: string[] };
   apiModel?: string;
-  capabilities?: Record<string, boolean>;
+  capabilities?: Record<string, boolean> | AgentCapabilities;
   createdAt: string;
   updatedAt: string;
+  description?: string;
+  avatar?: string;
+  expertise?: string[];
+  settings?: {
+    responseTime?: number;
+    maxConversationLength?: number;
+    allowedActions?: string[];
+  };
+  performance?: {
+    totalConversations?: number;
+    avgResponseTime?: number;
+    averageResponseTime?: number;
+    satisfactionScore?: number;
+    conversionRate?: number;
+    conversations?: number;
+    successfulOutcomes?: number;
+  };
+  metadata?: Record<string, any>;
 }
 
 export interface AgentTemplate {

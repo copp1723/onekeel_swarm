@@ -1,14 +1,14 @@
 import express from 'express';
 import { db } from '../db';
-import { agentTemplates } from '../db/schema';
+import { agentTemplates, agentConfigurations } from '../db/schema';
 import { eq, sql } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
 
 // Get all agent templates
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const templates = await db.query.agentTemplates.findMany({
       orderBy: [sql`category`, sql`name`]
@@ -22,7 +22,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // Get agent templates by category
-router.get('/category/:category', authMiddleware, async (req, res) => {
+router.get('/category/:category', authenticate, async (req, res) => {
   try {
     const { category } = req.params;
     
@@ -39,7 +39,7 @@ router.get('/category/:category', authMiddleware, async (req, res) => {
 });
 
 // Get a single agent template
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -59,7 +59,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // Create a new agent template (admin only)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
     
@@ -109,7 +109,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Update an agent template (admin only)
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
     const { id } = req.params;
@@ -166,7 +166,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Delete an agent template (admin only)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
     const { id } = req.params;
@@ -198,7 +198,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // Clone an agent template
-router.post('/:id/clone', authMiddleware, async (req, res) => {
+router.post('/:id/clone', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
@@ -238,7 +238,7 @@ router.post('/:id/clone', authMiddleware, async (req, res) => {
 });
 
 // Create an agent configuration from a template
-router.post('/:id/create-agent', authMiddleware, async (req, res) => {
+router.post('/:id/create-agent', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, paramValues } = req.body;

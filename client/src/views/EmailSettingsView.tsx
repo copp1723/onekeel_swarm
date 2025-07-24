@@ -61,13 +61,13 @@ export const EmailSettingsView: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Domain:</span>
                     <span className="font-medium">
-                      {process.env.MAILGUN_DOMAIN || 'Not configured'}
+                      {'Not configured'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">From Address:</span>
                     <span className="font-medium">
-                      support@{process.env.MAILGUN_DOMAIN || 'yourdomain.com'}
+                      support@{'yourdomain.com'}
                     </span>
                   </div>
                 </div>

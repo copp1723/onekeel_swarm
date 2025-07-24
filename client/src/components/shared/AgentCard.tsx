@@ -127,7 +127,7 @@ export function AgentCard({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Personality:</span>
-            <span className="font-medium capitalize">{agent.personality?.style || 'Not set'}</span>
+            <span className="font-medium capitalize">{typeof agent.personality === 'object' && agent.personality ? agent.personality.style : agent.personality || 'Not set'}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Tone:</span>

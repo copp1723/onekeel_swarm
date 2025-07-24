@@ -25,7 +25,7 @@ interface NavigationBarProps {
 }
 
 interface NavigationItem {
-  id: ViewType | 'settings-group' | 'people-group';
+  id: ViewType | 'settings-group' | 'people-group' | 'agents-group';
   label: string;
   icon: React.ElementType;
   views?: ViewType[];

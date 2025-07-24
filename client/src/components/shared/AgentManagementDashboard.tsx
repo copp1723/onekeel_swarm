@@ -52,7 +52,7 @@ export function AgentManagementDashboard({
     const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (agent.role?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || agent.type === filterType;
-    const matchesPersonality = filterPersonality === 'all' || agent.personality?.style === filterPersonality;
+    const matchesPersonality = filterPersonality === 'all' || (typeof agent.personality === 'object' && agent.personality ? agent.personality.style === filterPersonality : agent.personality === filterPersonality);
     const matchesActive = filterActive === 'all' || 
                          (filterActive === 'active' && agent.active) ||
                          (filterActive === 'inactive' && !agent.active);
