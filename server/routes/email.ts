@@ -4,6 +4,7 @@ import { validateRequest } from '../middleware/validation';
 import emailService, { emailTemplateManager, emailScheduler } from '../services/email';
 import emailTemplatesRouter from './email-templates-db';
 
+console.log('Debug: emailService.service status:', emailService.service?.getStatus());
 const router = Router();
 
 // Mount templates sub-router

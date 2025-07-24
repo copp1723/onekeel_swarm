@@ -3,8 +3,7 @@ import { apiDocumentationService } from '../services/api-documentation';
 
 // Import all route modules
 import authRoutes from './auth';
-import { getAgentsRouter, getCampaignsRouter, getFeatureFlagsRouter } from './router-selector';
-import agentTemplatesRoutes from './agent-templates';
+import { getAgentsRouter, getCampaignsRouter, getFeatureFlagsRouter, getAgentTemplatesRouter } from './router-selector';
 import emailRoutes from './email';
 import leadsRoutes from './leads';
 import contactsRoutes from './contacts';
@@ -18,6 +17,7 @@ import navigationRoutes from './navigation-aliases';
 const agentsRoutes = getAgentsRouter();
 const campaignsRoutes = getCampaignsRouter();
 const featureFlagsRoutes = getFeatureFlagsRouter();
+const agentTemplatesRoutes = getAgentTemplatesRouter();
 
 const router = Router();
 
