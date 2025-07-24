@@ -9,7 +9,7 @@
     "dev:server": "NODE_ENV=development tsx server/index.ts",
     "dev:client": "cd client && npm run dev",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && npm install && npm run build && mkdir -p ../dist/client && cp -r dist/* ../dist/client/",
+    "build:client": "cd client && npm ci && npm run build && mkdir -p ../dist/client && cp -r dist/* ../dist/client/",
     "build:server": "esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
     "start": "NODE_ENV=production tsx server/index.ts",
     "setup:quick": "cp .env.example .env 2>/dev/null || true",
