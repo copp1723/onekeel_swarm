@@ -1,5 +1,5 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import { mailgunService } from '../../email-system/services/mailgun-service';
+import { MailgunService } from '../services/email/providers/mailgun';
 import { CCLLogger } from '../utils/logger';
 
 export class EmailAgent extends BaseAgent {
@@ -90,7 +90,7 @@ Create a professional, engaging email response that:
   async sendEmail(to: string, subject: string, text: string, html?: string): Promise<any> {
     try {
       // Check if Mailgun is configured
-      if (!mailgunService.isConfigured()) {
+      if (!MailgunService.isConfigured()) {
         CCLLogger.info('Email agent simulated send - Mailgun not configured', { to, subject, reason: 'Mailgun not configured' });
         const mockResponse = {
           id: `mock-${Date.now()}@example.com`,
@@ -101,7 +101,7 @@ Create a professional, engaging email response that:
       }
 
       // Use centralized mailgun service
-      const response = await mailgunService.sendEmail({
+      const response = await MailgunService.sendEmail({
         to,
         subject,
         text: text || '',
