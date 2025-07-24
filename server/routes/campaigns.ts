@@ -264,7 +264,7 @@ const createCampaignSchema = z.object({
   endDate: z.string().datetime().optional()
 });
 
-router.post('/', validateRequest({ body: createCampaignSchema }), async (req, res) => {
+router.post('/', createCampaignLimiter, validateRequest({ body: createCampaignSchema }), async (req, res) => {
   try {
     const campaignData = req.body;
     

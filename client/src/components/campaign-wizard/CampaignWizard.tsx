@@ -98,6 +98,20 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     }
     
     const file = acceptedFiles[0];
+    
+    // Validate file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      setCsvError('File size exceeds 10MB limit');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setCsvError('Only CSV files are allowed');
+      return;
+    }
+    
     setUploadedFileName(file.name);
     
     Papa.parse(file, {
@@ -168,14 +182,28 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
           return;
         }
         
-        // Process contacts with limited columns
-        const contacts = results.data.map((row: any) => {
+        // Process contacts with limited columns and sanitization
+        const contacts = results.data.map((row: any, index: number) => {
           const contact: any = {};
           limitedHeaders.forEach((header: string) => {
-            contact[header] = row[header];
+            let value = row[header];
+            
+            // Sanitize CSV injection attempts
+            if (typeof value === 'string') {
+              value = value.trim();
+              // Prevent formula injection
+              if (/^[=+\-@]/.test(value)) {
+                value = "'" + value;
+              }
+              // Limit string length
+              value = value.substring(0, 255);
+            }
+            
+            contact[header] = value;
           });
           return contact;
-        }).filter((contact: any) => {
+        }).slice(0, 10000) // Limit to 10k rows
+        .filter((contact: any) => {
           // Filter out empty rows
           return contact[headerMapping['email']] && contact[headerMapping['firstName']];
         });
