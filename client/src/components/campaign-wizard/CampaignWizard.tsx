@@ -236,57 +236,81 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
   });
 
   const enhanceWithAI = (field: string) => {
-    // Simulate AI enhancement
+    // Generate contextual AI enhancements based on campaign data
     if (field === 'description') {
+      const productInfo = campaignData.offer?.product ? ` for ${campaignData.offer.product}` : '';
       setCampaignData(prev => ({
         ...prev,
-        description: prev.description + '\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences.'
+        description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
       }));
     } else if (field === 'goal') {
+      const targetCount = campaignData.audience?.targetCount || 50;
       setCampaignData(prev => ({
         ...prev,
-        goal: 'Achieve 25% open rate, 10% click-through rate, and generate 50+ qualified leads through personalized multi-touch email sequences optimized by AI.'
+        goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
       }));
     } else if (field === 'context') {
+      const campaignName = campaignData.name || 'This campaign';
+      const product = campaignData.offer?.product || 'our solution';
+      const benefits = campaignData.offer?.keyBenefits?.length > 0 
+        ? campaignData.offer.keyBenefits.join(', ') 
+        : 'competitive advantages and exclusive benefits';
+      
       setCampaignData(prev => ({
         ...prev,
-        context: `Business Context: ${prev.name || 'This campaign'} targets potential customers who have shown interest but haven't converted. Key talking points include:
-- Address common objections and concerns
-- Highlight unique value propositions
-- Build trust through transparent communication
-- Focus on customer success stories
-- Emphasize limited-time offers or incentives
+        context: `Business Context: ${campaignName} focuses on converting prospects interested in ${product}. 
 
-The AI should maintain a helpful, consultative tone while gently guiding leads toward conversion.`
+Key objectives:
+- Highlight ${benefits}
+- Address concerns about pricing, timing, or commitment
+- Build trust through social proof and testimonials
+- Create urgency without being pushy
+- Personalize messaging based on lead's interaction history
+
+The AI should maintain a warm, consultative tone - like a knowledgeable friend helping them make the best decision. Each email should feel like a natural progression in the conversation, not a scripted sales pitch.`
       }));
     }
   };
 
   const generateEmailTemplates = async () => {
     try {
+      console.log('Generating AI email templates with data:', {
+        name: campaignData.name,
+        product: campaignData.offer?.product,
+        keyBenefits: campaignData.offer?.keyBenefits
+      });
+      
+      // Ensure we have benefits array (using keyBenefits from the state)
+      const benefits = campaignData.offer?.keyBenefits && Array.isArray(campaignData.offer.keyBenefits) 
+        ? campaignData.offer.keyBenefits 
+        : ['Save time and money', 'Expert support', 'Flexible options'];
+      
       // Generate sophisticated AI templates via backend
       const response = await fetch('/api/agents/email/generate-sequence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          campaignName: campaignData.name,
+          campaignName: campaignData.name || 'Outreach Campaign',
           goal: campaignData.goal || 'Increase conversions and engage leads',
           context: campaignData.context || 'Reaching out to potential customers',
-          product: campaignData.offer.product,
-          benefits: campaignData.offer.benefits || ['Competitive rates', 'Fast approval', 'Expert support'],
-          priceAngle: campaignData.offer.pricing || 'Competitive pricing available',
-          urgency: campaignData.offer.urgency || 'Limited time offer',
-          disclaimer: campaignData.offer.disclaimer || '',
-          primaryCTA: campaignData.offer.cta.primary || 'Learn More',
-          CTAurl: campaignData.offer.cta.link || '#'
+          product: campaignData.offer?.product || 'our product',
+          benefits: benefits,
+          priceAngle: campaignData.offer?.pricing || 'Competitive pricing available',
+          urgency: campaignData.offer?.urgency || 'Limited time offer',
+          disclaimer: campaignData.offer?.disclaimer || '',
+          primaryCTA: campaignData.offer?.cta?.primary || 'Learn More',
+          CTAurl: campaignData.offer?.cta?.link || '#'
         })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate templates');
+        const errorData = await response.text();
+        console.error('API response error:', response.status, errorData);
+        throw new Error(`Failed to generate templates: ${response.status}`);
       }
       
       const { sequence } = await response.json();
+      console.log('Received AI-generated sequence:', sequence);
       
       // Map the AI-generated sequence to our template format
       const templates = sequence.map((email: any, index: number) => ({
@@ -298,8 +322,9 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
       }));
       
       setCampaignData(prev => ({ ...prev, templates }));
+      console.log('Successfully set AI-generated templates');
     } catch (error) {
-      console.error('Error generating AI templates:', error);
+      console.error('Error generating AI templates, falling back to local:', error);
       // Fallback to local generation if API fails
       generateLocalTemplates();
     }
