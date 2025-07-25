@@ -12,6 +12,7 @@ import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
 import navigationRoutes from './navigation-aliases';
+import templatesRoutes from './templates';
 
 // Get the appropriate routers based on environment
 const agentsRoutes = getAgentsRouter();
@@ -36,6 +37,7 @@ router.use('/users', usersRoutes);
 router.use('/monitoring', monitoringRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
 router.use('/navigation', navigationRoutes); // Navigation configuration and aliases
+router.use('/templates', templatesRoutes); // Email/SMS/Chat templates
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {

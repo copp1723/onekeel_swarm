@@ -2,7 +2,7 @@ import { Lead, Campaign } from '../db/schema';
 import { logger } from '../utils/logger';
 import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker';
 import { superMemory, mockSuperMemory } from '../services/supermemory';
-import { ModelRouter, ModelRequestOptions } from '../utils/model-router';
+import { modelRouter, ModelRequestOptions } from '../utils/model-router';
 
 export interface AgentContext {
   lead: Lead;
@@ -102,7 +102,7 @@ export abstract class BaseAgent {
       };
 
       // Use model router for intelligent model selection
-      const response = await ModelRouter.makeRequest(
+      const response = await modelRouter.makeRequest(
         prompt,
         systemPrompt,
         {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
-import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
+import { campaigns, leadCampaignEnrollments, leads, campaignSteps } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import { campaignExecutionEngine } from '../services/campaign-execution-engine';
@@ -597,6 +597,79 @@ router.post('/execution/trigger', validateRequest(triggerCampaignSchema), async 
         code: 'CAMPAIGN_TRIGGER_ERROR',
         message: 'Failed to trigger campaign',
         details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+  }
+});
+
+// Clone campaign
+router.post('/:id/clone', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    
+    // Get original campaign with all related data
+    const [original] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id))
+      .limit(1);
+    
+    if (!original) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+    
+    // Create cloned campaign
+    const [cloned] = await db
+      .insert(campaigns)
+      .values({
+        ...original,
+        id: undefined, // Let DB generate new ID
+        name: name || `${original.name} (Copy)`,
+        active: false, // Start cloned campaigns as inactive
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Get campaign steps from original
+    const originalSteps = await db
+      .select()
+      .from(campaignSteps)
+      .where(eq(campaignSteps.campaignId, id));
+    
+    // Clone campaign steps
+    if (originalSteps.length > 0) {
+      const clonedSteps = originalSteps.map(step => ({
+        ...step,
+        id: undefined,
+        campaignId: cloned.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+      
+      await db.insert(campaignSteps).values(clonedSteps);
+    }
+    
+    res.status(201).json({
+      success: true,
+      campaign: cloned,
+      message: 'Campaign cloned successfully'
+    });
+  } catch (error) {
+    console.error('Error cloning campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CAMPAIGN_CLONE_ERROR',
+        message: 'Failed to clone campaign',
+        category: 'database'
       }
     });
   }

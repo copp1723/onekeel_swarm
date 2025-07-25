@@ -3,7 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Target, Plus, Wand2, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Users } from 'lucide-react';
+import { Target, Plus, Wand2, CheckCircle, AlertCircle, Loader2, Mail, Calendar, Users, MoreVertical, Copy, Edit, Trash2 } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
 import { CampaignWizardWrapper } from '@/components/campaign-wizard';
 
@@ -78,6 +84,39 @@ export const CampaignsView: React.FC = () => {
     }
   };
 
+  const cloneCampaign = async (campaignId: string, campaignName: string) => {
+    try {
+      setError(null);
+      const response = await fetch(`/api/campaigns/${campaignId}/clone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: `${campaignName} (Copy)` }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to clone campaign');
+      }
+
+      const data = await response.json();
+      setSuccessMessage('Campaign cloned successfully!');
+      
+      // Refresh the campaigns list
+      await loadCampaigns();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
+      return data.campaign;
+    } catch (error) {
+      console.error('Error cloning campaign:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred while cloning the campaign');
+      throw error;
+    }
+  };
+
   const saveCampaign = async (campaignData: any) => {
     try {
       setError(null);
@@ -128,12 +167,17 @@ export const CampaignsView: React.FC = () => {
             requiredGoals: ['interested']
           },
           handoverCriteria: {
-            qualificationScore: 80,
-            conversationLength: 5,
-            timeThreshold: 30,
-            keywordTriggers: ['ready', 'apply', 'interested'],
-            goalCompletionRequired: ['qualified'],
-            handoverRecipients: []
+            qualificationScore: campaignData.handoverRules?.qualificationScore || 80,
+            conversationLength: campaignData.handoverRules?.conversationLength || 10,
+            timeThreshold: campaignData.handoverRules?.timeThreshold || 30,
+            keywordTriggers: [
+              ...(campaignData.handoverRules?.buyingSignals || []),
+              ...(campaignData.handoverRules?.escalationPhrases || [])
+            ],
+            buyingSignals: campaignData.handoverRules?.buyingSignals || ['interested', 'ready', 'pricing'],
+            escalationPhrases: campaignData.handoverRules?.escalationPhrases || ['speak to human', 'agent'],
+            goalCompletionRequired: campaignData.handoverRules?.goalCompletionRequired || ['qualified'],
+            handoverRecipients: campaignData.handoverRules?.handoverRecipients || []
           },
           channelPreferences: {
             primary: 'email',
@@ -283,18 +327,46 @@ export const CampaignsView: React.FC = () => {
               <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="text-lg">{campaign.name}</CardTitle>
                       <CardDescription className="mt-1">
                         {campaign.description || 'No description'}
                       </CardDescription>
                     </div>
-                    <Badge 
-                      variant={campaign.status === 'active' ? 'default' : 'secondary'}
-                      className={campaign.status === 'active' ? 'bg-green-100 text-green-800' : ''}
-                    >
-                      {campaign.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={campaign.status === 'active' ? 'default' : 'secondary'}
+                        className={campaign.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {campaign.status}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => cloneCampaign(campaign.id, campaign.name)}
+                            className="cursor-pointer"
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Clone Campaign
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Campaign
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="cursor-pointer text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Campaign
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>

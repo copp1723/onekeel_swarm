@@ -11,6 +11,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Badge } from '@/components/ui/badge';
 import {
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Target,
   Users,
   Mail,
@@ -25,7 +27,11 @@ import {
   Zap,
   Plus,
   FileText,
-  Upload
+  Upload,
+  Save,
+  UserCheck,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -35,13 +41,14 @@ interface CampaignWizardProps {
   agents?: any[];
 }
 
-type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'schedule' | 'review';
+type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'schedule' | 'handover' | 'review';
 
 export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [datasets, setDatasets] = useState<any[]>([]);
   const [csvError, setCsvError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
   const [campaignData, setCampaignData] = useState({
     name: '',
     description: '',
@@ -74,6 +81,16 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
       daysBetweenEmails: 3,
       timezone: 'America/New_York',
       sendTimeOptimization: true
+    },
+    handoverRules: {
+      qualificationScore: 80,
+      conversationLength: 10,
+      timeThreshold: 30,
+      keywordTriggers: [],
+      buyingSignals: ['interested', 'ready to buy', 'pricing', 'how much', 'cost', 'purchase'],
+      escalationPhrases: ['speak to human', 'agent', 'representative', 'help', 'manager'],
+      goalCompletionRequired: ['qualified'],
+      handoverRecipients: [] as Array<{name: string, email: string}>
     }
   });
 
@@ -84,10 +101,22 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     { id: 'offer', label: 'Offer Details', icon: <Sparkles className="h-4 w-4" /> },
     { id: 'templates', label: 'Email Templates', icon: <Mail className="h-4 w-4" /> },
     { id: 'schedule', label: 'Schedule', icon: <Clock className="h-4 w-4" /> },
+    { id: 'handover', label: 'Handover Rules', icon: <UserCheck className="h-4 w-4" /> },
     { id: 'review', label: 'Review & Launch', icon: <Check className="h-4 w-4" /> }
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+
+  // Toggle template expansion
+  const toggleTemplateExpansion = (index: number) => {
+    const newExpanded = new Set(expandedTemplates);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedTemplates(newExpanded);
+  };
 
   // Define onDrop callback for file upload - must be defined at top level for hooks
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -354,6 +383,41 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
     }
     
     setCampaignData(prev => ({ ...prev, templates }));
+  };
+
+  const saveTemplate = async (template: any, templateName?: string) => {
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName || template.subject.substring(0, 50),
+          description: `Template from campaign: ${campaignData.name}`,
+          channel: 'email',
+          subject: template.subject,
+          content: template.body,
+          variables: ['firstName', 'product', 'cta', 'disclaimer'],
+          category: 'campaign',
+          active: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save template');
+      }
+
+      const result = await response.json();
+      console.log('Template saved successfully:', result);
+      
+      // Show success message (could add a toast notification here)
+      alert('Template saved successfully!');
+      
+      return result.template;
+    } catch (error) {
+      console.error('Error saving template:', error);
+      alert('Failed to save template. Please try again.');
+      throw error;
+    }
   };
 
   const generateSubjectLine = (emailNumber: number, urgencyLevel: number) => {
@@ -814,28 +878,64 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 </div>
                 
                 <div className="space-y-3">
-                  {campaignData.templates.map((template: any, index: number) => (
-                    <Card key={index} className="border">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm">Email {index + 1}</CardTitle>
-                          <Badge variant="outline">Day {index * campaignData.schedule.daysBetweenEmails + 1}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div>
-                          <Label className="text-xs text-gray-500">Subject Line</Label>
-                          <p className="text-sm font-medium">{template.subject}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-500">Preview</Label>
-                          <p className="text-sm text-gray-600 line-clamp-3">
-                            {template.body.substring(0, 150)}...
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {campaignData.templates.map((template: any, index: number) => {
+                    const isExpanded = expandedTemplates.has(index);
+                    return (
+                      <Card key={index} className="border">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">Email {index + 1}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">Day {index * campaignData.schedule.daysBetweenEmails + 1}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => saveTemplate(template)}
+                                className="h-7 w-7 p-0"
+                                title="Save as Template"
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div>
+                            <Label className="text-xs text-gray-500">Subject Line</Label>
+                            <p className="text-sm font-medium">{template.subject}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-gray-500">Message</Label>
+                            <div className={`text-sm text-gray-600 ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                              {isExpanded ? (
+                                <pre className="whitespace-pre-wrap font-sans">{template.body}</pre>
+                              ) : (
+                                <p>{template.body.substring(0, 150)}...</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleTemplateExpansion(index)}
+                              className="mt-2 h-8 text-xs flex items-center gap-1"
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-3 w-3" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-3 w-3" />
+                                  Show More
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -925,6 +1025,172 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Label htmlFor="sendTimeOptimization" className="cursor-pointer">
                   Enable AI send time optimization
                 </Label>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'handover':
+        return (
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+                <h4 className="font-medium text-blue-900">Handover Rules</h4>
+              </div>
+              <p className="text-sm text-blue-700">
+                Define when the AI should hand over conversations to human agents based on lead behavior and intent.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label>Qualification Score Threshold</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={campaignData.handoverRules.qualificationScore}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    handoverRules: { ...prev.handoverRules, qualificationScore: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Hand over when lead reaches this qualification score</p>
+              </div>
+
+              <div>
+                <Label>Maximum Conversation Length</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={campaignData.handoverRules.conversationLength}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    handoverRules: { ...prev.handoverRules, conversationLength: parseInt(e.target.value) || 10 }
+                  }))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Hand over after this many messages</p>
+              </div>
+
+              <div>
+                <Label>Time Threshold (minutes)</Label>
+                <Input
+                  type="number"
+                  min="5"
+                  max="120"
+                  value={campaignData.handoverRules.timeThreshold}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    handoverRules: { ...prev.handoverRules, timeThreshold: parseInt(e.target.value) || 30 }
+                  }))}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Hand over after this many minutes of conversation</p>
+              </div>
+
+              <div>
+                <Label>Buying Signals</Label>
+                <Textarea
+                  value={campaignData.handoverRules.buyingSignals.join(', ')}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    handoverRules: { 
+                      ...prev.handoverRules, 
+                      buyingSignals: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
+                    }
+                  }))}
+                  placeholder="interested, ready to buy, pricing, how much"
+                  className="mt-1"
+                  rows={2}
+                />
+                <p className="text-xs text-gray-500 mt-1">Comma-separated phrases indicating purchase intent</p>
+              </div>
+
+              <div>
+                <Label>Escalation Phrases</Label>
+                <Textarea
+                  value={campaignData.handoverRules.escalationPhrases.join(', ')}
+                  onChange={(e) => setCampaignData(prev => ({
+                    ...prev,
+                    handoverRules: { 
+                      ...prev.handoverRules, 
+                      escalationPhrases: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
+                    }
+                  }))}
+                  placeholder="speak to human, agent, representative, help"
+                  className="mt-1"
+                  rows={2}
+                />
+                <p className="text-xs text-gray-500 mt-1">Comma-separated phrases requesting human assistance</p>
+              </div>
+
+              <div>
+                <Label>Handover Recipients</Label>
+                <div className="space-y-2 mt-1">
+                  {campaignData.handoverRules.handoverRecipients.map((recipient, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Name"
+                        value={recipient.name}
+                        onChange={(e) => {
+                          const newRecipients = [...campaignData.handoverRules.handoverRecipients];
+                          newRecipients[index].name = e.target.value;
+                          setCampaignData(prev => ({
+                            ...prev,
+                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
+                          }));
+                        }}
+                      />
+                      <Input
+                        placeholder="Email"
+                        type="email"
+                        value={recipient.email}
+                        onChange={(e) => {
+                          const newRecipients = [...campaignData.handoverRules.handoverRecipients];
+                          newRecipients[index].email = e.target.value;
+                          setCampaignData(prev => ({
+                            ...prev,
+                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
+                          }));
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newRecipients = campaignData.handoverRules.handoverRecipients.filter((_, i) => i !== index);
+                          setCampaignData(prev => ({
+                            ...prev,
+                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
+                          }));
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCampaignData(prev => ({
+                        ...prev,
+                        handoverRules: { 
+                          ...prev.handoverRules, 
+                          handoverRecipients: [...prev.handoverRules.handoverRecipients, { name: '', email: '' }]
+                        }
+                      }));
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Recipient
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">People to notify when handover occurs</p>
               </div>
             </div>
           </div>
