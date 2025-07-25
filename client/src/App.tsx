@@ -148,7 +148,7 @@ function AppContent() {
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeView === 'dashboard' && (useEnhancedDashboard ? <EnhancedDashboardView /> : <DashboardView />)}
+        {activeView === 'dashboard' && <EnhancedDashboardView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'leads' && <LeadsView />}
         {activeView === 'branding' && <BrandingManagementView />}

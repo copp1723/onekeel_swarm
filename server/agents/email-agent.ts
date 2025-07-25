@@ -7,6 +7,122 @@ export class EmailAgent extends BaseAgent {
     super('email');
   }
 
+  /**
+   * Generate a sophisticated 5-email campaign sequence
+   */
+  async generateCampaignSequence(details: {
+    campaignName: string;
+    goal: string;
+    context: string;
+    product: string;
+    benefits: string[];
+    priceAngle: string;
+    urgency: string;
+    disclaimer: string;
+    primaryCTA: string;
+    CTAurl: string;
+  }): Promise<Array<{subject: string; body: string; order: number}>> {
+    const systemPrompt = `You are a warm, sharp finance insider who writes like a real person helping a close friend.  
+- Ultra-scannable paragraphs (2-3 short lines each).  
+- Conversational language, contractions, no jargon.  
+- First message = curiosity & empathy, not pitch.  
+- Each email escalates ONE angle (value, objection, scarcity, personal, final).  
+- Zero hype, zero clichés.  
+- MUST include placeholders {firstName} and {agentName}.  
+- 60-120 words max per email.
+- Markdown link style ONLY for CTAs: [CTA text](URL).`;
+
+    const userPrompt = `Write a 5-email cold-outreach sequence for customers who may like "${details.product}".
+
+Goal context: ${details.context}
+(overall user goal: ${details.goal})
+
+Key details to weave in naturally:
+- Core benefits: ${details.benefits.join(', ')}
+- Price angle: ${details.priceAngle}
+- Natural urgency point: ${details.urgency}
+- CTA link: ${details.CTAurl || '#'}
+- Disclaimer (add as 1-line footer in email 5 only, italic): ${details.disclaimer}
+
+Each email should follow this progression:
+1. **Email 1 (Curiosity & Value):** Open with empathy, hint at value, soft question
+2. **Email 2 (Address Objection):** Tackle common doubt, add social proof
+3. **Email 3 (Urgency):** Time-sensitive angle, but genuine
+4. **Email 4 (Personal Ask):** Direct but respectful main push
+5. **Email 5 (Breakup):** Final chance, understanding tone
+
+OUTPUT ONLY a valid JSON array, nothing else:
+[
+  {
+    "subject": "Quick question about your [relevant topic]...",
+    "body": "Hi {firstName},\n\n[2-3 line opener with empathy/curiosity]\n\n[1-2 line value hint]\n\n[Soft CTA or question]\n\n{agentName}"
+  },
+  ... (5 total emails)
+]`;
+
+    try {
+      const raw = await this.generateResponse(
+        userPrompt,
+        { 
+          type: 'campaign_sequence_generation', 
+          campaignName: details.campaignName,
+          systemPrompt 
+        }
+      );
+
+      const cleanJson = raw.trim();
+      // Extract JSON if wrapped in markdown code blocks
+      const jsonMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonStr = jsonMatch ? jsonMatch[1].trim() : cleanJson;
+      
+      const sequence = JSON.parse(jsonStr);
+      
+      if (!Array.isArray(sequence) || sequence.length !== 5) {
+        throw new Error('Invalid sequence structure');
+      }
+      
+      return sequence.map((email: any, i: number) => ({
+        subject: email.subject || `Email ${i + 1}`,
+        body: email.body || 'Template content',
+        order: i + 1
+      }));
+    } catch (error) {
+      console.error('Failed to generate campaign sequence', error);
+      // Return sensible fallback
+      return this.generateFallbackSequence(details);
+    }
+  }
+
+  private generateFallbackSequence(details: any): Array<{subject: string; body: string; order: number}> {
+    return [
+      {
+        subject: `Interested in ${details.product}?`,
+        body: `Hi {firstName},\n\nI noticed you might be looking for ${details.product}. We've helped many people in similar situations.\n\nWould you like to learn how we can help you too?\n\n{agentName}`,
+        order: 1
+      },
+      {
+        subject: `Quick update on ${details.product}`,
+        body: `Hi {firstName},\n\nI wanted to follow up on my previous email. ${details.benefits[0] || 'Our solution can really make a difference.'}.\n\nHappy to answer any questions!\n\n{agentName}`,
+        order: 2
+      },
+      {
+        subject: `${details.urgency || 'Limited time opportunity'}`,
+        body: `Hi {firstName},\n\n${details.urgency || 'This opportunity won\'t last forever'}. ${details.priceAngle || 'Great rates available now'}.\n\nLet me know if you'd like details: [Learn More](${details.CTAurl || '#'})\n\n{agentName}`,
+        order: 3
+      },
+      {
+        subject: `Can I help you with ${details.product}?`,
+        body: `Hi {firstName},\n\nI've reached out a few times about ${details.product}. I genuinely believe this could help you ${details.goal}.\n\nIf you're interested: [${details.primaryCTA || 'Get Started'}](${details.CTAurl || '#'})\n\nNo pressure at all.\n\n{agentName}`,
+        order: 4
+      },
+      {
+        subject: `Last message about ${details.product}`,
+        body: `Hi {firstName},\n\nI won't bother you again after this. If ${details.product} isn't right for you, no worries at all.\n\nBut if you're still curious: [${details.primaryCTA || 'Take a Look'}](${details.CTAurl || '#'})\n\nAll the best,\n{agentName}\n\n*${details.disclaimer || ''}*`,
+        order: 5
+      }
+    ];
+  }
+
   // Override getMockResponse for email-specific mock behavior
   protected getMockResponse(prompt: string): string {
     if (prompt.includes('initial email') || prompt.includes('first contact')) {

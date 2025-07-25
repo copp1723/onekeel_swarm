@@ -262,8 +262,51 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
     }
   };
 
-  const generateEmailTemplates = () => {
-    // Simulate AI template generation based on offer details
+  const generateEmailTemplates = async () => {
+    try {
+      // Generate sophisticated AI templates via backend
+      const response = await fetch('/api/agents/email/generate-sequence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignName: campaignData.name,
+          goal: campaignData.goal || 'Increase conversions and engage leads',
+          context: campaignData.context || 'Reaching out to potential customers',
+          product: campaignData.offer.product,
+          benefits: campaignData.offer.benefits || ['Competitive rates', 'Fast approval', 'Expert support'],
+          priceAngle: campaignData.offer.pricing || 'Competitive pricing available',
+          urgency: campaignData.offer.urgency || 'Limited time offer',
+          disclaimer: campaignData.offer.disclaimer || '',
+          primaryCTA: campaignData.offer.cta.primary || 'Learn More',
+          CTAurl: campaignData.offer.cta.link || '#'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate templates');
+      }
+      
+      const { sequence } = await response.json();
+      
+      // Map the AI-generated sequence to our template format
+      const templates = sequence.map((email: any, index: number) => ({
+        id: `template-${index + 1}`,
+        subject: email.subject,
+        body: email.body,
+        order: email.order || index + 1,
+        daysSinceStart: index * campaignData.schedule.daysBetweenEmails + 1
+      }));
+      
+      setCampaignData(prev => ({ ...prev, templates }));
+    } catch (error) {
+      console.error('Error generating AI templates:', error);
+      // Fallback to local generation if API fails
+      generateLocalTemplates();
+    }
+  };
+
+  const generateLocalTemplates = () => {
+    // Keep the original local generation as fallback
     const templates: Array<{
       id: string;
       subject: string;
@@ -710,7 +753,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
                   <Mail className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 mb-4">No templates generated yet</p>
                   <Button 
-                    onClick={generateEmailTemplates}
+                    onClick={() => generateEmailTemplates()}
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
@@ -738,7 +781,7 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={generateEmailTemplates}
+                    onClick={() => generateEmailTemplates()}
                   >
                     <Wand2 className="h-3 w-3 mr-1" />
                     Regenerate
