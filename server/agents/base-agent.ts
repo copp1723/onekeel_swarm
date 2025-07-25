@@ -82,7 +82,7 @@ export abstract class BaseAgent {
   ): Promise<string> {
     try {
       // Check if API key is available
-      if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === '' || process.env.OPENROUTER_API_KEY === 'mock_key_for_testing') {
+      if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === '' || process.env.OPENROUTER_API_KEY.startsWith('sk-or-v1-YOUR_ACTUAL_KEY')) {
         logger.info(`No OpenRouter API key found for ${this.agentType}, using mock responses`);
         return this.getMockResponse(prompt);
       }
