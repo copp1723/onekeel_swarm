@@ -91,7 +91,7 @@ export class EmailConversationManager {
             offer: campaign.settings?.offer
           } : undefined,
           lead: {
-            name: lead.name,
+            name: lead.name || lead.firstName || lead.email?.split('@')[0],
             email: lead.email,
             metadata: lead.metadata
           }
@@ -125,7 +125,7 @@ export class EmailConversationManager {
         await this.handoverService.executeHandover(conversationId);
         
         // Send a final message informing about handover
-        const handoverMessage = this.generateHandoverMessage(lead.name);
+        const handoverMessage = this.generateHandoverMessage(lead.firstName || lead.email?.split('@')[0]);
         await this.sendEmail({
           to: replyData.from,
           subject: `Re: ${replyData.subject}`,
@@ -134,17 +134,17 @@ export class EmailConversationManager {
           conversationId
         });
 
-      } else if (aiResponse && aiResponse.content) {
+      } else if (aiResponse && typeof aiResponse === 'string') {
         // 9b. Send AI-generated response
         logger.info('Sending AI-generated response', {
           leadId: lead.id,
-          responseLength: aiResponse.content.length
+          responseLength: aiResponse.length
         });
 
         await this.sendEmail({
           to: replyData.from,
           subject: `Re: ${replyData.subject}`,
-          content: aiResponse.content,
+          content: aiResponse,
           leadId: lead.id,
           conversationId,
           inReplyTo: replyData.messageId
@@ -156,19 +156,14 @@ export class EmailConversationManager {
           leadId: lead.id,
           direction: 'outbound',
           channel: 'email',
-          content: aiResponse.content,
+          content: aiResponse,
           metadata: {
             subject: `Re: ${replyData.subject}`,
             agentId: 'email-agent',
             generatedBy: 'ai',
-            model: aiResponse.model || 'gpt-4'
+            model: 'gpt-4'
           }
         });
-
-        // Update lead qualification score if provided
-        if (aiResponse.qualificationScore) {
-          await this.updateLeadScore(lead.id, aiResponse.qualificationScore);
-        }
       }
 
     } catch (error) {
@@ -199,7 +194,7 @@ export class EmailConversationManager {
         .values({
           id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           email: emailData.from,
-          name: name,
+          firstName: name,
           source: 'email_reply',
           status: 'new',
           metadata: {
@@ -307,7 +302,11 @@ export class EmailConversationManager {
 
   private async sendEmail(params: any): Promise<void> {
     try {
-      const emailService = EmailServiceFactory.create();
+      const emailService = EmailServiceFactory.createServiceFromEnv();
+      if (!emailService) {
+        logger.warn('Email service not configured');
+        throw new Error('Email service not available');
+      }
       
       const result = await emailService.sendEmail({
         to: params.to,

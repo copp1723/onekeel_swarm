@@ -6,6 +6,7 @@ import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import { campaignExecutionEngine } from '../services/campaign-execution-engine';
 import { EmailServiceFactory } from '../services/email/factory';
+import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
@@ -264,6 +265,13 @@ const createCampaignSchema = z.object({
   endDate: z.string().datetime().optional()
 });
 
+// Rate limiter for campaign creation
+const createCampaignLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: 'Too many campaigns created. Please try again later.'
+});
+
 router.post('/', createCampaignLimiter, validateRequest({ body: createCampaignSchema }), async (req, res) => {
   try {
     const campaignData = req.body;
@@ -516,7 +524,21 @@ router.post('/execution/trigger', validateRequest(triggerCampaignSchema), async 
     }
     
     // Send first template email to each lead
-    const emailService = EmailServiceFactory.create();
+    const emailService = EmailServiceFactory.createServiceFromEnv();
+    if (!emailService) {
+      console.warn('Email service not configured, skipping email sending');
+      res.json({
+        success: true,
+        message: `Campaign triggered for ${leadDetails.length} leads (email service not configured)`,
+        data: {
+          campaignId,
+          leadCount: leadDetails.length,
+          emailsSent: 0,
+          executionId: `exec-${Date.now()}`
+        }
+      });
+      return;
+    }
     let emailsSent = 0;
     const errors: string[] = [];
     
@@ -525,7 +547,7 @@ router.post('/execution/trigger', validateRequest(triggerCampaignSchema), async 
         // Use the first template if provided
         const template = templates && templates[0] ? templates[0] : {
           subject: 'Your Auto Loan Pre-Approval is Ready',
-          body: `Hello ${lead.name || 'there'},\n\nGreat news! You've been pre-approved for an auto loan with competitive rates.`
+          body: `Hello ${lead.firstName || lead.email?.split('@')[0] || 'there'},\n\nGreat news! You've been pre-approved for an auto loan with competitive rates.`
         };
         
         const result = await emailService.sendEmail({

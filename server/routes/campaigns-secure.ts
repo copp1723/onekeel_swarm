@@ -163,7 +163,11 @@ router.post('/trigger', triggerLimiter, validateRequest({ body: triggerCampaignS
     // Process emails asynchronously
     setImmediate(async () => {
       try {
-        const emailService = EmailServiceFactory.create();
+        const emailService = EmailServiceFactory.createServiceFromEnv();
+        if (!emailService) {
+          logger.warn('Email service not configured');
+          return;
+        }
         const results = [];
 
         // Use the first template or default
