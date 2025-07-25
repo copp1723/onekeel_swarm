@@ -8,8 +8,6 @@ import { CampaignsRepository, LeadsRepository } from '../db';
 import { eq, and, or, like } from 'drizzle-orm';
 import { emailReplyDetector } from './email-reply-detector';
 import { emailConversationManager } from './email-conversation-manager';
-
-import 'dotenv/config';
 import * as crypto from 'crypto';
 
 interface LeadData {
