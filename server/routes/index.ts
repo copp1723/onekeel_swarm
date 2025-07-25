@@ -3,7 +3,7 @@ import { apiDocumentationService } from '../services/api-documentation';
 
 // Import all route modules
 import authRoutes from './auth';
-import { getAgentsRouter, getCampaignsRouter, getFeatureFlagsRouter, getAgentTemplatesRouter } from './router-selector';
+import { getAgentsRouter, getCampaignsRouter, getFeatureFlagsRouter, getAgentTemplatesRouter, getConversationsRouter } from './router-selector';
 import emailRoutes from './email';
 import leadsRoutes from './leads';
 import contactsRoutes from './contacts';
@@ -18,6 +18,7 @@ const agentsRoutes = getAgentsRouter();
 const campaignsRoutes = getCampaignsRouter();
 const featureFlagsRoutes = getFeatureFlagsRouter();
 const agentTemplatesRoutes = getAgentTemplatesRouter();
+const conversationsRouter = getConversationsRouter ? getConversationsRouter() : conversationsRoutes;
 
 const router = Router();
 
@@ -29,7 +30,7 @@ router.use('/campaigns', campaignsRoutes);
 router.use('/email', emailRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/contacts', contactsRoutes); // Dual terminology support
-router.use('/conversations', conversationsRoutes);
+router.use('/conversations', conversationsRouter);
 router.use('/clients', clientsRoutes);
 router.use('/users', usersRoutes);
 router.use('/monitoring', monitoringRoutes);
