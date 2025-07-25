@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea component removed - using standard div with overflow
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Mail, User, Bot, Clock, ArrowRight } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -160,7 +160,7 @@ export function ConversationThread({
         </div>
       </CardHeader>
       
-      <ScrollArea className="flex-1 p-4">
+      <div className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             No messages yet
@@ -170,7 +170,7 @@ export function ConversationThread({
             {messages.map(renderMessage)}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </Card>
   );
 }
