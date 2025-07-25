@@ -314,7 +314,12 @@ router.post('/email/generate-sequence', validateRequest({ body: generateSequence
     
     res.json({
       success: true,
-      sequence
+      sequence,
+      debug: {
+        hasApiKey: !!process.env.OPENROUTER_API_KEY,
+        apiKeyLength: process.env.OPENROUTER_API_KEY?.length || 0,
+        keyPrefix: process.env.OPENROUTER_API_KEY?.substring(0, 10) || 'none'
+      }
     });
   } catch (error) {
     console.error('Error generating email sequence:', error);
