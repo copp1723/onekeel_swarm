@@ -29,9 +29,7 @@ import {
   FileText,
   Upload,
   Save,
-  UserCheck,
-  ChevronDown,
-  ChevronUp
+  UserCheck
 } from 'lucide-react';
 
 interface CampaignWizardProps {
