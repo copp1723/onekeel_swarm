@@ -151,16 +151,20 @@ router.get('/', async (req, res) => {
 
     // Get enrollment stats for each campaign
     const campaignIds = campaignList.map(c => c.id);
-    const enrollmentStats = await db
-      .select({
-        campaignId: leadCampaignEnrollments.campaignId,
-        totalLeads: sql<number>`count(*)::int`,
-        activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
-        completedLeads: sql<number>`count(*) filter (where completed = true)::int`
-      })
-      .from(leadCampaignEnrollments)
-      .where(sql`campaign_id = ANY(${campaignIds})`)
-      .groupBy(leadCampaignEnrollments.campaignId);
+    let enrollmentStats = [];
+    
+    if (campaignIds.length > 0) {
+      enrollmentStats = await db
+        .select({
+          campaignId: leadCampaignEnrollments.campaignId,
+          totalLeads: sql<number>`count(*)::int`,
+          activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
+          completedLeads: sql<number>`count(*) filter (where completed = true)::int`
+        })
+        .from(leadCampaignEnrollments)
+        .where(sql`campaign_id = ANY(${campaignIds})`)
+        .groupBy(leadCampaignEnrollments.campaignId);
+    }
 
     // Merge stats with campaigns
     const campaignsWithStats = campaignList.map(campaign => {

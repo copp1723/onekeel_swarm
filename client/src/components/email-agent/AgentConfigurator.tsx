@@ -31,7 +31,6 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
     name: '',
     type: 'email' as 'email' | 'sms' | 'chat' | 'overlord',
     role: '',
-    endGoal: '',
     instructions: {
       dos: [''],
       donts: ['']
@@ -41,7 +40,6 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
     tone: 'friendly',
     isActive: true,
     settings: {
-      maxEmailsPerDay: 100,
       followUpDelay: 24,
       enableAutoResponse: true,
       workingHours: {
@@ -78,7 +76,6 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
         },
         domainExpertise: agent.domainExpertise || [''],
         settings: {
-          maxEmailsPerDay: agent.settings?.maxEmailsPerDay || 100,
           followUpDelay: agent.settings?.followUpDelay || 24,
           enableAutoResponse: agent.settings?.enableAutoResponse ?? true,
           workingHours: agent.settings?.workingHours || {
@@ -196,12 +193,6 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
         'relationship building, and converting cold leads into qualified opportunities ' +
         'through intelligent conversation and value-driven messaging.';
       handleInputChange('role', enhancedRole);
-    } else if (field === 'endGoal') {
-      const enhancedGoal = 
-        'Schedule qualified demo calls with decision-makers who have expressed genuine interest ' +
-        'in our solution. Focus on quality over quantity, ensuring each handover represents ' +
-        'a real opportunity with budget, authority, need, and timeline clearly identified.';
-      handleInputChange('endGoal', enhancedGoal);
     }
   };
 
@@ -289,37 +280,6 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          {/* End Goal */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="endGoal" className="flex items-center space-x-2">
-                <Target className="h-4 w-4" />
-                <span>Campaign End Goal</span>
-              </Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => enhancePrompt('endGoal')}
-                className="h-7 px-2"
-              >
-                <Wand2 className="h-3 w-3 mr-1" />
-                AI Suggest
-              </Button>
-            </div>
-            <Textarea
-              id="endGoal"
-              value={formData.endGoal}
-              onChange={(e) => handleInputChange('endGoal', e.target.value)}
-              placeholder="e.g., Schedule qualified leads for product demos and convert them into paying customers"
-              rows={3}
-              required
-            />
-            <p className="text-sm text-gray-500">
-              Define the specific outcome this agent should achieve through email conversations
-            </p>
           </div>
 
           {/* Instructions - Do's */}
@@ -556,29 +516,16 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
             </h3>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maxEmailsPerDay">Max Emails per Day</Label>
-                  <Input
-                    id="maxEmailsPerDay"
-                    type="number"
-                    value={formData.settings.maxEmailsPerDay}
-                    onChange={(e) => handleSettingsChange('maxEmailsPerDay', parseInt(e.target.value))}
-                    min="1"
-                    max="500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="followUpDelay">Follow-up Delay (hours)</Label>
-                  <Input
-                    id="followUpDelay"
-                    type="number"
-                    value={formData.settings.followUpDelay}
-                    onChange={(e) => handleSettingsChange('followUpDelay', parseInt(e.target.value))}
-                    min="1"
-                    max="168"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="followUpDelay">Follow-up Delay (hours)</Label>
+                <Input
+                  id="followUpDelay"
+                  type="number"
+                  value={formData.settings.followUpDelay}
+                  onChange={(e) => handleSettingsChange('followUpDelay', parseInt(e.target.value))}
+                  min="1"
+                  max="168"
+                />
               </div>
 
               <div className="flex items-center space-x-2">

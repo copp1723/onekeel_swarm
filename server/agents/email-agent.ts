@@ -112,7 +112,7 @@ OUTPUT ONLY a valid JSON array, nothing else:
       },
       {
         subject: `Can I help you with ${details.product}?`,
-        body: `Hi {firstName},\n\nI've reached out a few times about ${details.product}. I genuinely believe this could help you ${details.goal}.\n\nIf you're interested: [${details.primaryCTA || 'Get Started'}](${details.CTAurl || '#'})\n\nNo pressure at all.\n\n{agentName}`,
+        body: `Hi {firstName},\n\nI've reached out a few times about ${details.product}. I genuinely believe this could help you ${details.goal || 'achieve your goals'}.\n\nIf you're interested: [${details.primaryCTA || 'Get Started'}](${details.CTAurl || '#'})\n\nNo pressure at all.\n\n{agentName}`,
         order: 4
       },
       {
