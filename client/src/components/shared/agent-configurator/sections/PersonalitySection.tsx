@@ -121,8 +121,8 @@ export function PersonalitySection({ formData, setFormData }: SectionProps) {
         {/* Personality Description */}
         <div className="bg-blue-50 p-3 rounded-lg">
           <p className="text-sm text-blue-700">
-            <strong>Personality:</strong> {PERSONALITY_OPTIONS[getCurrentPersonality()]} • 
-            <strong> Tone:</strong> {TONE_OPTIONS.find(t => t.value === formData.tone)?.label || 'Friendly'} • 
+            <strong>Personality:</strong> {PERSONALITY_OPTIONS[getCurrentPersonality() as keyof typeof PERSONALITY_OPTIONS]} •
+            <strong> Tone:</strong> {TONE_OPTIONS.find(t => t.value === formData.tone)?.label || 'Friendly'} •
             <strong> Length:</strong> {RESPONSE_LENGTH_OPTIONS.find(r => r.value === formData.responseLength)?.label || 'Moderate'}
           </p>
         </div>
