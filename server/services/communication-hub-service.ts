@@ -24,9 +24,37 @@ export class CommunicationHubService {
 
     const hub = getCommunicationHub();
     hub.setWebSocketHandler(wsHandler);
-    
+
     this.initialized = true;
     logger.info('Communication hub initialized with WebSocket support');
+  }
+
+  /**
+   * Start the communication hub service
+   */
+  async start(): Promise<void> {
+    if (this.initialized) {
+      logger.info('Communication hub service already started');
+      return;
+    }
+
+    // Initialize without WebSocket handler for now - will be set later
+    const hub = getCommunicationHub();
+    this.initialized = true;
+    logger.info('Communication hub service started');
+  }
+
+  /**
+   * Stop the communication hub service
+   */
+  async stop(): Promise<void> {
+    if (!this.initialized) {
+      logger.info('Communication hub service already stopped');
+      return;
+    }
+
+    this.initialized = false;
+    logger.info('Communication hub service stopped');
   }
 
   /**
