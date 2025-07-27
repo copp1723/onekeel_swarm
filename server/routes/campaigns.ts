@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
-import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
-import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
+import { campaigns, leadCampaignEnrollments, leads, campaignSteps } from '../db/schema';
+import { eq, and, or, ilike, sql, desc, inArray } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { campaignExecutionEngine } from '../services/campaign-execution-engine';
+import { EmailServiceFactory } from '../services/email/factory';
+import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
@@ -148,16 +151,20 @@ router.get('/', async (req, res) => {
 
     // Get enrollment stats for each campaign
     const campaignIds = campaignList.map(c => c.id);
-    const enrollmentStats = await db
-      .select({
-        campaignId: leadCampaignEnrollments.campaignId,
-        totalLeads: sql<number>`count(*)::int`,
-        activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
-        completedLeads: sql<number>`count(*) filter (where completed = true)::int`
-      })
-      .from(leadCampaignEnrollments)
-      .where(sql`campaign_id = ANY(${campaignIds})`)
-      .groupBy(leadCampaignEnrollments.campaignId);
+    let enrollmentStats = [];
+    
+    if (campaignIds.length > 0) {
+      enrollmentStats = await db
+        .select({
+          campaignId: leadCampaignEnrollments.campaignId,
+          totalLeads: sql<number>`count(*)::int`,
+          activeLeads: sql<number>`count(*) filter (where status = 'active')::int`,
+          completedLeads: sql<number>`count(*) filter (where completed = true)::int`
+        })
+        .from(leadCampaignEnrollments)
+        .where(inArray(leadCampaignEnrollments.campaignId, campaignIds))
+        .groupBy(leadCampaignEnrollments.campaignId);
+    }
 
     // Merge stats with campaigns
     const campaignsWithStats = campaignList.map(campaign => {
@@ -262,7 +269,14 @@ const createCampaignSchema = z.object({
   endDate: z.string().datetime().optional()
 });
 
-router.post('/', validateRequest({ body: createCampaignSchema }), async (req, res) => {
+// Rate limiter for campaign creation
+const createCampaignLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: 'Too many campaigns created. Please try again later.'
+});
+
+router.post('/', createCampaignLimiter, validateRequest({ body: createCampaignSchema }), async (req, res) => {
   try {
     const campaignData = req.body;
     
@@ -482,6 +496,199 @@ router.post('/:id/assign-leads', async (req, res) => {
       error: {
         code: 'LEAD_ASSIGN_ERROR',
         message: 'Failed to assign leads to campaign',
+        category: 'database'
+      }
+    });
+  }
+});
+
+// Campaign execution trigger endpoint
+const triggerCampaignSchema = z.object({
+  campaignId: z.string().min(1),
+  leadIds: z.array(z.string()).min(1),
+  templates: z.array(z.object({
+    subject: z.string(),
+    body: z.string()
+  })).optional()
+});
+
+router.post('/execution/trigger', validateRequest(triggerCampaignSchema), async (req, res) => {
+  try {
+    const { campaignId, leadIds, templates } = req.body;
+    
+    // Validate lead IDs to prevent SQL injection
+    const validateId = (id: string): boolean => {
+      // UUID v4 pattern
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      // Custom ID pattern (lead_timestamp_random)
+      const customPattern = /^[a-zA-Z]+_\d+_[a-zA-Z0-9]+$/;
+      
+      return uuidPattern.test(id) || customPattern.test(id);
+    };
+    
+    if (!leadIds.every(validateId)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_LEAD_ID',
+          message: 'Invalid lead ID format detected'
+        }
+      });
+    }
+    
+    // Get lead details from database
+    const leadDetails = await db
+      .select()
+      .from(leads)
+      .where(inArray(leads.id, leadIds))
+      .limit(leadIds.length);
+    
+    if (leadDetails.length === 0) {
+      throw new Error('No valid leads found');
+    }
+    
+    // Send first template email to each lead
+    const emailService = EmailServiceFactory.createServiceFromEnv();
+    if (!emailService) {
+      console.warn('Email service not configured, skipping email sending');
+      res.json({
+        success: true,
+        message: `Campaign triggered for ${leadDetails.length} leads (email service not configured)`,
+        data: {
+          campaignId,
+          leadCount: leadDetails.length,
+          emailsSent: 0,
+          executionId: `exec-${Date.now()}`
+        }
+      });
+      return;
+    }
+    let emailsSent = 0;
+    const errors: string[] = [];
+    
+    for (const lead of leadDetails) {
+      try {
+        // Use the first template if provided
+        const template = templates && templates[0] ? templates[0] : {
+          subject: 'Your Auto Loan Pre-Approval is Ready',
+          body: `Hello ${lead.firstName || lead.email?.split('@')[0] || 'there'},\n\nGreat news! You've been pre-approved for an auto loan with competitive rates.`
+        };
+        
+        const result = await emailService.sendEmail({
+          to: lead.email,
+          subject: template.subject,
+          html: `<div style="font-family: Arial, sans-serif;">${template.body.replace(/\n/g, '<br>')}</div>`,
+          text: template.body
+        });
+        
+        if (result.success) {
+          emailsSent++;
+        } else {
+          errors.push(`Failed to send to ${lead.email}: ${result.error}`);
+        }
+      } catch (error) {
+        errors.push(`Error sending to ${lead.email}: ${error}`);
+      }
+    }
+    
+    // Also trigger the campaign execution engine for follow-ups
+    try {
+      await campaignExecutionEngine.triggerCampaign(campaignId, leadIds);
+    } catch (error) {
+      console.error('Campaign execution engine error:', error);
+    }
+    
+    res.json({
+      success: true,
+      message: `Campaign triggered for ${leadDetails.length} leads. ${emailsSent} emails sent.`,
+      data: {
+        campaignId,
+        leadCount: leadDetails.length,
+        emailsSent,
+        errors: errors.length > 0 ? errors : undefined,
+        executionId: `exec-${Date.now()}`
+      }
+    });
+  } catch (error) {
+    console.error('Failed to trigger campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CAMPAIGN_TRIGGER_ERROR',
+        message: 'Failed to trigger campaign',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+  }
+});
+
+// Clone campaign
+router.post('/:id/clone', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    
+    // Get original campaign with all related data
+    const [original] = await db
+      .select()
+      .from(campaigns)
+      .where(eq(campaigns.id, id))
+      .limit(1);
+    
+    if (!original) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+    
+    // Create cloned campaign
+    const [cloned] = await db
+      .insert(campaigns)
+      .values({
+        ...original,
+        id: undefined, // Let DB generate new ID
+        name: name || `${original.name} (Copy)`,
+        active: false, // Start cloned campaigns as inactive
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Get campaign steps from original
+    const originalSteps = await db
+      .select()
+      .from(campaignSteps)
+      .where(eq(campaignSteps.campaignId, id));
+    
+    // Clone campaign steps
+    if (originalSteps.length > 0) {
+      const clonedSteps = originalSteps.map(step => ({
+        ...step,
+        id: undefined,
+        campaignId: cloned.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+      
+      await db.insert(campaignSteps).values(clonedSteps);
+    }
+    
+    res.status(201).json({
+      success: true,
+      campaign: cloned,
+      message: 'Campaign cloned successfully'
+    });
+  } catch (error) {
+    console.error('Error cloning campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CAMPAIGN_CLONE_ERROR',
+        message: 'Failed to clone campaign',
         category: 'database'
       }
     });

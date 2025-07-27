@@ -4,6 +4,7 @@ import { db } from '../db/client';
 import { agentConfigurations } from '../db/schema';
 import { eq, and, or, ilike, sql } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { EmailAgent } from '../agents/email-agent';
 
 const router = Router();
 
@@ -287,6 +288,47 @@ router.post('/:id/toggle', async (req, res) => {
         code: 'AGENT_TOGGLE_ERROR',
         message: 'Failed to toggle agent status',
         category: 'database'
+      }
+    });
+  }
+});
+
+// Generate email sequence endpoint
+const generateSequenceSchema = z.object({
+  campaignName: z.string(),
+  goal: z.string(),
+  context: z.string(),
+  product: z.string(),
+  benefits: z.array(z.string()),
+  priceAngle: z.string(),
+  urgency: z.string(),
+  disclaimer: z.string(),
+  primaryCTA: z.string(),
+  CTAurl: z.string()
+});
+
+router.post('/email/generate-sequence', validateRequest({ body: generateSequenceSchema }), async (req, res) => {
+  try {
+    const emailAgent = new EmailAgent();
+    const sequence = await emailAgent.generateCampaignSequence(req.body);
+    
+    res.json({
+      success: true,
+      sequence,
+      debug: {
+        hasApiKey: !!process.env.OPENROUTER_API_KEY,
+        apiKeyLength: process.env.OPENROUTER_API_KEY?.length || 0,
+        keyPrefix: process.env.OPENROUTER_API_KEY?.substring(0, 10) || 'none'
+      }
+    });
+  } catch (error) {
+    console.error('Error generating email sequence:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SEQUENCE_GENERATION_ERROR',
+        message: 'Failed to generate email sequence',
+        details: error instanceof Error ? error.message : 'Unknown error'
       }
     });
   }

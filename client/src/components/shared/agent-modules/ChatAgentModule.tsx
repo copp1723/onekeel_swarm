@@ -333,7 +333,7 @@ export function ChatAgentModule({ agent, onUpdate }: ChatAgentModuleProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-gray-600">Personality</p>
-              <p className="font-medium capitalize">{agent.personality?.style || 'Not set'}</p>
+              <p className="font-medium capitalize">{typeof agent.personality === 'object' ? agent.personality?.style : agent.personality || 'Not set'}</p>
             </div>
             <div>
               <p className="text-gray-600">Tone</p>

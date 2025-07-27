@@ -12,7 +12,8 @@ import {
   Flag,
   Sparkles,
   Mail,
-  Palette
+  Palette,
+  MessageCircle
 } from 'lucide-react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +26,7 @@ interface NavigationBarProps {
 }
 
 interface NavigationItem {
-  id: ViewType | 'settings-group' | 'people-group';
+  id: ViewType | 'settings-group' | 'people-group' | 'agents-group';
   label: string;
   icon: React.ElementType;
   views?: ViewType[];
@@ -78,9 +79,17 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   // Define navigation structures
   const legacyNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain },
-    { id: 'agents', label: 'Agents', icon: Brain },
+    { id: 'campaigns', label: 'Campaigns', icon: Target },
+    { id: 'conversations', label: 'Communication', icon: MessageCircle },
+    {
+      id: 'agents-group',
+      label: 'Agents',
+      icon: Brain,
+      children: [
+        { id: 'agents', label: 'My Agents', icon: UserCog },
+        { id: 'agent-templates', label: 'Templates', icon: Copy }
+      ]
+    },
     {
       id: 'settings-group',
       label: 'Settings',
@@ -96,15 +105,15 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
   const modernNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain },
+    { id: 'campaigns', label: 'Campaigns', icon: Target },
+    { id: 'conversations', label: 'Communication', icon: MessageCircle },
     { 
       id: 'agents-group', 
       label: 'Agents', 
       icon: Brain,
       children: [
         { id: 'agents', label: 'My Agents', icon: UserCog },
-        { id: 'agent-templates', label: 'Agent Templates', icon: Copy }
+        { id: 'agent-templates', label: 'Templates', icon: Copy }
       ]
     },
     {
@@ -157,7 +166,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             return (
               <div key={item.id} className="relative">
                 <button
-                  id={item.id === 'settings-group' ? 'settings-button' : undefined}
+                  id={item.id === 'settings-group' ? 'settings-button' : (item.id === 'agents-group' ? 'agents-button' : undefined)}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleNavigationClick(item);
@@ -172,7 +181,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                     borderColor: brandingColor
                   } : {}}
                   aria-label={`${item.label}${item.children ? ' menu' : ''}`}
-                  aria-expanded={item.id === 'settings-group' ? showSettingsDropdown : undefined}
+                  aria-expanded={item.id === 'settings-group' ? showSettingsDropdown : (item.id === 'agents-group' ? showAgentsDropdown : undefined)}
                   aria-haspopup={item.children ? "menu" : undefined}
                 >
                   <Icon className="h-4 w-4" />
@@ -197,6 +206,37 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                           onClick={() => {
                             setActiveView(child.id);
                             setShowSettingsDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
+                            activeView === child.id ? 'bg-gray-50 text-gray-900' : 'text-gray-700'
+                          }`}
+                          role="menuitem"
+                        >
+                          <ChildIcon className="h-4 w-4" />
+                          <span>{child.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown for agents */}
+                {item.id === 'agents-group' && showAgentsDropdown && (
+                  <div 
+                    id="agents-dropdown"
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+                    role="menu"
+                    aria-labelledby="agents-button"
+                  >
+                    {item.children?.map((child) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => {
+                            setActiveView(child.id);
+                            setShowAgentsDropdown(false);
                           }}
                           className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
                             activeView === child.id ? 'bg-gray-50 text-gray-900' : 'text-gray-700'

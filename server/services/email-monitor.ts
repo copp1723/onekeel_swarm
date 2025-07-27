@@ -7,8 +7,7 @@ import { LeadProcessor } from './lead-processor';
 import { CampaignsRepository, LeadsRepository } from '../db';
 import { eq, and, or, like } from 'drizzle-orm';
 import { emailReplyDetector } from './email-reply-detector';
-
-import 'dotenv/config';
+import { emailConversationManager } from './email-conversation-manager';
 import * as crypto from 'crypto';
 
 interface LeadData {
@@ -158,12 +157,15 @@ class EmailMonitor {
     // Check if this is a reply to an existing conversation
     const isReply = this.isEmailReply(email);
     if (isReply) {
-      await emailReplyDetector.processReply({
+      // Use the conversation manager for intelligent reply handling
+      await emailConversationManager.processEmailReply({
         messageId: email.messageId || '',
         from: fromAddress,
         to: email.to?.value[0]?.address || '',
         subject,
-        content: textBody,
+        body: textBody,
+        inReplyTo: email.inReplyTo,
+        references: email.references,
         timestamp: email.date || new Date()
       });
       return { processed: true };

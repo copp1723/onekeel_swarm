@@ -564,13 +564,64 @@ router.post('/execution/trigger', async (req, res) => {
     }
 
     const { campaignId, leadIds, templateSequence } = validationResult.data;
+    
+    // Import email service
+    const { EmailServiceFactory } = await import('../services/email/factory');
+    const emailService = EmailServiceFactory.create();
+    
+    // Mock lead data from CSV
+    const mockLeads = leadIds.map((id: string) => ({
+      id,
+      email: `lead${id}@example.com`, // This should come from the uploaded CSV
+      name: `Lead ${id}`,
+      // In production, this would fetch from the actual leads data
+    }));
+    
+    // Send first email template to each lead
+    let emailsSent = 0;
+    const errors: string[] = [];
+    
+    for (const lead of mockLeads) {
+      try {
+        // In production, this would use the actual campaign templates
+        const result = await emailService.sendEmail({
+          to: lead.email,
+          subject: 'Your Auto Loan Pre-Approval is Ready',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Hello ${lead.name},</h2>
+              <p>Great news! You've been pre-approved for an auto loan with competitive rates.</p>
+              <p>Our financing specialists can help you get behind the wheel of your dream car with:</p>
+              <ul>
+                <li>Rates as low as 3.99% APR</li>
+                <li>Flexible payment terms</li>
+                <li>Quick approval process</li>
+              </ul>
+              <p>Reply to this email or call us at 1-800-AUTO-LOAN to get started.</p>
+              <p>Best regards,<br>The Complete Car Loans Team</p>
+            </div>
+          `,
+          text: `Hello ${lead.name}, Great news! You've been pre-approved for an auto loan...`
+        });
+        
+        if (result.success) {
+          emailsSent++;
+        } else {
+          errors.push(`Failed to send to ${lead.email}: ${result.error}`);
+        }
+      } catch (error) {
+        errors.push(`Error sending to ${lead.email}: ${error}`);
+      }
+    }
 
     res.json({
       success: true,
-      message: `Campaign triggered for ${leadIds.length} leads`,
+      message: `Campaign triggered for ${leadIds.length} leads. ${emailsSent} emails sent successfully.`,
       data: {
         campaignId,
         leadCount: leadIds.length,
+        emailsSent,
+        errors: errors.length > 0 ? errors : undefined,
         templateCount: templateSequence?.length || 'default',
         executionId: `exec-${Date.now()}`
       }

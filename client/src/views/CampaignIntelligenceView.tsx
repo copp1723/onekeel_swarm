@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { CampaignIntelligenceHub } from '@/components/campaign-intelligence';
 
-export function CampaignIntelligenceView() {
+interface CampaignIntelligenceViewProps {
+  onNavigateToCampaigns?: () => void;
+}
+
+export function CampaignIntelligenceView({ onNavigateToCampaigns }: CampaignIntelligenceViewProps = {}) {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +35,7 @@ export function CampaignIntelligenceView() {
     <CampaignIntelligenceHub 
       campaigns={campaigns} 
       onUpdate={fetchCampaigns}
+      onCreateCampaign={onNavigateToCampaigns}
     />
   );
 }

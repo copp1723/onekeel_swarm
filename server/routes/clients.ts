@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
 import { clients, leads, campaigns } from '../db/schema';
-import { eq, and, ilike, sql, desc } from 'drizzle-orm';
+import { eq, and, ilike, sql, desc, inArray } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 
 const router = Router();
@@ -73,7 +73,7 @@ router.get('/', async (req, res) => {
         totalLeads: sql<number>`count(*)::int`
       })
       .from(leads)
-      .where(sql`client_id = ANY(${clientIds})`)
+      .where(inArray(leads.clientId, clientIds))
       .groupBy(leads.clientId) : [];
 
     const campaignStats = clientIds.length > 0 ? await db
@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
         totalCampaigns: sql<number>`count(*)::int`
       })
       .from(campaigns)
-      .where(sql`client_id = ANY(${clientIds})`)
+      .where(inArray(campaigns.clientId, clientIds))
       .groupBy(campaigns.clientId) : [];
 
     // Merge stats with clients
@@ -262,7 +262,7 @@ router.put('/:id', validateRequest({ body: updateClientSchema }), async (req, re
         .from(clients)
         .where(and(
           eq(clients.name, updates.name),
-          sql`id != ${id}`
+          sql`${clients.id} != ${id}`
         ))
         .limit(1);
       

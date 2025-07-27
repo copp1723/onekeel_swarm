@@ -38,7 +38,9 @@
     "check:env": "node scripts/validate-env.js",
     "type-check": "tsc --noEmit --skipLibCheck",
     "type-check:client": "cd client && tsc --noEmit --skipLibCheck",
-    "type-check:server": "cd server && tsc --noEmit --skipLibCheck"
+    "type-check:server": "cd server && tsc --noEmit --skipLibCheck",
+    "db:verify": "tsx scripts/verify-schema.ts",
+    "test:db": "tsx scripts/test-db-connection.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -65,7 +67,7 @@
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "csv-parse": "^5.5.6",
-    "date-fns": "^4.0.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.30.4",
     "drizzle-orm": "^0.36.0",
@@ -76,6 +78,7 @@
     "express-session": "^1.18.0",
     "form-data": "^4.0.0",
     "ioredis": "^5.4.1",
+    "isomorphic-dompurify": "^2.26.0",
     "jsonwebtoken": "^9.0.2",
     "lru-cache": "^11.0.0",
     "lucide-react": "^0.400.0",

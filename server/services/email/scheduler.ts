@@ -1,5 +1,5 @@
 import { emailTemplateManager } from "./templates";
-import { mailgunService } from "./mailgun";
+import emailService from "./index";
 
 export interface AttemptConfig {
   attemptNumber: number;
@@ -190,8 +190,13 @@ export class EmailScheduler {
       throw new Error(`No email found for lead ${attempt.leadId}`);
     }
 
+    // Check if email service is configured
+    if (!emailService.service) {
+      throw new Error("Email service not configured");
+    }
+
     // Send email
-    const emailResult = await mailgunService.sendEmail({
+    const emailResult = await emailService.service.sendEmail({
       to: email,
       subject: rendered.subject,
       html: rendered.html,

@@ -28,8 +28,8 @@ import { AgentsView } from '@/views/AgentsView';
 import { CampaignsView } from '@/views/CampaignsView';
 import { ClientManagementView } from '@/views/ClientManagementView';
 import { TemplateLibraryView } from '@/views/TemplateLibraryView';
-import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { AgentManagementView } from '@/views/AgentManagementView';
+import { AgentTemplatesView } from '@/views/AgentTemplatesView';
 import { MultiAgentCampaignView } from '@/views/MultiAgentCampaignView';
 import { UsersView } from '@/views/UsersView';
 import { FeatureFlagDashboard } from '@/components/FeatureFlagDashboard';
@@ -148,13 +148,12 @@ function AppContent() {
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeView === 'dashboard' && (useEnhancedDashboard ? <EnhancedDashboardView /> : <DashboardView />)}
-        {activeView === 'intelligence' && <CampaignIntelligenceView />}
+        {activeView === 'dashboard' && <EnhancedDashboardView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'leads' && <LeadsView />}
         {activeView === 'branding' && <BrandingManagementView />}
         {activeView === 'agents' && <AgentsView />}
-        {activeView === 'agent-templates' && <AgentManagementView />}
+        {activeView === 'agent-templates' && <AgentTemplatesView />}
         {activeView === 'campaigns' && <CampaignsView />}
         {activeView === 'clients' && <ClientManagementView />}
         {activeView === 'templates' && <TemplateLibraryView />}

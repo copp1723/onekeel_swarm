@@ -1,0 +1,20 @@
+--- a/server/agents/base-agent.ts
++++ b/server/agents/base-agent.ts
+@@ -102,7 +102,15 @@ export class BaseAgent {
+     };
+ 
+     // Use model router for intelligent model selection
+-    const response = await ModelRouter.makeRequest(\n        prompt,\n        systemPrompt,\n        {\n          model: requestOptions.model,\n          temperature: requestOptions.temperature,\n          maxTokens: requestOptions.maxTokens,\n          timeout: requestOptions.timeout,\n          retries: requestOptions.retries\n        }\n      );
++    const response = await ModelRouter.makeRequest(
++      prompt,
++      systemPrompt,
++      {
++        model: requestOptions.model,
++        temperature: requestOptions.temperature,
++        maxTokens: requestOptions.maxTokens,
++        timeout: requestOptions.timeout,
++        retries: requestOptions.retries
++      }
++    );
+     
+     logger.info(`OpenRouter call successful for ${this.agentType}`, {
