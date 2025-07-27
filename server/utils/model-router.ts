@@ -19,10 +19,10 @@ export interface ModelResponse {
 
 export class ModelRouter {
   private models: string[] = [
-    'openai/gpt-4o-mini',
-    'openai/gpt-3.5-turbo',
-    'anthropic/claude-3-haiku',
-    'meta-llama/llama-3.1-8b-instruct'
+    'gpt-4o-mini',
+    'gpt-3.5-turbo',
+    'claude-3-haiku',
+    'llama-3.1-8b'
   ];
   
   private currentModelIndex = 0;
@@ -118,45 +118,20 @@ export class ModelRouter {
     systemPrompt?: string,
     options: ModelRequestOptions = {}
   ): Promise<string> {
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    // This is a stub implementation - replace with actual API calls
+    // For now, return a simple response based on the prompt
     
-    if (!apiKey) {
-      throw new Error('OpenRouter API key not configured');
+    const delay = Math.random() * 1000 + 500; // Simulate API latency
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    // Simulate occasional failures
+    if (Math.random() < 0.05) { // 5% failure rate
+      throw new Error(`Model ${model} temporarily unavailable`);
     }
 
-    const requestBody = {
-      model: model,
-      messages: [
-        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        { role: 'user', content: prompt }
-      ],
-      temperature: options.temperature || 0.7,
-      max_tokens: options.maxTokens || 500
-    };
-
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://onekeel-swarm.onrender.com',
-          'X-Title': 'OneKeel Swarm'
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
-      }
-
-      const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      logger.error('OpenRouter API call failed', { error });
-      throw error;
-    }
+    // Generate a simple response
+    const response = this.generateMockResponse(prompt, systemPrompt);
+    return response;
   }
 
   private generateMockResponse(prompt: string, systemPrompt?: string): string {

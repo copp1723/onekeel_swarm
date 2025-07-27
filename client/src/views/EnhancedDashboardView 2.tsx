@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PerformanceMetrics } from '@/components/dashboard/PerformanceMetrics';
-import { ReportingSnapshot } from '@/components/dashboard/ReportingSnapshot';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useTerminology } from '@/hooks/useTerminology';
 import { 
   BarChart3, 
@@ -38,6 +38,7 @@ interface RecentActivity {
 }
 
 export const EnhancedDashboardView: React.FC = () => {
+  const { enabled: useEnhancedDashboard } = useFeatureFlag('ui.enhanced-dashboard');
   const terminology = useTerminology();
   const [campaigns, setCampaigns] = useState<CampaignMetric[]>([]);
   const [activities, setActivities] = useState<RecentActivity[]>([]);
@@ -160,7 +161,10 @@ export const EnhancedDashboardView: React.FC = () => {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  // Feature flag check is now handled in App.tsx
+  if (!useEnhancedDashboard) {
+    // Fallback to basic dashboard
+    return <BasicDashboard terminology={terminology} />;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -179,13 +183,6 @@ export const EnhancedDashboardView: React.FC = () => {
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Key Performance Indicators</h2>
         <PerformanceMetrics />
-      </div>
-
-      {/* Reporting Snapshot */}
-      <div className="mb-6">
-        <ReportingSnapshot 
-          onViewAll={() => window.location.href = '/campaigns'} 
-        />
       </div>
 
       {/* Campaign Performance */}

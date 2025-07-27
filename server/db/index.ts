@@ -17,8 +17,7 @@ import {
   analyticsEvents,
   clients,
   templates as emailTemplates,
-  leadCampaignEnrollments,
-  sessions
+  leadCampaignEnrollments
 } from './schema';
 import { eq, and, sql } from 'drizzle-orm';
 
@@ -308,56 +307,8 @@ export class UsersRepository {
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return user || null;
   }
-  
-  static async findByEmail(email: string) {
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    return user || null;
-  }
 }
 
-export class SessionsRepository {
-  static async create(userId: string, token: string, expiresAt: Date, ipAddress?: string, userAgent?: string) {
-    const [session] = await db.insert(sessions).values({
-      userId,
-      token,
-      expiresAt,
-      ipAddress: ipAddress || null,
-      userAgent: userAgent || null,
-      createdAt: new Date(),
-      lastAccessedAt: new Date()
-    }).returning();
-    return session;
-  }
-  
-  static async findByToken(token: string) {
-    const [session] = await db.select().from(sessions).where(eq(sessions.token, token)).limit(1);
-    return session || null;
-  }
-  
-  static async deleteByToken(token: string) {
-    const result = await db.delete(sessions).where(eq(sessions.token, token)).returning();
-    return result.length > 0;
-  }
-  
-  static async deleteExpired() {
-    const result = await db.delete(sessions).where(sql`expires_at < NOW()`).returning();
-    return result.length;
-  }
-  
-  
-  static async updateLastAccessed(token: string) {
-    const [session] = await db.update(sessions)
-      .set({ lastAccessedAt: new Date() })
-      .where(eq(sessions.token, token))
-      .returning();
-    return session || null;
-  }
-  
-  static async deleteByUserId(userId: string) {
-    const result = await db.delete(sessions).where(eq(sessions.userId, userId)).returning();
-    return result.length;
-  }
-}
 export class AuditLogRepository {
   static async create(data: any) {
     const [log] = await db.insert(auditLogs).values({
@@ -414,7 +365,6 @@ export const communicationsRepository = CommunicationsRepository;
 export const emailTemplatesRepository = EmailTemplatesRepository;
 export const agentConfigurationsRepository = AgentConfigurationsRepository;
 export const usersRepository = UsersRepository;
-export const sessionsRepository = SessionsRepository;
 export const auditLogRepository = AuditLogRepository;
 export const analyticsRepository = AnalyticsRepository;
 export const clientsRepository = ClientsRepository;

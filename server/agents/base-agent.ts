@@ -2,7 +2,7 @@ import { Lead, Campaign } from '../db/schema';
 import { logger } from '../utils/logger';
 import { executeWithOpenRouterBreaker } from '../utils/circuit-breaker';
 import { superMemory, mockSuperMemory } from '../services/supermemory';
-import { modelRouter, ModelRequestOptions } from '../utils/model-router';
+import { ModelRouter, ModelRequestOptions } from '../utils/model-router';
 
 export interface AgentContext {
   lead: Lead;
@@ -82,7 +82,7 @@ export abstract class BaseAgent {
   ): Promise<string> {
     try {
       // Check if API key is available
-      if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === '' || process.env.OPENROUTER_API_KEY.startsWith('sk-or-v1-YOUR_ACTUAL_KEY')) {
+      if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === '') {
         logger.info(`No OpenRouter API key found for ${this.agentType}, using mock responses`);
         return this.getMockResponse(prompt);
       }
@@ -102,17 +102,7 @@ export abstract class BaseAgent {
       };
 
       // Use model router for intelligent model selection
-      const response = await modelRouter.makeRequest(
-        prompt,
-        systemPrompt,
-        {
-          model: requestOptions.model,
-          temperature: requestOptions.temperature,
-          maxTokens: requestOptions.maxTokens,
-          timeout: requestOptions.timeout,
-          retries: requestOptions.retries
-        }
-      );
+      const response = await ModelRouter.routeRequest(requestOptions);
       
       logger.info(`OpenRouter call successful for ${this.agentType}`, {
         model: response.model,

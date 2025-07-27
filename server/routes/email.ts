@@ -1,39 +1,18 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
-import emailService, { emailTemplateManager, emailScheduler } from '../services/email';
+import { mailgunService, emailTemplateManager, emailScheduler } from '../services/email';
 import emailTemplatesRouter from './email-templates-db';
 
-console.log('Debug: emailService.service status:', emailService.service?.getStatus());
 const router = Router();
 
 // Mount templates sub-router
 router.use('/templates', emailTemplatesRouter);
 
-// Email configuration status endpoint
-router.get('/config/status', (req, res) => {
-  const status = {
-    configured: false,
-    domain: process.env.MAILGUN_DOMAIN || null,
-    apiKeyPresent: !!process.env.MAILGUN_API_KEY,
-    fromEmail: process.env.MAILGUN_FROM_EMAIL || null,
-    provider: process.env.EMAIL_PROVIDER || 'mailgun'
-  };
-  
-  // Check if service is properly configured
-  status.configured = !!emailService.service && status.apiKeyPresent && !!status.domain;
-  
-  res.json({
-    success: true,
-    data: status,
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Email schedule routes
 router.get('/schedules', async (req, res) => {
   try {
-    const schedules = emailScheduler.getAllSchedules();
+    const schedules = emailScheduler.getSchedules();
     res.json({
       success: true,
       data: schedules,
@@ -148,32 +127,12 @@ router.post('/send', validateRequest({ body: sendEmailSchema }), async (req, res
       }
       
       const rendered = emailTemplateManager.renderTemplate(emailData.templateId, emailData.variables || {});
-      if (rendered) {
-        emailData.subject = rendered.subject || emailData.subject;
-        emailData.html = rendered.html;
-        emailData.text = rendered.text;
-      }
+      emailData.subject = rendered.subject || emailData.subject;
+      emailData.html = rendered.html;
+      emailData.text = rendered.text;
     }
     
-    // Check if email service is configured
-    if (!emailService.service) {
-      const configStatus = {
-        domain: process.env.MAILGUN_DOMAIN || 'Not set',
-        apiKeyPresent: !!process.env.MAILGUN_API_KEY,
-        configured: false
-      };
-      
-      return res.status(503).json({
-        success: false,
-        error: {
-          code: 'EMAIL_NOT_CONFIGURED',
-          message: 'Email service is not properly configured.',
-          details: configStatus
-        }
-      });
-    }
-    
-    const result = await emailService.service.sendEmail(emailData);
+    const result = await mailgunService.sendEmail(emailData);
     
     res.json({
       success: true,
@@ -204,19 +163,13 @@ router.post('/test', validateRequest({
     const { to, type } = req.body;
     
     // Check if email service is configured
-    if (!emailService.service) {
-      const configStatus = {
-        domain: process.env.MAILGUN_DOMAIN || 'Not set',
-        apiKeyPresent: !!process.env.MAILGUN_API_KEY,
-        configured: false
-      };
-      
+    if (!mailgunService.isConfigured()) {
       return res.status(503).json({
         success: false,
         error: {
           code: 'EMAIL_NOT_CONFIGURED',
-          message: 'Email service is not properly configured.',
-          details: configStatus
+          message: 'Email service is not properly configured. Please check MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables.',
+          details: mailgunService.getStatus()
         }
       });
     }
@@ -226,7 +179,7 @@ router.post('/test', validateRequest({
     switch (type) {
       case 'simple':
         // Send a simple test email
-        result = await emailService.service.sendEmail({
+        result = await mailgunService.sendEmail({
           to,
           subject: 'Test Email from OneKeel Swarm',
           html: `
@@ -252,10 +205,10 @@ router.post('/test', validateRequest({
           companyName: 'OneKeel Swarm'
         };
         
-        result = await emailService.service.sendEmail({
+        result = await mailgunService.sendEmail({
           to,
-          subject: emailService.service.processTemplate('Welcome {{firstName}}!', templateVars),
-          html: emailService.service.processTemplate(`
+          subject: mailgunService.processTemplate('Welcome {{firstName}}!', templateVars),
+          html: mailgunService.processTemplate(`
             <h2>Welcome {{firstName}} {{lastName}}!</h2>
             <p>This is a test template email from {{companyName}}.</p>
             <p>Your email {{email}} has been successfully added to our system.</p>
@@ -269,7 +222,7 @@ router.post('/test', validateRequest({
         
       case 'campaign':
         // Send a test campaign-style email
-        result = await emailService.service.sendEmail({
+        result = await mailgunService.sendEmail({
           to,
           subject: 'Special Offer Just for You!',
           html: `
@@ -304,7 +257,7 @@ router.post('/test', validateRequest({
         type,
         to,
         timestamp: new Date().toISOString(),
-        emailService: emailService.service.getStatus()
+        emailService: mailgunService.getStatus()
       }
     });
   } catch (error) {

@@ -1,36 +1,46 @@
-// FIX 1: Remove Hardcoded Admin Credentials
-// File: server/routes/auth.ts
-
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
-import { tokenService } from '../services/token-service';
-import { UsersRepository } from '../db';
-import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
-// Add rate limiting to prevent brute force attacks
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: 'Too many login attempts, please try again later',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Check if auth should be skipped
+const skipAuth = process.env.SKIP_AUTH === 'true';
 
-// Enhanced validation schemas with stricter rules
+// Validation schemas
 const loginSchema = z.object({
-  username: z.string().min(1).max(255).email('Invalid email format'),
-  password: z.string().min(8).max(100) // Enforce minimum password length
+  username: z.string().min(1),
+  password: z.string().min(1)
 });
 
-// SECURE Login endpoint - NO HARDCODED CREDENTIALS
-router.post('/login', loginLimiter, async (req, res) => {
+// Login endpoint
+router.post('/login', async (req, res) => {
   try {
-    // REMOVED: Skip auth bypass
-    // REMOVED: Hardcoded credentials check
-    
+    // If SKIP_AUTH is true, auto-login as admin
+    if (skipAuth) {
+      const result = {
+        user: {
+          id: 'admin-1',
+          email: 'admin@onekeel.com',
+          username: 'admin',
+          firstName: 'Admin',
+          lastName: 'User',
+          role: 'admin',
+          active: true
+        },
+        accessToken: 'skip-auth-token-' + Date.now(),
+        refreshToken: 'skip-auth-refresh-' + Date.now(),
+        expiresIn: 86400 // 24 hours
+      };
+
+      return res.json({
+        success: true,
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn
+      });
+    }
+
     const validationResult = loginSchema.safeParse(req.body);
     if (!validationResult.success) {
       return res.status(400).json({
@@ -38,68 +48,49 @@ router.post('/login', loginLimiter, async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid login data',
-          // Don't expose detailed validation errors in production
-          details: process.env.NODE_ENV === 'development' ? validationResult.error.errors : undefined
+          details: validationResult.error.errors
         }
       });
     }
 
     const { username, password } = validationResult.data;
     
-    // Find user in database
-    const user = await UsersRepository.findByEmail(username);
-    
-    if (!user || !user.active) {
-      // Generic error message to prevent user enumeration
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
+    // Hardcoded admin login for immediate access
+    if (username === 'admin@onekeel.com' && password === 'password123') {
+      const result = {
+        user: {
+          id: 'admin-1',
+          email: 'admin@onekeel.com',
+          username: 'admin',
+          firstName: 'Admin',
+          lastName: 'User',
+          role: 'admin',
+          active: true
+        },
+        accessToken: 'hardcoded-jwt-token-' + Date.now(),
+        refreshToken: 'hardcoded-refresh-token-' + Date.now(),
+        expiresIn: 3600
+      };
+
+      return res.json({
+        success: true,
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn
       });
     }
     
-    // Verify password using bcrypt
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-    
-    if (!isValidPassword) {
-      // Log failed attempt for security monitoring
-      console.warn(`Failed login attempt for user: ${username}`);
-      
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
-      });
-    }
-    
-    // Generate secure tokens
-    const tokens = await tokenService.generateTokens(user);
-    
-    // Update last login
-    await UsersRepository.updateLastLogin(user.id);
-    
-    return res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        active: user.active
-      },
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresIn: tokens.expiresIn
+    // Default: Invalid credentials
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid username or password'
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
-    // Don't expose internal errors
     return res.status(500).json({
       success: false,
       error: {
@@ -110,13 +101,27 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// Remove the /me endpoint that allowed skip auth
+// Get current user endpoint
 router.get('/me', async (req, res) => {
-  // REMOVED: Skip auth check
-  
+  // If SKIP_AUTH is true, return admin user
+  if (skipAuth) {
+    return res.json({
+      success: true,
+      user: {
+        id: 'admin-1',
+        email: 'admin@onekeel.com',
+        username: 'admin',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+        active: true
+      }
+    });
+  }
+
   // Check for authorization header
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader) {
     return res.status(401).json({
       success: false,
       error: {
@@ -126,54 +131,47 @@ router.get('/me', async (req, res) => {
     });
   }
 
-  try {
-    const token = authHeader.substring(7);
-    const decoded = await tokenService.verifyAccessToken(token);
-    
-    if (!decoded) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_TOKEN',
-          message: 'Invalid or expired token'
-        }
-      });
+  // Mock authentication - in production, verify JWT token here
+  return res.json({
+    success: true,
+    user: {
+      id: 'admin-1',
+      email: 'admin@onekeel.com',
+      username: 'admin',
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'admin',
+      active: true
     }
-    
-    // Get fresh user data
-    const user = await UsersRepository.findById(decoded.userId);
-    
-    if (!user || !user.active) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found or inactive'
-        }
-      });
-    }
-    
+  });
+});
+
+// Logout endpoint
+router.post('/logout', async (req, res) => {
+  return res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+// Refresh token endpoint
+router.post('/refresh', async (req, res) => {
+  // If SKIP_AUTH is true, always refresh
+  if (skipAuth) {
     return res.json({
       success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        active: user.active
-      }
-    });
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: {
-        code: 'AUTH_ERROR',
-        message: 'Authentication error'
-      }
+      accessToken: 'skip-auth-token-' + Date.now(),
+      refreshToken: 'skip-auth-refresh-' + Date.now(),
+      expiresIn: 86400
     });
   }
+
+  return res.json({
+    success: true,
+    accessToken: 'refreshed-token-' + Date.now(),
+    refreshToken: 'refreshed-refresh-' + Date.now(),
+    expiresIn: 3600
+  });
 });
 
 export default router;

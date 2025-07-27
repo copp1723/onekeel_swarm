@@ -10,13 +10,7 @@ const __dirname = dirname(__filename);
 async function runMigrations() {
   console.log('🔄 Running database migrations...');
   
-  const connectionString = process.env.DATABASE_URL;
-  
-  if (!connectionString) {
-    console.error('❌ DATABASE_URL environment variable is required for migrations');
-    console.error('Please set DATABASE_URL in your .env file');
-    process.exit(1);
-  }
+  const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
   
   // Create migration client with max 1 connection
   const migrationClient = postgres(connectionString, { max: 1 });

@@ -4,7 +4,6 @@ import { db } from '../db/client';
 import { leads, conversations, campaigns, communications, leadCampaignEnrollments } from '../db/schema';
 import { sql, gte, and, eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
-import * as os from 'os';
 
 const router = Router();
 
@@ -44,7 +43,7 @@ const getPerformanceData = () => ({
   },
   cpu: {
     usage: Math.random() * 40 + 10, // Mock CPU usage between 10-50%
-    cores: os.cpus().length
+    cores: require('os').cpus().length
   },
   uptime: Math.round(process.uptime()),
   responseTime: {
@@ -708,8 +707,8 @@ campaigns_active_total 8
   }
 });
 
-// Get performance metrics for dashboard (authenticated)
-router.get('/performance-dashboard', requireAuth, async (req, res) => {
+// Get performance metrics for dashboard
+router.get('/performance', requireAuth, async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

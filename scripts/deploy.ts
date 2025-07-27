@@ -178,7 +178,10 @@ async function deploy() {
 }
 
 // Run if called directly
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
+
+if (import.meta.url === `file://${argv[1]}` || fileURLToPath(import.meta.url) === argv[1]) {
   deploy();
 }
 

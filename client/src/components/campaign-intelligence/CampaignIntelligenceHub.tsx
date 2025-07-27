@@ -8,15 +8,15 @@ import { AgentManagementDashboard } from '@/components/shared';
 import { MultiAgentCampaignEditor } from '@/components/email-agent/MultiAgentCampaignEditor';
 import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
 import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
+import { EmailTestPanel } from '@/components/email/EmailTestPanel';
 import { useAgents } from '@/hooks/useAgents';
 
 interface CampaignIntelligenceHubProps {
   campaigns: any[];
   onUpdate: () => void;
-  onCreateCampaign?: () => void;
 }
 
-export function CampaignIntelligenceHub({ campaigns, onUpdate, onCreateCampaign }: CampaignIntelligenceHubProps) {
+export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelligenceHubProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const { agents } = useAgents();
 
@@ -30,17 +30,18 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate, onCreateCampaign 
           </h2>
           <p className="text-gray-600">AI-powered agent management and campaign orchestration</p>
         </div>
-        <Button onClick={onCreateCampaign}>
+        <Button onClick={() => window.location.href = '/campaigns/new'}>
           <Zap className="h-4 w-4 mr-2" />
           Create Smart Campaign
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="email-settings">Email Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -122,6 +123,16 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate, onCreateCampaign 
           </div>
         </TabsContent>
 
+        {/* Email Settings Tab */}
+        <TabsContent value="email-settings">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Email Configuration & Testing</h3>
+              <p className="text-gray-600 text-sm">Configure your email service and send test emails</p>
+            </div>
+            <EmailTestPanel />
+          </div>
+        </TabsContent>
 
       </Tabs>
     </div>

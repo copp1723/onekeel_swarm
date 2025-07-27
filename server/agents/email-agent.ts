@@ -63,12 +63,10 @@ OUTPUT ONLY a valid JSON array, nothing else:
     try {
       const raw = await this.generateResponse(
         userPrompt,
-        systemPrompt,
         { 
-          leadId: 'campaign-generation',
-          leadName: details.campaignName,
-          type: 'campaign_sequence_generation',
-          metadata: { campaignName: details.campaignName }
+          type: 'campaign_sequence_generation', 
+          campaignName: details.campaignName,
+          systemPrompt 
         }
       );
 
@@ -127,32 +125,6 @@ OUTPUT ONLY a valid JSON array, nothing else:
 
   // Override getMockResponse for email-specific mock behavior
   protected getMockResponse(prompt: string): string {
-    // Handle campaign sequence generation with sophisticated mock response
-    if (prompt.includes('5-email cold-outreach sequence') || prompt.includes('campaign_sequence_generation')) {
-      return JSON.stringify([
-        {
-          "subject": "Quick question about your financing needs...",
-          "body": "Hi {firstName},\n\nI hope you're doing well. I noticed you might be exploring financing options.\n\nI've helped many people in similar situations save money with better rates. Mind if I ask what you're looking to finance?\n\nNo pressure at all - just thought I'd reach out.\n\n{agentName}"
-        },
-        {
-          "subject": "Found something that might help...",
-          "body": "Hi {firstName},\n\nI wanted to follow up on my previous message. Many of our clients initially had concerns about switching lenders.\n\nThe truth is, most people are surprised by how much they can save. One client just saved $200/month on their auto loan.\n\nWould you like to see what rates you qualify for?\n\n{agentName}"
-        },
-        {
-          "subject": "Rates going up next week...",
-          "body": "Hi {firstName},\n\nI don't want to be pushy, but I wanted to give you a heads up.\n\nRates are scheduled to increase next week, and I'd hate for you to miss out if this could help you.\n\nWant to take 2 minutes to see what you qualify for?\n\n{agentName}"
-        },
-        {
-          "subject": "Can I help you save money?",
-          "body": "Hi {firstName},\n\nI've reached out a few times about potentially saving you money on financing.\n\nI genuinely believe this could help you - that's why I keep following up.\n\nIf you're interested, here's a quick application: [Apply Now](#)\n\nNo hard feelings if it's not right for you.\n\n{agentName}"
-        },
-        {
-          "subject": "Last message - I promise",
-          "body": "Hi {firstName},\n\nI won't bother you again after this. If refinancing isn't right for you right now, I totally understand.\n\nBut if you're still curious about saving money: [Check Your Rate](#)\n\nEither way, I hope you have a great week!\n\n{agentName}\n\n*Rates subject to credit approval*"
-        }
-      ]);
-    }
-    
     if (prompt.includes('initial email') || prompt.includes('first contact')) {
       return `Hello! Thank you for your interest in our services. We're excited to learn more about your needs and how we can help you. 
 

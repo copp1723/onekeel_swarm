@@ -5,6 +5,8 @@ import { leads, campaigns } from '../db/schema';
 import { logger } from '../utils/logger';
 import { campaignExecutionEngine } from './campaign-execution-engine';
 import { eq } from 'drizzle-orm';
+
+import 'dotenv/config';
 import * as crypto from 'crypto';
 
 interface EmailTrigger {

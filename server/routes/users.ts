@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
 import { users, auditLogs } from '../db/schema';
-import { eq, and, or, ilike, sql, desc, gte } from 'drizzle-orm';
+import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import bcrypt from 'bcryptjs';
 
@@ -260,7 +260,7 @@ router.put('/:id', validateRequest({ body: updateUserSchema }), async (req, res)
         .from(users)
         .where(and(
           eq(users.email, updates.email),
-          sql`${users.id} != ${id}`
+          sql`id != ${id}`
         ))
         .limit(1);
       
@@ -531,7 +531,7 @@ router.get('/:id/activity', async (req, res) => {
       .where(
         and(
           eq(auditLogs.userId, id),
-          gte(auditLogs.createdAt, startDate)
+          sql`created_at >= ${startDate}`
         )
       )
       .orderBy(desc(auditLogs.createdAt))

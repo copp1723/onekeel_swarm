@@ -1,18 +1,8 @@
-// FIX 2: Remove Authentication Bypass
-// File: server/middleware/auth.ts
-
 import { Request, Response, NextFunction } from 'express';
-import { UsersRepository, SessionsRepository } from '../db';
-import { tokenService } from '../services/token-service';
-import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import { UsersRepository } from '../db';
 
-// SECURE: Use environment variable with proper validation
-const JWT_SECRET = process.env.JWT_SECRET;
-
-// Validate JWT secret on startup
-if (!JWT_SECRET || JWT_SECRET.length < 32) {
-  throw new Error('JWT_SECRET must be set and at least 32 characters long');
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'ccl3-jwt-secret-change-in-production';
 
 // Extend Express Request type
 declare global {
@@ -27,15 +17,23 @@ declare global {
   }
 }
 
-// SECURE JWT authentication middleware - NO BYPASS
+// JWT authentication middleware
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // REMOVED: Skip auth bypass check
-    
+    // Skip auth only if explicitly set (you've already disabled this in Render)
+    if (process.env.SKIP_AUTH === 'true') {
+      req.user = {
+        id: 'dev-user-1',
+        email: 'dev@completecarloans.com',
+        role: 'admin'
+      };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         error: 'Authentication required',
         code: 'NO_AUTH_TOKEN'
       });
@@ -43,68 +41,52 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     
     const token = authHeader.substring(7);
     
-    // Verify access token with secure secret
-    const decoded = tokenService.verifyAccessToken(token);
-    
-    if (!decoded) {
-      return res.status(401).json({
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        userId: string;
+        email: string;
+        role: string;
+      };
+      
+      // Verify user still exists and is active
+      const user = await UsersRepository.findById(decoded.userId);
+      
+      if (!user || !user.active) {
+        return res.status(401).json({ 
+          error: 'Invalid authentication',
+          code: 'USER_INACTIVE'
+        });
+      }
+      
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role as any
+      };
+      
+      next();
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          error: 'Token expired',
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+      
+      return res.status(401).json({ 
         error: 'Invalid token',
         code: 'INVALID_TOKEN'
       });
     }
-    
-    // Check token expiration
-    if (decoded.exp && decoded.exp < Date.now() / 1000) {
-      return res.status(401).json({
-        error: 'Token expired',
-        code: 'TOKEN_EXPIRED'
-      });
-    }
-    
-    // Verify user still exists and is active
-    const user = await UsersRepository.findById(decoded.userId);
-    
-    if (!user || !user.active) {
-      return res.status(401).json({
-        error: 'Invalid authentication',
-        code: 'USER_INACTIVE'
-      });
-    }
-    
-    // Verify user hasn't been downgraded
-    if (user.role !== decoded.role) {
-      return res.status(401).json({
-        error: 'Token role mismatch',
-        code: 'ROLE_MISMATCH'
-      });
-    }
-    
-    req.user = {
-      id: decoded.userId,
-      email: decoded.email,
-      role: decoded.role as any
-    };
-    
-    // Update session tracking
-    const ipAddress = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
-    const userAgent = req.headers['user-agent'] || '';
-    
-    // Log access for security monitoring
-    if (process.env.ENABLE_ACCESS_LOGS === 'true') {
-      console.log(`Access: ${user.email} from ${ipAddress} at ${new Date().toISOString()}`);
-    }
-    
-    next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(500).json({
+    return res.status(500).json({ 
       error: 'Authentication error',
       code: 'AUTH_ERROR'
     });
   }
 };
 
-// Enhanced role-based authorization
+// Role-based authorization middleware
 export const authorize = (...allowedRoles: Array<'admin' | 'manager' | 'agent' | 'viewer'>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -114,14 +96,7 @@ export const authorize = (...allowedRoles: Array<'admin' | 'manager' | 'agent' |
       });
     }
     
-    // Check role hierarchy
-    const userRoleValue = roleHierarchy[req.user.role];
-    const minRequiredRole = Math.min(...allowedRoles.map(r => roleHierarchy[r]));
-    
-    if (userRoleValue < minRequiredRole) {
-      // Log authorization failures
-      console.warn(`Authorization failed: ${req.user.email} attempted to access resource requiring ${allowedRoles.join(' or ')}`);
-      
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         error: 'Insufficient permissions',
         code: 'FORBIDDEN',
@@ -134,13 +109,44 @@ export const authorize = (...allowedRoles: Array<'admin' | 'manager' | 'agent' |
   };
 };
 
-// No optional authentication - all routes should be explicitly public or protected
-export const publicRoute = (req: Request, res: Response, next: NextFunction) => {
-  // Explicitly mark as public route
-  next();
+// Optional authentication - doesn't fail if no token
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+    
+    const token = authHeader.substring(7);
+    
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        userId: string;
+        email: string;
+        role: string;
+      };
+      
+      const user = await UsersRepository.findById(decoded.userId);
+      
+      if (user && user.active) {
+        req.user = {
+          id: decoded.userId,
+          email: decoded.email,
+          role: decoded.role as any
+        };
+      }
+    } catch (error) {
+      // Ignore token errors for optional auth
+    }
+    
+    next();
+  } catch (error) {
+    next();
+  }
 };
 
-// Enhanced resource ownership check
+// Check if user owns resource or is admin
 export const ownsResourceOr = (ownerIdParam: string, ...allowedRoles: Array<'admin' | 'manager'>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -151,14 +157,6 @@ export const ownsResourceOr = (ownerIdParam: string, ...allowedRoles: Array<'adm
     }
     
     const ownerId = req.params[ownerIdParam];
-    
-    // Validate owner ID format
-    if (!ownerId || !isValidUUID(ownerId)) {
-      return res.status(400).json({
-        error: 'Invalid resource ID',
-        code: 'INVALID_ID'
-      });
-    }
     
     // Check if user owns the resource
     if (req.user.id === ownerId) {
@@ -177,25 +175,17 @@ export const ownsResourceOr = (ownerIdParam: string, ...allowedRoles: Array<'adm
   };
 };
 
-// Utility function to validate UUID
-function isValidUUID(uuid: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
+// Alias for backward compatibility
+export const requireAuth = authenticate;
 
-// Role hierarchy with numeric values
+// Role hierarchy helper
 export const roleHierarchy = {
   admin: 4,
   manager: 3,
   agent: 2,
   viewer: 1
-} as const;
-
-export const hasMinimumRole = (userRole: string, requiredRole: string): boolean => {
-  const userRoleValue = roleHierarchy[userRole as keyof typeof roleHierarchy];
-  const requiredRoleValue = roleHierarchy[requiredRole as keyof typeof roleHierarchy];
-  return userRoleValue >= requiredRoleValue;
 };
 
-// Alias for backward compatibility
-export const requireAuth = authenticate;
+export const hasMinimumRole = (userRole: string, requiredRole: string): boolean => {
+  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+};

@@ -233,7 +233,10 @@ export function generateSecureSecret(length: number = 32): string {
 }
 
 // Script to generate secrets (can be run separately)
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
+
+if (import.meta.url === `file://${argv[1]}` || fileURLToPath(import.meta.url) === argv[1]) {
   console.log('Generate these secure secrets for your .env file:');
   console.log(`JWT_SECRET=${generateSecureSecret(64)}`);
   console.log(`JWT_REFRESH_SECRET=${generateSecureSecret(64)}`);

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
-import { featureFlagService } from '../services/feature-flag-service-wrapper';
-import type { FeatureFlagContext } from '../services/feature-flag-service-mock';
+import { featureFlagService } from '../services/feature-flag-service';
+import type { FeatureFlagContext } from '../services/feature-flag-service';
 
 const router = Router();
 
 // Validation schemas
 const contextSchema = z.object({
-  userId: z.string().optional(), // Remove UUID validation to be more flexible
+  userId: z.string().uuid().optional(),
   userRole: z.enum(['admin', 'manager', 'agent', 'viewer']).optional(),
   environment: z.enum(['development', 'staging', 'production']).default('development'),
   customProperties: z.record(z.any()).optional()

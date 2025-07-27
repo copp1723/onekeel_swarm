@@ -1,44 +1,5 @@
 // Production configuration for ultra-low-memory environments
-interface ProductionConfig {
-  features: {
-    enableRedis: boolean;
-    enableQueueSystem: boolean;
-    enableHealthChecks: boolean;
-    enableMetrics: boolean;
-    enablePerformanceMonitoring: boolean;
-    enableAuditLogging: boolean;
-    enableAnalytics: boolean;
-  };
-  performance: {
-    maxConcurrentRequests: number;
-    requestTimeout: number;
-    keepAliveTimeout: number;
-  };
-  healthCheck: {
-    enabled: boolean;
-    interval: number;
-    timeout: number;
-    checks: string[];
-  };
-  redis: {
-    enabled: boolean;
-    maxRetriesPerRequest: number;
-    enableOfflineQueue: boolean;
-    connectTimeout: number;
-  };
-  memory: {
-    maxHeapUsagePercent: number;
-    gcInterval: number;
-    preventMemoryLeaks: boolean;
-  };
-  logging: {
-    level: string;
-    maxFiles: number;
-    console: boolean;
-  };
-}
-
-export const productionConfig: ProductionConfig = {
+export const productionConfig = {
   // Disable ALL non-essential features to save memory
   features: {
     enableRedis: false, // Disable Redis completely

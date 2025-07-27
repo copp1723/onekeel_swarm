@@ -284,7 +284,10 @@ export async function setupDefaultFeatureFlags(): Promise<void> {
 export { DEFAULT_FLAGS };
 
 // If run directly
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+import { argv } from 'process';
+
+if (import.meta.url === `file://${argv[1]}` || fileURLToPath(import.meta.url) === argv[1]) {
   setupDefaultFeatureFlags()
     .then(() => {
       console.log('Default feature flags setup completed successfully.');
