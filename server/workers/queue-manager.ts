@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import crypto from 'crypto';
 
 export interface QueueJob {
   id: string;
@@ -147,6 +148,13 @@ export class QueueManager {
   async shutdown(): Promise<void> {
     logger.info('Shutting down queue manager');
     this.isProcessing = false;
+  }
+
+  isHealthy(): boolean {
+    // Consider the queue healthy if it's not overloaded
+    const jobCount = this.jobs.size;
+    const maxHealthyJobs = 1000; // Configurable threshold
+    return jobCount < maxHealthyJobs;
   }
 }
 

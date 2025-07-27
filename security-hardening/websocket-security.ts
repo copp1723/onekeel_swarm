@@ -250,7 +250,7 @@ export class SecureWebSocketServer {
         SecurityEventType.AUTHENTICATION_FAILURE,
         SecuritySeverity.MEDIUM,
         request as any,
-        { message: 'WebSocket authentication error', error: error.message }
+        { message: `WebSocket authentication error: ${error instanceof Error ? error.message : 'Unknown error'}` }
       );
       ws.send(JSON.stringify({ error: 'Authentication failed' }));
       ws.close(1008, 'Authentication Error');
@@ -271,8 +271,7 @@ export class SecureWebSocketServer {
         SecuritySeverity.MEDIUM,
         request as any,
         { 
-          message: 'Suspicious WebSocket message pattern detected',
-          userId: ws.userId,
+          message: `Suspicious WebSocket message pattern detected for user ${ws.userId}`,
           payload: sanitized
         }
       );
@@ -530,7 +529,7 @@ export class SecureWebSocketServer {
 }
 
 // Export middleware for Express to upgrade HTTP to WebSocket
-export function websocketUpgrade(secureWss: SecureWebSocketServer) {
+export function websocketUpgrade(_secureWss: SecureWebSocketServer) {
   return (req: any, res: any, next: any) => {
     if (req.headers.upgrade === 'websocket') {
       // Additional security checks before upgrade

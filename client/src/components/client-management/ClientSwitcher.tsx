@@ -1,6 +1,5 @@
 import React from 'react';
 import { useClient } from '@/contexts/ClientContext';
-import { Button } from '@/components/ui/button';
 import { Building } from 'lucide-react';
 
 export const ClientSwitcher: React.FC = () => {

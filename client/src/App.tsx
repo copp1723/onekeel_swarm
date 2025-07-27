@@ -1,25 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Brain,
-  Mail,
-  Upload,
-  Users,
-  Activity,
-  Settings,
-  MessageSquare,
-  Palette,
-  Target,
-  LogOut,
-  Building,
-  Copy,
-  BarChart3,
-  ChevronDown,
-  MessageCircle
+  LogOut
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
-import { DashboardView } from '@/views/DashboardView';
 import { EnhancedDashboardView } from '@/views/EnhancedDashboardView';
 import { LeadsView } from '@/views/LeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
@@ -28,9 +14,7 @@ import { AgentsView } from '@/views/AgentsView';
 import { CampaignsView } from '@/views/CampaignsView';
 import { ClientManagementView } from '@/views/ClientManagementView';
 import { TemplateLibraryView } from '@/views/TemplateLibraryView';
-import { AgentManagementView } from '@/views/AgentManagementView';
 import { AgentTemplatesView } from '@/views/AgentTemplatesView';
-import { MultiAgentCampaignView } from '@/views/MultiAgentCampaignView';
 import { UsersView } from '@/views/UsersView';
 import { FeatureFlagDashboard } from '@/components/FeatureFlagDashboard';
 import { EmailSettingsView } from '@/views/EmailSettingsView';
@@ -42,7 +26,6 @@ import { ViewType } from '@/types';
 import { ClientSwitcher } from '@/components/client-management/ClientSwitcher';
 import { NavigationBar } from '@/components/navigation/NavigationBar';
 import { useTerminology } from '@/hooks/useTerminology';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
 
 function AppContent() {
@@ -53,8 +36,6 @@ function AppContent() {
   const branding = activeClient?.brand_config || DEFAULT_BRANDING;
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const terminology = useTerminology();
-  const { enabled: useEnhancedDashboard } = useFeatureFlag('ui.enhanced-dashboard');
-  const { enabled: useNewNavigation } = useFeatureFlag('ui.new-navigation');
 
 
   if (isLoading) {

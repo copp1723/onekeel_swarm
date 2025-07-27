@@ -75,7 +75,7 @@ export class WebSocketMessageHandler {
             break;
         }
       } catch (error) {
-        logger.error('Error processing WebSocket message:', error);
+        logger.error('Error processing WebSocket message:', error as Error);
         ws.send(JSON.stringify({ type: 'error', message: 'Failed to process message' }));
       }
     });
@@ -146,7 +146,7 @@ export class WebSocketMessageHandler {
         logger.info('Processing lead', { leadId: data.leadId });
         // Note: Lead processing would require repository access
       } catch (error) {
-        logger.error('Error processing lead:', error);
+        logger.error('Error processing lead:', error as Error);
       }
     }
   }

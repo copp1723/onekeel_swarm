@@ -1,4 +1,3 @@
-import React from 'react';
 import { UnifiedAgentConfig, AgentType } from '@/types';
 import { EmailAgentModule } from './EmailAgentModule';
 import { SMSAgentModule } from './SMSAgentModule';

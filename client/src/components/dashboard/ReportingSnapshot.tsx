@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   BarChart3,
-  TrendingUp,
-  TrendingDown,
   ArrowRight
 } from 'lucide-react';
 
@@ -27,8 +25,7 @@ interface ReportingSnapshotProps {
 }
 
 export const ReportingSnapshot: React.FC<ReportingSnapshotProps> = ({ 
-  onViewAll,
-  compact = true
+  onViewAll
 }) => {
   const [campaigns, setCampaigns] = useState<CampaignMetrics[]>([]);
   const [loading, setLoading] = useState(true);

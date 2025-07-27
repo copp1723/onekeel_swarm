@@ -22,7 +22,7 @@ export class SimpleError extends Error {
 }
 
 // Express error middleware
-export function globalErrorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+export function globalErrorHandler(err: Error, req: Request, res: Response) {
   let status = 500;
   let code: SimpleErrorCode = 'SYSTEM_ERROR';
   let message = err.message || 'An unexpected error occurred.';

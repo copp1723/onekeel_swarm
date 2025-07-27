@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { UnifiedAgentConfig } from '@/types';
@@ -10,7 +9,6 @@ import {
   Users, 
   Target, 
   Settings, 
-  BarChart3, 
   Zap, 
   Activity,
   TrendingUp,
@@ -31,7 +29,7 @@ interface CoordinationMetrics {
   optimizationsApplied: number;
 }
 
-export function OverlordAgentModule({ agent, onUpdate }: OverlordAgentModuleProps) {
+export function OverlordAgentModule({ agent }: OverlordAgentModuleProps) {
   const { agents } = useAgents();
   const [metrics] = useState<CoordinationMetrics>({
     totalAgentsManaged: agents.filter(a => a.type !== 'overlord').length,
@@ -42,7 +40,6 @@ export function OverlordAgentModule({ agent, onUpdate }: OverlordAgentModuleProp
   });
 
   const managedAgents = agents.filter(a => a.type !== 'overlord');
-  const activeAgents = managedAgents.filter(a => a.active);
 
   const getAgentTypeIcon = (type: string) => {
     switch (type) {

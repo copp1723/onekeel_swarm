@@ -90,7 +90,6 @@ const defaultCspDirectives = {
 
 export class SecurityHeaders {
   private config: SecurityHeadersConfig;
-  private nonces: Map<string, string> = new Map();
 
   constructor(config: SecurityHeadersConfig = {}) {
     this.config = this.normalizeConfig(config);
@@ -165,7 +164,7 @@ export class SecurityHeaders {
     return crypto.randomBytes(16).toString('base64');
   }
 
-  private applyHeaders(req: Request, res: Response, nonce: string) {
+  private applyHeaders(_req: Request, res: Response, nonce: string) {
     // Content Security Policy
     if (this.config.contentSecurityPolicy) {
       const csp = this.buildCSP(nonce);
@@ -189,7 +188,7 @@ export class SecurityHeaders {
 
     // X-Frame-Options
     if (this.config.frameguard) {
-      res.setHeader('X-Frame-Options', this.config.frameguard.action);
+      res.setHeader('X-Frame-Options', this.config.frameguard.action || 'DENY');
     }
 
     // X-Content-Type-Options
@@ -218,17 +217,17 @@ export class SecurityHeaders {
 
     // Cross-Origin-Embedder-Policy
     if (this.config.crossOriginEmbedderPolicy) {
-      res.setHeader('Cross-Origin-Embedder-Policy', this.config.crossOriginEmbedderPolicy.policy);
+      res.setHeader('Cross-Origin-Embedder-Policy', this.config.crossOriginEmbedderPolicy.policy || 'require-corp');
     }
 
     // Cross-Origin-Opener-Policy
     if (this.config.crossOriginOpenerPolicy) {
-      res.setHeader('Cross-Origin-Opener-Policy', this.config.crossOriginOpenerPolicy.policy);
+      res.setHeader('Cross-Origin-Opener-Policy', this.config.crossOriginOpenerPolicy.policy || 'same-origin');
     }
 
     // Cross-Origin-Resource-Policy
     if (this.config.crossOriginResourcePolicy) {
-      res.setHeader('Cross-Origin-Resource-Policy', this.config.crossOriginResourcePolicy.policy);
+      res.setHeader('Cross-Origin-Resource-Policy', this.config.crossOriginResourcePolicy.policy || 'same-site');
     }
 
     // Expect-CT
@@ -249,13 +248,15 @@ export class SecurityHeaders {
     }
 
     // Custom headers
-    for (const [header, value] of Object.entries(this.config.customHeaders)) {
-      res.setHeader(header, value);
+    if (this.config.customHeaders) {
+      for (const [header, value] of Object.entries(this.config.customHeaders)) {
+        res.setHeader(header, value);
+      }
     }
   }
 
   private buildCSP(nonce: string): string {
-    if (!this.config.contentSecurityPolicy || this.config.contentSecurityPolicy === false) {
+    if (!this.config.contentSecurityPolicy) {
       return '';
     }
 
@@ -289,7 +290,7 @@ export class SecurityHeaders {
   }
 
   private buildPermissionsPolicy(): string {
-    if (!this.config.permissionsPolicy || this.config.permissionsPolicy === false) {
+    if (!this.config.permissionsPolicy) {
       return '';
     }
 

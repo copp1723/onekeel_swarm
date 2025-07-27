@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AgentTemplate } from '@/types';
 import { AgentTemplateCard } from './AgentTemplateCard';
 import { Input } from '@/components/ui/input';

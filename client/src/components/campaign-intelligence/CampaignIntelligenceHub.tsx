@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Settings, BarChart3, Zap, Users, Target, Bot, Cog, FileText, Mail } from 'lucide-react';
+import { Brain, BarChart3, Zap, Users, Target, Bot } from 'lucide-react';
 import { AgentManagementDashboard } from '@/components/shared';
-import { MultiAgentCampaignEditor } from '@/components/email-agent/MultiAgentCampaignEditor';
-import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
 import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
 import { EmailTestPanel } from '@/components/email/EmailTestPanel';
 import { useAgents } from '@/hooks/useAgents';
@@ -16,7 +13,11 @@ interface CampaignIntelligenceHubProps {
   onUpdate: () => void;
 }
 
+<<<<<<< HEAD
 export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelligenceHubProps) {
+=======
+export function CampaignIntelligenceHub({ campaigns, onCreateCampaign }: CampaignIntelligenceHubProps) {
+>>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
   const [activeTab, setActiveTab] = useState('overview');
   const { agents } = useAgents();
 

@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../server/db';
 import * as fs from 'fs';
 import * as path from 'path';
+import { tableExists, columnExists } from '../shared/dbSchemaVerifier';
 
 async function applyDeploymentFix() {
   console.log('🔧 Applying deployment schema fixes...');
@@ -29,29 +30,24 @@ async function applyDeploymentFix() {
     console.log('\n🔍 Verifying schema changes...');
     
     // Check feature_flags table
-    const featureFlagsCheck = await db.execute(sql`
-      SELECT COUNT(*) as count FROM information_schema.tables 
-      WHERE table_name = 'feature_flags'
-    `);
-    console.log(`✓ feature_flags table exists: ${featureFlagsCheck.rows[0].count > 0}`);
-    
+    const featureFlagsExists = await tableExists(db, 'feature_flags');
+    console.log(`✓ feature_flags table exists: ${featureFlagsExists}`);
+
     // Check campaigns.description column
-    const campaignDescCheck = await db.execute(sql`
-      SELECT COUNT(*) as count FROM information_schema.columns 
-      WHERE table_name = 'campaigns' AND column_name = 'description'
-    `);
-    console.log(`✓ campaigns.description column exists: ${campaignDescCheck.rows[0].count > 0}`);
-    
+    const campaignDescExists = await columnExists(db, 'campaigns', 'description');
+    console.log(`✓ campaigns.description column exists: ${campaignDescExists}`);
+
     // Check agents.context_note column
-    const agentContextCheck = await db.execute(sql`
-      SELECT COUNT(*) as count FROM information_schema.columns 
-      WHERE table_name = 'agents' AND column_name = 'context_note'
-    `);
-    console.log(`✓ agents.context_note column exists: ${agentContextCheck.rows[0].count > 0}`);
+    const agentContextExists = await columnExists(db, 'agents', 'context_note');
+    console.log(`✓ agents.context_note column exists: ${agentContextExists}`);
     
     // Check feature flags data
     const flagsCount = await db.execute(sql`SELECT COUNT(*) as count FROM feature_flags`);
-    console.log(`✓ Feature flags inserted: ${flagsCount.rows[0].count} flags`);
+    let flagCountValue = 0;
+    if (Array.isArray(flagsCount) && flagsCount.length > 0 && 'count' in flagsCount[0]) {
+      flagCountValue = Number(flagsCount[0].count);
+    }
+    console.log(`✓ Feature flags inserted: ${flagCountValue} flags`);
     
     console.log('\n🎉 All schema fixes applied successfully!');
     process.exit(0);

@@ -8,6 +8,7 @@ import { db } from '../server/db/client';
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { tableExists, columnExists } from '../shared/dbSchemaVerifier';
 
 async function applyFeatureFlagsFix() {
   console.log('🔧 Starting Feature Flags ID Column Fix...\n');
@@ -16,25 +17,11 @@ async function applyFeatureFlagsFix() {
     // Step 1: Check current database state
     console.log('📊 Checking current database state...');
     
-    const tableCheck = await db.execute(sql`
-      SELECT 
-        EXISTS (
-          SELECT 1 FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'feature_flags'
-        ) as has_table,
-        EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_schema = 'public' 
-          AND table_name = 'feature_flags' 
-          AND column_name = 'id'
-        ) as has_id_column
-    `);
-    
-    const { has_table, has_id_column } = tableCheck.rows[0] as any;
+    const has_table = await tableExists(db, 'feature_flags');
+    const has_id_column = await columnExists(db, 'feature_flags', 'id');
     console.log(`- Feature flags table exists: ${has_table}`);
     console.log(`- ID column exists: ${has_id_column}`);
-    
+
     if (has_table && has_id_column) {
       console.log('\n✅ Database structure is already correct!');
       
@@ -45,12 +32,10 @@ async function applyFeatureFlagsFix() {
         WHERE key IN ('ui.contacts-terminology', 'ui.new-navigation', 'ui.enhanced-dashboard')
         ORDER BY key
       `);
-      
       console.log('\n📋 Current feature flags:');
-      flags.rows.forEach((flag: any) => {
+      (Array.isArray(flags) ? flags : []).forEach((flag: any) => {
         console.log(`  - ${flag.key}: ${flag.enabled ? 'Enabled' : 'Disabled'} (${flag.rollout_percentage}%)`);
       });
-      
       return;
     }
     
@@ -67,23 +52,15 @@ async function applyFeatureFlagsFix() {
     // Step 3: Verify the fix
     console.log('\n🔍 Verifying fix...');
     
-    const verifyCheck = await db.execute(sql`
-      SELECT 
-        EXISTS (
-          SELECT 1 FROM information_schema.columns 
-          WHERE table_schema = 'public' 
-          AND table_name = 'feature_flags' 
-          AND column_name = 'id'
-        ) as id_exists,
-        (SELECT COUNT(*) FROM feature_flags) as flag_count
-    `);
-    
-    const { id_exists, flag_count } = verifyCheck.rows[0] as any;
-    
+    const id_exists = await columnExists(db, 'feature_flags', 'id');
+    const flagsCount = await db.execute(sql`SELECT COUNT(*) as count FROM feature_flags`);
+    let flag_count = 0;
+    if (Array.isArray(flagsCount) && flagsCount.length > 0 && 'count' in flagsCount[0]) {
+      flag_count = Number(flagsCount[0].count);
+    }
     if (!id_exists) {
       throw new Error('ID column still missing after fix!');
     }
-    
     console.log(`✅ ID column verified: exists`);
     console.log(`✅ Total feature flags: ${flag_count}`);
     
@@ -94,9 +71,8 @@ async function applyFeatureFlagsFix() {
       WHERE key IN ('ui.contacts-terminology', 'ui.new-navigation', 'ui.enhanced-dashboard')
       ORDER BY key
     `);
-    
     console.log('\n📋 UI Feature Flags Status:');
-    enabledFlags.rows.forEach((flag: any) => {
+    (Array.isArray(enabledFlags) ? enabledFlags : []).forEach((flag: any) => {
       console.log(`  - ${flag.key}:`);
       console.log(`    Enabled: ${flag.enabled}`);
       console.log(`    Rollout: ${flag.rollout_percentage}%`);
@@ -111,9 +87,8 @@ async function applyFeatureFlagsFix() {
       WHERE key = 'ui.contacts-terminology'
       LIMIT 1
     `);
-    
-    if (testQuery.rows.length > 0) {
-      const testFlag = testQuery.rows[0] as any;
+    if (Array.isArray(testQuery) && testQuery.length > 0) {
+      const testFlag = testQuery[0] as any;
       console.log(`✅ Query successful! Flag ID: ${testFlag.id}`);
     }
     

@@ -19,13 +19,48 @@ export interface ModelResponse {
 
 export class ModelRouter {
   private models: string[] = [
+<<<<<<< HEAD
     'gpt-4o-mini',
     'gpt-3.5-turbo',
     'claude-3-haiku',
     'llama-3.1-8b'
+=======
+    // OpenAI models
+    'openai/gpt-4o-mini',
+    'openai/gpt-4o',
+    'openai/gpt-4-turbo',
+    'openai/gpt-3.5-turbo',
+    'openai/gpt-4',
+    
+    // Anthropic models
+    'anthropic/claude-3-haiku',
+    'anthropic/claude-3-sonnet',
+    'anthropic/claude-3-opus',
+    'anthropic/claude-3.5-sonnet',
+    
+    // Meta models
+    'meta-llama/llama-3.1-8b-instruct',
+    'meta-llama/llama-3.1-70b-instruct',
+    'meta-llama/llama-3.1-405b-instruct',
+    
+    // Google models
+    'google/gemini-pro',
+    'google/gemini-pro-1.5',
+    'google/gemini-flash-1.5',
+    
+    // Mistral models
+    'mistralai/mistral-7b-instruct',
+    'mistralai/mixtral-8x7b-instruct',
+    'mistralai/mistral-large',
+    
+    // Other popular models
+    'perplexity/llama-3.1-sonar-small-128k-online',
+    'perplexity/llama-3.1-sonar-large-128k-online',
+    'qwen/qwen-2.5-72b-instruct',
+    'deepseek/deepseek-chat'
+>>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
   ];
   
-  private currentModelIndex = 0;
   private modelStats: Map<string, { requests: number; failures: number; avgLatency: number }> = new Map();
 
   constructor() {
@@ -134,20 +169,19 @@ export class ModelRouter {
     return response;
   }
 
-  private generateMockResponse(prompt: string, systemPrompt?: string): string {
-    // Simple mock response generation
-    if (prompt.toLowerCase().includes('email')) {
-      return 'Thank you for your interest. I will get back to you soon with more information.';
-    } else if (prompt.toLowerCase().includes('sms')) {
-      return 'Thanks for reaching out! We\'ll contact you shortly.';
-    } else if (prompt.toLowerCase().includes('chat')) {
-      return 'Hello! How can I help you today?';
-    } else if (systemPrompt?.toLowerCase().includes('agent')) {
-      return 'I am an AI agent ready to assist with your request.';
-    } else {
-      return 'I understand your request and will provide assistance accordingly.';
-    }
-  }
+  // Commented out - not currently used
+  // private generateMockResponse(prompt: string): string {
+  //   // Simple mock response generation
+  //   if (prompt.toLowerCase().includes('email')) {
+  //     return 'Thank you for your interest. I will get back to you soon with more information.';
+  //   } else if (prompt.toLowerCase().includes('sms')) {
+  //     return 'Thanks for reaching out! We\'ll contact you shortly.';
+  //   } else if (prompt.toLowerCase().includes('chat')) {
+  //     return 'Hello! How can I help you today?';
+  //   } else {
+  //     return 'I understand your request and will provide assistance accordingly.';
+  //   }
+  // }
 
   private selectBestModel(): string {
     // Simple round-robin selection with performance weighting
