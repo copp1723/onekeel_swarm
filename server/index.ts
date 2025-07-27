@@ -16,7 +16,7 @@ import { logger } from './utils/logger';
 import { registerRoutes } from './routes';
 import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
-import { sanitizeRequestBody } from './middleware/validation';
+import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { configureCsrf } from './middleware/csrf';
@@ -111,7 +111,7 @@ async function initializeApp() {
   // Essential middleware
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
-  app.use(sanitizeRequestBody);
+  app.use(sanitizeRequest);
   app.use(requestTimeout(30000));
   app.use(addRateLimitInfo);
   app.use(apiRateLimit);
