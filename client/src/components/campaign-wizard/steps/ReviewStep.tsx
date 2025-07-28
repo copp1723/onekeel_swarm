@@ -1,8 +1,8 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
-import { WizardContext } from '../types';
+import { WizardContext, Agent, EmailTemplate } from '../types';
 
-export const ReviewStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx, agents }) => {
+export const ReviewStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ctx, agents }) => {
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 p-4 rounded-lg">
@@ -30,7 +30,7 @@ export const ReviewStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx,
         <div className="p-3 bg-gray-50 rounded">
           <p className="text-sm font-medium text-gray-600">Selected Agent</p>
           <p className="text-sm">
-            {agents.find(a => a.id === ctx.data.agentId)?.name || 'No agent selected'}
+            {agents.find((a: Agent) => a.id === ctx.data.agentId)?.name || 'No agent selected'}
           </p>
         </div>
         <div className="p-3 bg-gray-50 rounded">
@@ -48,7 +48,7 @@ export const ReviewStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx,
               <div className="space-y-1">
                 <p>{ctx.data.templates.length} templates generated</p>
                 <div className="text-xs text-gray-500">
-                  {ctx.data.templates.map((t: any, i: number) => (
+                  {ctx.data.templates.map((t: EmailTemplate, i: number) => (
                     <div key={i}>Email {i + 1}: {t.subject}</div>
                   ))}
                 </div>

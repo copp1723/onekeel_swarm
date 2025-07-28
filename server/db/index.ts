@@ -312,6 +312,33 @@ export class UsersRepository {
     const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return user || null;
   }
+  
+  static async findByEmail(email: string) {
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return user || null;
+  }
+  
+  static async findByUsername(username: string) {
+    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return user || null;
+  }
+  
+  static async updateLastLogin(id: string) {
+    const [updated] = await db.update(users).set({
+      lastLogin: new Date(),
+      updatedAt: new Date()
+    }).where(eq(users.id, id)).returning();
+    return updated || null;
+  }
+  
+  static async create(data: any) {
+    const [user] = await db.insert(users).values({
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return user;
+  }
 }
 
 export class AuditLogRepository {

@@ -83,7 +83,7 @@ export const LoginForm: React.FC = () => {
                     id="username"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
                     placeholder="admin@completecarloans.com"
                     className="pl-10"
                     required
@@ -100,7 +100,7 @@ export const LoginForm: React.FC = () => {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     className="pl-10"
                     required

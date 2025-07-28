@@ -57,15 +57,22 @@
       const script = document.createElement('script');
       script.type = 'module';
       script.textContent = `
-        import { ChatWidget } from '${finalConfig.apiEndpoint}/chat-widget.js';
-        
-        const React = window.React;
-        const ReactDOM = window.ReactDOM;
-        
-        ReactDOM.render(
-          React.createElement(ChatWidget, ${JSON.stringify(finalConfig)}),
-          document.getElementById('ccl-chat-container')
-        );
+        (async () => {
+          try {
+            const module = await import('${finalConfig.apiEndpoint}/chat-widget.js');
+            const { ChatWidget } = module;
+            
+            const React = window.React;
+            const ReactDOM = window.ReactDOM;
+            
+            ReactDOM.render(
+              React.createElement(ChatWidget, ${JSON.stringify(finalConfig)}),
+              document.getElementById('ccl-chat-container')
+            );
+          } catch (err) {
+            console.error('Failed to load ChatWidget module:', err);
+          }
+        })();
       `;
       document.body.appendChild(script);
       

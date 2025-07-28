@@ -212,7 +212,7 @@ export function CampaignScheduler() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Standard Follow-up Sequence"
                 required
               />
@@ -223,7 +223,7 @@ export function CampaignScheduler() {
               <Input
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe when this schedule should be used"
               />
             </div>
@@ -286,7 +286,7 @@ export function CampaignScheduler() {
                         <Input
                           type="number"
                           value={attempt.delayDays}
-                          onChange={(e) => updateAttempt(index, 'delayDays', parseInt(e.target.value))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttempt(index, 'delayDays', parseInt(e.target.value))}
                           min="0"
                           placeholder="0"
                         />
@@ -296,7 +296,7 @@ export function CampaignScheduler() {
                         <Input
                           type="number"
                           value={attempt.delayHours}
-                          onChange={(e) => updateAttempt(index, 'delayHours', parseInt(e.target.value))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttempt(index, 'delayHours', parseInt(e.target.value))}
                           min="0"
                           max="23"
                           placeholder="0"

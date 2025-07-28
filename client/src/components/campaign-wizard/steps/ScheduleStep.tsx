@@ -22,7 +22,7 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             type="date"
             value={ctx.data.schedule.startDate}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               schedule: { ...prev.schedule, startDate: e.target.value }
             }))}
@@ -36,7 +36,7 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
             min="1"
             max="10"
             value={ctx.data.schedule.totalEmails}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
             }))}
@@ -52,7 +52,7 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
             min="1"
             max="30"
             value={ctx.data.schedule.daysBetweenEmails}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
             }))}
@@ -78,7 +78,7 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
             type="checkbox"
             id="sendTimeOptimization"
             checked={ctx.data.schedule.sendTimeOptimization}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               schedule: { ...prev.schedule, sendTimeOptimization: e.target.checked }
             }))}

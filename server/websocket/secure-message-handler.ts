@@ -1,31 +1,22 @@
-<<<<<<< HEAD
 import { WebSocketMessageHandler } from './message-handler';
-=======
 import { WebSocketServer } from 'ws';
 import { SecureWebSocketServer } from '../../security-hardening/websocket-security';
 import { LeadProcessor } from '../services/lead-processor';
 import { logger } from '../utils/logger';
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
 
 /**
  * Secure WebSocket Message Handler
  * Extends the base message handler with additional security features
  */
-<<<<<<< HEAD
 export class SecureWebSocketMessageHandler extends WebSocketMessageHandler {
+  private secureWss?: SecureWebSocketServer;
+
   constructor() {
     super();
   }
 
-  // Add any additional security features here
-  // For now, this just extends the base handler
-}
-=======
-export class SecureWebSocketMessageHandler {
-  private secureWss: SecureWebSocketServer;
-
-  constructor(wss: WebSocketServer, leadProcessor: LeadProcessor, broadcastCallback: (data: any) => void) {
-    
+  // Method to upgrade with security features when needed
+  public upgradeWithSecurity(wss: WebSocketServer, leadProcessor: LeadProcessor, broadcastCallback: (data: any) => void) {
     // Initialize secure WebSocket server with security configuration
     this.secureWss = new SecureWebSocketServer(wss, {
       maxConnectionsPerUser: 5,
@@ -38,10 +29,12 @@ export class SecureWebSocketMessageHandler {
     });
     
     // Set up message handling
-    this.setupMessageHandlers();
+    this.setupSecureMessageHandlers();
   }
   
-  private setupMessageHandlers() {
+  private setupSecureMessageHandlers() {
+    if (!this.secureWss) return;
+    
     // Override the default message handler to integrate with existing functionality
     const originalHandleMessage = this.secureWss['handleMessage'].bind(this.secureWss);
     
@@ -122,20 +115,24 @@ export class SecureWebSocketMessageHandler {
 
   private async handleAgentUpdate(data: any) {
     // Broadcast agent updates to authenticated clients only
-    this.secureWss.broadcast({
-      type: 'agent_update',
-      agent: data.agent,
-      message: data.message
-    });
+    if (this.secureWss) {
+      this.secureWss.broadcast({
+        type: 'agent_update',
+        agent: data.agent,
+        message: data.message
+      });
+    }
   }
 
   private async handleLeadUpdate(data: any) {
     // Handle lead status updates
-    this.secureWss.broadcast({
-      type: 'lead_update',
-      leadId: data.leadId,
-      status: data.status
-    });
+    if (this.secureWss) {
+      this.secureWss.broadcast({
+        type: 'lead_update',
+        leadId: data.leadId,
+        status: data.status
+      });
+    }
   }
 
   private async handleProcessLead(data: any) {
@@ -201,15 +198,23 @@ export class SecureWebSocketMessageHandler {
   
   // Public methods for external use
   public broadcast(message: any) {
-    this.secureWss.broadcast(message);
+    if (this.secureWss) {
+      this.secureWss.broadcast(message);
+    } else {
+      super.broadcast(message);
+    }
   }
   
   public sendToUser(userId: string, message: any) {
-    this.secureWss.sendToUser(userId, message);
+    if (this.secureWss) {
+      this.secureWss.sendToUser(userId, message);
+    }
   }
   
   public getMetrics() {
-    return this.secureWss.getMetrics();
+    if (this.secureWss) {
+      return this.secureWss.getMetrics();
+    }
+    return null;
   }
 }
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)

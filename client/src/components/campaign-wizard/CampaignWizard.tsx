@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import * as React from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
+import { CampaignData, WizardStep, Agent, EmailTemplate, Contact } from './types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,18 +35,17 @@ import {
 interface CampaignWizardProps {
   isOpen: boolean;
   onClose(): void;
-  onComplete(data: any): void;
-  agents?: any[];
+  onComplete(data: CampaignData): void;
+  agents?: Agent[];
 }
 
-type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'schedule' | 'handover' | 'review';
 
 export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [csvError, setCsvError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
-  const [campaignData, setCampaignData] = useState({
+  const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
     description: '',
     goal: '',
@@ -54,7 +54,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
       filters: [],
       targetCount: 0,
       datasetId: '',
-      contacts: [] as any[],
+      contacts: [] as Contact[],
       headerMapping: {} as Record<string,string>
     },
     agentId: '',
@@ -70,7 +70,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
         link: ''
       }
     },
-    templates: [] as any[],
+    templates: [] as EmailTemplate[],
     schedule: {
       startDate: '',
       totalEmails: 5,
@@ -208,8 +208,8 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
         }
         
         // Process contacts with limited columns and sanitization
-        const contacts = results.data.map((row: any) => {
-          const contact: any = {};
+        const contacts = results.data.map((row: Record<string, any>) => {
+          const contact: Record<string, any> = {};
           limitedHeaders.forEach((header: string) => {
             let value = row[header];
             
@@ -228,7 +228,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
           });
           return contact;
         }).slice(0, 10000) // Limit to 10k rows
-        .filter((contact: any) => {
+        .filter((contact: Record<string, any>) => {
           // Filter out empty rows
           return contact[headerMapping['email']] && contact[headerMapping['firstName']];
         });
@@ -338,7 +338,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
       console.log('Received AI-generated sequence:', sequence);
       
       // Map the AI-generated sequence to our template format
-      const templates = sequence.map((email: any, index: number) => ({
+      const templates = sequence.map((email: {subject: string; body: string; order?: number}, index: number) => ({
         id: `template-${index + 1}`,
         subject: email.subject,
         body: email.body,
@@ -380,7 +380,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
     setCampaignData(prev => ({ ...prev, templates }));
   };
 
-  const saveTemplate = async (template: any, templateName?: string) => {
+  const saveTemplate = async (template: EmailTemplate, templateName?: string) => {
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
@@ -483,7 +483,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <Input
                 id="name"
                 value={campaignData.name}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter campaign name"
                 className="mt-1"
               />
@@ -504,7 +504,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <Textarea
                 id="description"
                 value={campaignData.description}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe your campaign objectives"
                 rows={4}
               />
@@ -525,7 +525,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <Input
                 id="goal"
                 value={campaignData.goal}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, goal: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({ ...prev, goal: e.target.value }))}
                 placeholder="e.g., Generate 50 qualified leads"
               />
             </div>
@@ -545,7 +545,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <Textarea
                 id="context"
                 value={campaignData.context}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, context: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, context: e.target.value }))}
                 placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
                 rows={3}
                 className="text-sm"
@@ -679,7 +679,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               </p>
             </div>
             <div className="space-y-3">
-              {agents.length > 0 ? agents.map((agent) => (
+              {agents.length > 0 ? agents.map((agent: Agent) => (
                 <div
                   key={agent.id}
                   className={`p-4 border rounded-lg cursor-pointer transition ${
@@ -729,7 +729,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   id="product"
                   value={campaignData.offer.product}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { ...prev.offer, product: e.target.value }
                   }))}
@@ -743,7 +743,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   id="pricing"
                   value={campaignData.offer.pricing}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { ...prev.offer, pricing: e.target.value }
                   }))}
@@ -757,7 +757,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   id="urgency"
                   value={campaignData.offer.urgency}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { ...prev.offer, urgency: e.target.value }
                   }))}
@@ -771,7 +771,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   id="primaryCta"
                   value={campaignData.offer.cta.primary}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { 
                       ...prev.offer, 
@@ -788,7 +788,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   id="ctaLink"
                   value={campaignData.offer.cta.link}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { 
                       ...prev.offer, 
@@ -805,7 +805,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Textarea
                   id="disclaimer"
                   value={campaignData.offer.disclaimer}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({
                     ...prev,
                     offer: { ...prev.offer, disclaimer: e.target.value }
                   }))}
@@ -873,7 +873,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 </div>
                 
                 <div className="space-y-3">
-                  {campaignData.templates.map((template: any, index: number) => {
+                  {campaignData.templates.map((template: EmailTemplate, index: number) => {
                     const isExpanded = expandedTemplates.has(index);
                     return (
                       <Card key={index} className="border">
@@ -955,7 +955,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Input
                   type="date"
                   value={campaignData.schedule.startDate}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     schedule: { ...prev.schedule, startDate: e.target.value }
                   }))}
@@ -969,7 +969,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   min="1"
                   max="10"
                   value={campaignData.schedule.totalEmails}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
                   }))}
@@ -985,7 +985,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   min="1"
                   max="30"
                   value={campaignData.schedule.daysBetweenEmails}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
                   }))}
@@ -1011,7 +1011,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   type="checkbox"
                   id="sendTimeOptimization"
                   checked={campaignData.schedule.sendTimeOptimization}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     schedule: { ...prev.schedule, sendTimeOptimization: e.target.checked }
                   }))}
@@ -1046,7 +1046,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   min="0"
                   max="100"
                   value={campaignData.handoverRules.qualificationScore}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     handoverRules: { ...prev.handoverRules, qualificationScore: parseInt(e.target.value) || 0 }
                   }))}
@@ -1062,7 +1062,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   min="1"
                   max="50"
                   value={campaignData.handoverRules.conversationLength}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     handoverRules: { ...prev.handoverRules, conversationLength: parseInt(e.target.value) || 10 }
                   }))}
@@ -1078,7 +1078,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   min="5"
                   max="120"
                   value={campaignData.handoverRules.timeThreshold}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
                     handoverRules: { ...prev.handoverRules, timeThreshold: parseInt(e.target.value) || 30 }
                   }))}
@@ -1091,7 +1091,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Label>Buying Signals</Label>
                 <Textarea
                   value={campaignData.handoverRules.buyingSignals.join(', ')}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({
                     ...prev,
                     handoverRules: { 
                       ...prev.handoverRules, 
@@ -1109,7 +1109,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <Label>Escalation Phrases</Label>
                 <Textarea
                   value={campaignData.handoverRules.escalationPhrases.join(', ')}
-                  onChange={(e) => setCampaignData(prev => ({
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({
                     ...prev,
                     handoverRules: { 
                       ...prev.handoverRules, 
@@ -1126,12 +1126,12 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <div>
                 <Label>Handover Recipients</Label>
                 <div className="space-y-2 mt-1">
-                  {campaignData.handoverRules.handoverRecipients.map((recipient, index) => (
+                  {campaignData.handoverRules.handoverRecipients.map((recipient: {name: string, email: string}, index: number) => (
                     <div key={index} className="flex gap-2">
                       <Input
                         placeholder="Name"
                         value={recipient.name}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const newRecipients = [...campaignData.handoverRules.handoverRecipients];
                           newRecipients[index].name = e.target.value;
                           setCampaignData(prev => ({
@@ -1144,7 +1144,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                         placeholder="Email"
                         type="email"
                         value={recipient.email}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const newRecipients = [...campaignData.handoverRules.handoverRecipients];
                           newRecipients[index].email = e.target.value;
                           setCampaignData(prev => ({
@@ -1237,7 +1237,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                     <div className="space-y-1">
                       <p>{campaignData.templates.length} templates generated</p>
                       <div className="text-xs text-gray-500">
-                        {campaignData.templates.map((t: any, i: number) => (
+                        {campaignData.templates.map((t: EmailTemplate, i: number) => (
                           <div key={i}>Email {i + 1}: {t.subject}</div>
                         ))}
                       </div>
@@ -1296,7 +1296,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           {/* Progress Steps */}
           <div className="mb-6 flex-shrink-0">
             <div className="flex items-center justify-between relative">
-              {steps.map((step, index) => (
+              {steps.map((step: { id: WizardStep; label: string; icon: React.ReactNode }, index: number) => (
                 <div key={step.id} className="flex flex-col items-center relative z-10">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${

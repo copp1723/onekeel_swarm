@@ -11,13 +11,13 @@ export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
     // Generate contextual AI enhancements based on campaign data
     if (field === 'description') {
       const productInfo = ctx.data.offer?.product ? ` for ${ctx.data.offer.product}` : '';
-      ctx.setData(prev => ({
+      ctx.setData((prev) => ({
         ...prev,
         description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
       }));
     } else if (field === 'goal') {
       const targetCount = ctx.data.audience?.targetCount || 50;
-      ctx.setData(prev => ({
+      ctx.setData((prev) => ({
         ...prev,
         goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
       }));
@@ -28,7 +28,7 @@ export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
         ? ctx.data.offer.keyBenefits.join(', ') 
         : 'competitive advantages and exclusive benefits';
       
-      ctx.setData(prev => ({
+      ctx.setData((prev) => ({
         ...prev,
         context: `Business Context: ${campaignName} focuses on converting prospects interested in ${product}. 
 
@@ -51,7 +51,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         <Input
           id="name"
           value={ctx.data.name}
-          onChange={(e) => ctx.setData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({ ...prev, name: e.target.value }))}
           placeholder="Enter campaign name"
           className="mt-1"
         />
@@ -72,7 +72,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         <Textarea
           id="description"
           value={ctx.data.description}
-          onChange={(e) => ctx.setData(prev => ({ ...prev, description: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({ ...prev, description: e.target.value }))}
           placeholder="Describe your campaign objectives"
           rows={4}
         />
@@ -93,7 +93,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         <Input
           id="goal"
           value={ctx.data.goal}
-          onChange={(e) => ctx.setData(prev => ({ ...prev, goal: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({ ...prev, goal: e.target.value }))}
           placeholder="e.g., Generate 50 qualified leads"
         />
       </div>
@@ -113,7 +113,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         <Textarea
           id="context"
           value={ctx.data.context}
-          onChange={(e) => ctx.setData(prev => ({ ...prev, context: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({ ...prev, context: e.target.value }))}
           placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
           rows={3}
           className="text-sm"

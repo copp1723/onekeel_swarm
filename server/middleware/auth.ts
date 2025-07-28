@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { tokenService } from '../services/token-service';
+import { sessionService } from '../services/session-service';
 import { UsersRepository } from '../db';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'ccl3-jwt-secret-change-in-production';
 
 // Extend Express Request type
 declare global {
@@ -20,16 +19,6 @@ declare global {
 // JWT authentication middleware
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Skip auth only if explicitly set (you've already disabled this in Render)
-    if (process.env.SKIP_AUTH === 'true') {
-      req.user = {
-        id: 'dev-user-1',
-        email: 'dev@completecarloans.com',
-        role: 'admin'
-      };
-      return next();
-    }
-
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -41,44 +30,46 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     
     const token = authHeader.substring(7);
     
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        email: string;
-        role: string;
-      };
-      
-      // Verify user still exists and is active
-      const user = await UsersRepository.findById(decoded.userId);
-      
-      if (!user || !user.active) {
-        return res.status(401).json({ 
-          error: 'Invalid authentication',
-          code: 'USER_INACTIVE'
-        });
-      }
-      
-      req.user = {
-        id: decoded.userId,
-        email: decoded.email,
-        role: decoded.role as any
-      };
-      
-      next();
-    } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ 
-          error: 'Token expired',
-          code: 'TOKEN_EXPIRED'
-        });
-      }
-      
+    // Verify JWT token using secure token service
+    const decoded = tokenService.verifyAccessToken(token);
+    
+    if (!decoded) {
       return res.status(401).json({ 
-        error: 'Invalid token',
+        error: 'Invalid or expired token',
         code: 'INVALID_TOKEN'
       });
     }
+    
+    // Verify user still exists and is active
+    const user = await UsersRepository.findById(decoded.userId);
+    
+    if (!user || !user.active) {
+      return res.status(401).json({ 
+        error: 'User account inactive or not found',
+        code: 'USER_INACTIVE'
+      });
+    }
+    
+    // Validate session if sessionId is present in token
+    if (decoded.sessionId) {
+      const sessionValidation = await sessionService.validateSession(decoded.sessionId);
+      if (!sessionValidation) {
+        return res.status(401).json({ 
+          error: 'Session expired or invalid',
+          code: 'SESSION_INVALID'
+        });
+      }
+    }
+    
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role as any
+    };
+    
+    next();
   } catch (error) {
+    console.error('Authentication error:', error);
     return res.status(500).json({ 
       error: 'Authentication error',
       code: 'AUTH_ERROR'
@@ -120,13 +111,10 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     
     const token = authHeader.substring(7);
     
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        email: string;
-        role: string;
-      };
-      
+    // Use secure token service for optional auth too
+    const decoded = tokenService.verifyAccessToken(token);
+    
+    if (decoded) {
       const user = await UsersRepository.findById(decoded.userId);
       
       if (user && user.active) {
@@ -136,12 +124,11 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
           role: decoded.role as any
         };
       }
-    } catch (error) {
-      // Ignore token errors for optional auth
     }
     
     next();
   } catch (error) {
+    // Ignore errors for optional auth
     next();
   }
 };

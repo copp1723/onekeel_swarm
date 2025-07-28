@@ -240,7 +240,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('name', e.target.value)}
                 placeholder="e.g., Sales Specialist"
                 required
               />
@@ -262,7 +262,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
               <Input
                 id="role"
                 value={formData.role}
-                onChange={(e) => handleInputChange('role', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('role', e.target.value)}
                 placeholder="e.g., Senior Account Executive"
                 required
               />
@@ -290,7 +290,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
             <Textarea
               id="endGoal"
               value={formData.endGoal}
-              onChange={(e) => handleInputChange('endGoal', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('endGoal', e.target.value)}
               placeholder="e.g., Schedule qualified leads for product demos and convert them into paying customers"
               rows={3}
               required
@@ -336,7 +336,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                 <div key={index} className="flex items-center space-x-2">
                   <Input
                     value={instruction}
-                    onChange={(e) => handleInstructionChange('dos', index, e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInstructionChange('dos', index, e.target.value)}
                     placeholder="e.g., Personalize emails based on lead's industry"
                   />
                   <Button
@@ -399,7 +399,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                 <div key={index} className="flex items-center space-x-2">
                   <Input
                     value={instruction}
-                    onChange={(e) => handleInstructionChange('donts', index, e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInstructionChange('donts', index, e.target.value)}
                     placeholder="e.g., Don't use aggressive sales tactics"
                   />
                   <Button
@@ -459,7 +459,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                 <div key={index} className="flex items-center space-x-2">
                   <Input
                     value={expertise}
-                    onChange={(e) => handleExpertiseChange(index, e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleExpertiseChange(index, e.target.value)}
                     placeholder="e.g., Auto Financing, Credit Analysis, Customer Service"
                   />
                   <Button
@@ -541,7 +541,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                     id="maxEmailsPerDay"
                     type="number"
                     value={formData.settings.maxEmailsPerDay}
-                    onChange={(e) => handleSettingsChange('maxEmailsPerDay', parseInt(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSettingsChange('maxEmailsPerDay', parseInt(e.target.value))}
                     min="1"
                     max="500"
                   />
@@ -552,7 +552,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                     id="followUpDelay"
                     type="number"
                     value={formData.settings.followUpDelay}
-                    onChange={(e) => handleSettingsChange('followUpDelay', parseInt(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSettingsChange('followUpDelay', parseInt(e.target.value))}
                     min="1"
                     max="168"
                   />
@@ -576,7 +576,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                       id="startTime"
                       type="time"
                       value={formData.settings.workingHours.start}
-                      onChange={(e) => handleWorkingHoursChange('start', e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleWorkingHoursChange('start', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -585,7 +585,7 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
                       id="endTime"
                       type="time"
                       value={formData.settings.workingHours.end}
-                      onChange={(e) => handleWorkingHoursChange('end', e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleWorkingHoursChange('end', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">

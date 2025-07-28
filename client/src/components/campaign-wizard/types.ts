@@ -1,7 +1,38 @@
 export type WizardStep =
   | 'basics' | 'audience' | 'agent'
   | 'offer'  | 'templates'| 'schedule'
-  | 'review';
+  | 'handover' | 'review';
+
+export interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  type?: string;
+  capabilities?: string[];
+}
+
+export interface AudienceFilter {
+  field: string;
+  operator: string;
+  value: string | number | boolean;
+}
+
+export interface Contact {
+  id?: string;
+  email: string;
+  name?: string;
+  [key: string]: any;
+}
+
+export interface EmailTemplate {
+  id?: string;
+  subject: string;
+  body: string;
+  order?: number;
+  daysSinceStart?: number;
+  previewText?: string;
+  personalizationTokens?: string[];
+}
 
 export interface CampaignData {
   name: string;
@@ -9,10 +40,10 @@ export interface CampaignData {
   goal: string;
   context: string;
   audience: {
-    filters: any[];
+    filters: AudienceFilter[];
     targetCount: number;
     datasetId: string;
-    contacts: any[];
+    contacts: Contact[];
     headerMapping: Record<string, string>;
   };
   agentId: string;
@@ -24,13 +55,23 @@ export interface CampaignData {
     disclaimer: string;
     cta: { primary: string; secondary: string; link: string };
   };
-  templates: any[];
+  templates: EmailTemplate[];
   schedule: {
     startDate: string;
     totalEmails: number;
     daysBetweenEmails: number;
     timezone: string;
     sendTimeOptimization: boolean;
+  };
+  handoverRules: {
+    qualificationScore: number;
+    conversationLength: number;
+    timeThreshold: number;
+    keywordTriggers: string[];
+    buyingSignals: string[];
+    escalationPhrases: string[];
+    goalCompletionRequired: string[];
+    handoverRecipients: Array<{name: string, email: string}>;
   };
 }
 

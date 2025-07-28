@@ -1,9 +1,9 @@
 import React from 'react';
 import { Brain, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { WizardContext } from '../types';
+import { WizardContext, Agent } from '../types';
 
-export const AgentStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx, agents }) => {
+export const AgentStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ctx, agents }) => {
   return (
     <div className="space-y-4">
       <div className="bg-purple-50 p-4 rounded-lg">
@@ -16,7 +16,7 @@ export const AgentStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx, 
         </p>
       </div>
       <div className="space-y-3">
-        {agents.length > 0 ? agents.map((agent) => (
+        {agents.length > 0 ? agents.map((agent: Agent) => (
           <div
             key={agent.id}
             className={`p-4 border rounded-lg cursor-pointer transition ${
@@ -24,7 +24,7 @@ export const AgentStep: React.FC<{ctx: WizardContext; agents: any[]}> = ({ ctx, 
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
-            onClick={() => ctx.setData(prev => ({ ...prev, agentId: agent.id }))}
+            onClick={() => ctx.setData((prev) => ({ ...prev, agentId: agent.id }))}
           >
             <div className="flex items-start justify-between">
               <div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { generateTemplates } from '../hooks/useEmailTemplates';
-import { WizardContext } from '../types';
+import { WizardContext, EmailTemplate } from '../types';
 
 export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   return (
@@ -62,7 +62,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           </div>
           
           <div className="space-y-3">
-            {ctx.data.templates.map((template: any, index: number) => (
+            {ctx.data.templates.map((template: EmailTemplate, index: number) => (
               <Card key={index} className="border">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">

@@ -75,6 +75,8 @@ build/Release
 .env.test.local
 .env.production.local
 .env.local
+.env.production
+.env.*
 
 # parcel-bundler cache
 .cache

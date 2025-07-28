@@ -96,7 +96,7 @@ export const AudienceStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
               variant="outline"
               size="sm"
               onClick={() => {
-                ctx.setData(prev => ({
+                ctx.setData((prev) => ({
                   ...prev,
                   audience: {
                     ...prev.audience,

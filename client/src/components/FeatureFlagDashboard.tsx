@@ -110,7 +110,7 @@ const FeatureFlagCard: React.FC<{
             <input
               type="text"
               value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({ ...editForm, name: e.target.value })}
               className="text-lg font-semibold border-b border-gray-300 bg-transparent w-full focus:outline-none focus:border-blue-500"
             />
           ) : (
@@ -124,7 +124,7 @@ const FeatureFlagCard: React.FC<{
           <input
             type="checkbox"
             checked={flag.enabled}
-            onChange={(e) => onToggle(flag.key, e.target.checked)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onToggle(flag.key, e.target.checked)}
             className="sr-only peer"
           />
           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -135,7 +135,7 @@ const FeatureFlagCard: React.FC<{
       {isEditing ? (
         <textarea
           value={editForm.description}
-          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm({ ...editForm, description: e.target.value })}
           className="w-full p-2 text-sm text-gray-600 border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={2}
           placeholder="Flag description..."
@@ -167,7 +167,7 @@ const FeatureFlagCard: React.FC<{
               min="0"
               max="100"
               value={editForm.rolloutPercentage}
-              onChange={(e) => setEditForm({ ...editForm, rolloutPercentage: parseInt(e.target.value) })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({ ...editForm, rolloutPercentage: parseInt(e.target.value) })}
               className="w-16 text-sm text-right border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           ) : (
@@ -186,7 +186,7 @@ const FeatureFlagCard: React.FC<{
       <div className="mb-4">
         <span className="text-sm font-medium text-gray-700 block mb-2">Target Roles</span>
         <div className="flex flex-wrap gap-1">
-          {flag.userRoles.map((role) => (
+          {flag.userRoles.map((role: string) => (
             <span key={role} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
               {role}
             </span>
@@ -198,7 +198,7 @@ const FeatureFlagCard: React.FC<{
       <div className="mb-4">
         <span className="text-sm font-medium text-gray-700 block mb-2">Environments</span>
         <div className="flex flex-wrap gap-1">
-          {flag.environments.map((env) => (
+          {flag.environments.map((env: string) => (
             <span key={env} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
               {env}
             </span>
@@ -281,7 +281,7 @@ export const FeatureFlagDashboard: React.FC = () => {
   const handleToggle = async (flagKey: string, enabled: boolean) => {
     try {
       await FeatureFlagAdminService.toggleFlag(flagKey, enabled);
-      setFlags(flags.map(flag => 
+      setFlags(flags.map((flag: FeatureFlag) => 
         flag.key === flagKey ? { ...flag, enabled } : flag
       ));
     } catch (err) {
@@ -293,7 +293,7 @@ export const FeatureFlagDashboard: React.FC = () => {
   const handleUpdate = async (flagKey: string, updates: Partial<FeatureFlag>) => {
     try {
       const updatedFlag = await FeatureFlagAdminService.updateFlag(flagKey, updates);
-      setFlags(flags.map(flag => 
+      setFlags(flags.map((flag: FeatureFlag) => 
         flag.key === flagKey ? updatedFlag : flag
       ));
     } catch (err) {
@@ -302,7 +302,7 @@ export const FeatureFlagDashboard: React.FC = () => {
   };
 
   // Filter flags
-  const filteredFlags = flags.filter(flag => {
+  const filteredFlags = flags.filter((flag: FeatureFlag) => {
     const matchesFilter = filter === 'all' || flag.category === filter;
     const matchesSearch = search === '' || 
       flag.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -311,7 +311,7 @@ export const FeatureFlagDashboard: React.FC = () => {
   });
 
   // Get unique categories
-  const categories = ['all', ...Array.from(new Set(flags.map(f => f.category)))];
+  const categories = ['all', ...Array.from(new Set(flags.map((f: FeatureFlag) => f.category)))];
 
   if (loading) {
     return (
@@ -319,7 +319,7 @@ export const FeatureFlagDashboard: React.FC = () => {
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
+            {[1, 2, 3, 4, 5, 6].map((i: number) => (
               <div key={i} className="h-64 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
@@ -350,16 +350,16 @@ export const FeatureFlagDashboard: React.FC = () => {
             type="text"
             placeholder="Search flags..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          {categories.map(category => (
+          {categories.map((category: string) => (
             <option key={category} value={category}>
               {category === 'all' ? 'All Categories' : category}
             </option>
@@ -375,19 +375,19 @@ export const FeatureFlagDashboard: React.FC = () => {
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-green-600">
-            {flags.filter(f => f.enabled).length}
+            {flags.filter((f: FeatureFlag) => f.enabled).length}
           </div>
           <div className="text-sm text-gray-600">Enabled</div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-red-600">
-            {flags.filter(f => f.riskLevel === 'high').length}
+            {flags.filter((f: FeatureFlag) => f.riskLevel === 'high').length}
           </div>
           <div className="text-sm text-gray-600">High Risk</div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
           <div className="text-2xl font-bold text-purple-600">
-            {flags.filter(f => f.complexity === 'advanced').length}
+            {flags.filter((f: FeatureFlag) => f.complexity === 'advanced').length}
           </div>
           <div className="text-sm text-gray-600">Advanced</div>
         </div>
@@ -396,7 +396,7 @@ export const FeatureFlagDashboard: React.FC = () => {
       {/* Flags Grid */}
       {filteredFlags.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredFlags.map(flag => (
+          {filteredFlags.map((flag: FeatureFlag) => (
             <FeatureFlagCard
               key={flag.id}
               flag={flag}

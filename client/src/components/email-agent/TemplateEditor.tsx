@@ -320,7 +320,7 @@ export function TemplateEditor() {
                             <Input
                               id={`var-${variable}`}
                               value={previewVariables[variable] || ''}
-                              onChange={(e) => setPreviewVariables(prev => ({
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPreviewVariables(prev => ({
                                 ...prev,
                                 [variable]: e.target.value
                               }))}
@@ -361,7 +361,7 @@ export function TemplateEditor() {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="e.g., Welcome Email"
                         disabled={!isEditing}
                       />
@@ -372,7 +372,7 @@ export function TemplateEditor() {
                       <Input
                         id="subject"
                         value={formData.subject}
-                        onChange={(e) => handleContentChange('subject', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleContentChange('subject', e.target.value)}
                         placeholder="e.g., Welcome to {{companyName}}, {{firstName}}!"
                         disabled={!isEditing}
                       />
@@ -386,7 +386,7 @@ export function TemplateEditor() {
                       <Textarea
                         id="content"
                         value={formData.content}
-                        onChange={(e) => handleContentChange('content', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange('content', e.target.value)}
                         placeholder="Email content with variables like {{firstName}}, {{vehicleInterest}}..."
                         rows={10}
                         disabled={!isEditing}

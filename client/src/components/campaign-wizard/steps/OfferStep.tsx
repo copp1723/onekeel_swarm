@@ -24,7 +24,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             id="product"
             value={ctx.data.offer.product}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { ...prev.offer, product: e.target.value }
             }))}
@@ -38,7 +38,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             id="pricing"
             value={ctx.data.offer.pricing}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { ...prev.offer, pricing: e.target.value }
             }))}
@@ -52,7 +52,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             id="urgency"
             value={ctx.data.offer.urgency}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { ...prev.offer, urgency: e.target.value }
             }))}
@@ -66,7 +66,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             id="primaryCta"
             value={ctx.data.offer.cta.primary}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { 
                 ...prev.offer, 
@@ -83,7 +83,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Input
             id="ctaLink"
             value={ctx.data.offer.cta.link}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { 
                 ...prev.offer, 
@@ -100,7 +100,7 @@ export const OfferStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <Textarea
             id="disclaimer"
             value={ctx.data.offer.disclaimer}
-            onChange={(e) => ctx.setData(prev => ({
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({
               ...prev,
               offer: { ...prev.offer, disclaimer: e.target.value }
             }))}

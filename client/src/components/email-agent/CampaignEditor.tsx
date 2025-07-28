@@ -160,7 +160,7 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g., Q4 Sales Outreach"
                 required
               />
@@ -193,7 +193,7 @@ export function CampaignEditor({ campaign, agents, onSave, onCancel }: CampaignE
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Describe the campaign goals and target audience..."
               rows={3}
             />

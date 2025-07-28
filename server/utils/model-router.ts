@@ -19,12 +19,6 @@ export interface ModelResponse {
 
 export class ModelRouter {
   private models: string[] = [
-<<<<<<< HEAD
-    'gpt-4o-mini',
-    'gpt-3.5-turbo',
-    'claude-3-haiku',
-    'llama-3.1-8b'
-=======
     // OpenAI models
     'openai/gpt-4o-mini',
     'openai/gpt-4o',
@@ -58,7 +52,6 @@ export class ModelRouter {
     'perplexity/llama-3.1-sonar-large-128k-online',
     'qwen/qwen-2.5-72b-instruct',
     'deepseek/deepseek-chat'
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
   ];
   
   private modelStats: Map<string, { requests: number; failures: number; avgLatency: number }> = new Map();
