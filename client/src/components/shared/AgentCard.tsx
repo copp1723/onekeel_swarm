@@ -38,7 +38,7 @@ export function AgentCard({
   const statusBadge = getAgentStatusBadge(agent.active ?? false);
 
   const getCapabilityIcons = () => {
-    const icons = [];
+    const icons: React.ReactElement[] = [];
     if (agent.capabilities?.email) icons.push(<Mail key="email" className="h-3 w-3" />);
     if (agent.capabilities?.sms) icons.push(<Phone key="sms" className="h-3 w-3" />);
     if (agent.capabilities?.chat) icons.push(<MessageSquare key="chat" className="h-3 w-3" />);

@@ -117,7 +117,9 @@ export const AdminGate: React.FC<AdminGateProps> = ({
   return (
     <FeatureGate
       flagKey="admin.access"
-      fallback={showMessage ? <div className="text-sm text-gray-500 italic">{message}</div> : fallback}
+      fallback={showMessage ? <div className="text-sm text-gray-500 italic">{message}</div> : (fallback as any)}
+      upgradeText="Admin Access Required"
+      upgradeCallback={() => {}}
     >
       {children}
     </FeatureGate>
@@ -146,6 +148,8 @@ export const RoleBasedGate: React.FC<RoleBasedGateProps> = ({
       flagKey={flagKey}
       fallback={fallback}
       showUpgrade={showUpgrade}
+      upgradeText="Upgrade Required"
+      upgradeCallback={() => {}}
     >
       {children}
     </FeatureGate>
@@ -164,7 +168,7 @@ export const EnvironmentGate: React.FC<EnvironmentGateProps> = ({
   children,
   fallback = null
 }) => {
-  const currentEnv = import.meta.env.VITE_ENVIRONMENT || 'development';
+  const currentEnv = (import.meta as any).env?.VITE_ENVIRONMENT || 'development';
   const shouldShow = environments.includes(currentEnv as any);
   
   return shouldShow ? <>{children}</> : <>{fallback}</>;
@@ -184,9 +188,10 @@ export function withFeatureFlag<P extends object>(
     return (
       <FeatureGate
         flagKey={flagKey}
-        fallback={options.fallback ? <options.fallback {...props} /> : null}
+        fallback={options.fallback ? <options.fallback {...props} /> : (null as any)}
         showUpgrade={options.showUpgrade}
-        upgradeText={options.upgradeText}
+        upgradeText={options.upgradeText || "Upgrade Required"}
+        upgradeCallback={() => {}}
       >
         <Component {...props} />
       </FeatureGate>

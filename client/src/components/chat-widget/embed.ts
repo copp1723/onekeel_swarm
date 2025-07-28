@@ -1,3 +1,4 @@
+// Dynamic import will be handled at runtime
 // CCL Chat Widget Embed Script
 // This script can be embedded via Google Tag Manager or directly on any website
 
