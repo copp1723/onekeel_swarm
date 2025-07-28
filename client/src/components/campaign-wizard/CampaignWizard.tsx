@@ -208,11 +208,11 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
         }
         
         // Process contacts with limited columns and sanitization
-        const contacts = results.data.map((row: Record<string, any>) => {
+        const contacts: Contact[] = results.data.map((row: Record<string, any>) => {
           const contact: Record<string, any> = {};
           limitedHeaders.forEach((header: string) => {
             let value = row[header];
-            
+
             // Sanitize CSV injection attempts
             if (typeof value === 'string') {
               value = value.trim();
@@ -223,14 +223,22 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
               // Limit string length
               value = value.substring(0, 255);
             }
-            
+
             contact[header] = value;
           });
-          return contact;
+
+          // Transform to Contact interface
+          const transformedContact: Contact = {
+            email: contact[headerMapping['email']] || '',
+            name: contact[headerMapping['firstName']] || '',
+            ...contact
+          };
+
+          return transformedContact;
         }).slice(0, 10000) // Limit to 10k rows
-        .filter((contact: Record<string, any>) => {
+        .filter((contact: Contact) => {
           // Filter out empty rows
-          return contact[headerMapping['email']] && contact[headerMapping['firstName']];
+          return contact.email && contact.name;
         });
         
         // Update campaign data

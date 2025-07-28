@@ -15,6 +15,16 @@ const EMPTY_DATA: CampaignData = {
     startDate: '', totalEmails: 5, daysBetweenEmails: 3,
     timezone: 'America/New_York', sendTimeOptimization: true,
   },
+  handoverRules: {
+    qualificationScore: 7,
+    conversationLength: 5,
+    timeThreshold: 300,
+    keywordTriggers: [],
+    buyingSignals: [],
+    escalationPhrases: [],
+    goalCompletionRequired: [],
+    handoverRecipients: []
+  }
 };
 
 export function useCampaignWizard(

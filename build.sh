@@ -5,9 +5,8 @@ set -e
 
 echo "🚀 Starting build process..."
 
-# Install root dependencies
-echo "📦 Installing root dependencies..."
-npm install
+# Skip root dependencies for now (has dependency conflicts)
+echo "📦 Skipping root dependencies (client-only build)..."
 
 # Build only the client for now (backend has dependency issues)
 echo "🔨 Building client application..."
