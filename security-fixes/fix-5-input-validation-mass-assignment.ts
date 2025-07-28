@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeObjectStrings, sanitizeString, sanitizeHtml, sanitizeMetadata } from '../../shared/validation/sanitization-utils';
 
 // Enhanced validation middleware with mass assignment protection
 export function validateRequest(schema: {
@@ -68,15 +68,15 @@ export const createUserSchema = z.object({
     .max(100)
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
       'Password must contain uppercase, lowercase, number and special character'),
-  firstName: z.string().min(1).max(100).transform(val => DOMPurify.sanitize(val)),
-  lastName: z.string().min(1).max(100).transform(val => DOMPurify.sanitize(val)),
+  firstName: z.string().min(1).max(100).transform(val => sanitizeString(val, 100)),
+  lastName: z.string().min(1).max(100).transform(val => sanitizeString(val, 100)),
   // Explicitly exclude fields that should not be set by users
 }).strict(); // .strict() prevents any extra fields
 
 // User update schema - only allows specific fields to be updated
 export const updateUserSchema = z.object({
-  firstName: z.string().min(1).max(100).transform(val => DOMPurify.sanitize(val)).optional(),
-  lastName: z.string().min(1).max(100).transform(val => DOMPurify.sanitize(val)).optional(),
+  firstName: z.string().min(1).max(100).transform(val => sanitizeString(val, 100)).optional(),
+  lastName: z.string().min(1).max(100).transform(val => sanitizeString(val, 100)).optional(),
   email: z.string().email().toLowerCase().max(255).optional(),
   // Explicitly exclude sensitive fields
   // NO: role, passwordHash, active, id, createdAt, updatedAt
@@ -84,8 +84,8 @@ export const updateUserSchema = z.object({
 
 // Lead creation with sanitization
 export const createLeadSchema = z.object({
-  firstName: z.string().max(100).transform(val => DOMPurify.sanitize(val)).optional(),
-  lastName: z.string().max(100).transform(val => DOMPurify.sanitize(val)).optional(),
+  firstName: z.string().max(100).transform(val => sanitizeString(val, 100)).optional(),
+  lastName: z.string().max(100).transform(val => sanitizeString(val, 100)).optional(),
   email: z.string().email().toLowerCase().max(255),
   phone: z.string().regex(/^[+\d\s()-]+$/, 'Invalid phone format').max(20).optional(),
   source: z.enum(['website', 'api', 'import', 'campaign', 'manual']).default('api'),
@@ -94,16 +94,16 @@ export const createLeadSchema = z.object({
   assignedChannel: z.enum(['email', 'sms', 'chat']).optional(),
   creditScore: z.number().int().min(300).max(850).optional(),
   income: z.number().int().min(0).max(10000000).optional(),
-  employer: z.string().max(255).transform(val => DOMPurify.sanitize(val)).optional(),
-  jobTitle: z.string().max(255).transform(val => DOMPurify.sanitize(val)).optional(),
-  notes: z.string().max(5000).transform(val => DOMPurify.sanitize(val)).optional(),
+  employer: z.string().max(255).transform(val => sanitizeString(val, 255)).optional(),
+  jobTitle: z.string().max(255).transform(val => sanitizeString(val, 255)).optional(),
+  notes: z.string().max(5000).transform(val => sanitizeString(val, 5000)).optional(),
   metadata: z.record(z.any()).optional().transform(val => {
     // Sanitize all string values in metadata
     if (!val) return {};
     const sanitized: Record<string, any> = {};
     for (const [key, value] of Object.entries(val)) {
       if (typeof value === 'string') {
-        sanitized[key] = DOMPurify.sanitize(value);
+        sanitized[key] = sanitizeString(value);
       } else {
         sanitized[key] = value;
       }
@@ -114,8 +114,8 @@ export const createLeadSchema = z.object({
 
 // Campaign creation with XSS prevention
 export const createCampaignSchema = z.object({
-  name: z.string().min(1).max(255).transform(val => DOMPurify.sanitize(val)),
-  description: z.string().max(1000).transform(val => DOMPurify.sanitize(val)).optional(),
+  name: z.string().min(1).max(255).transform(val => sanitizeString(val, 255)),
+  description: z.string().max(1000).transform(val => sanitizeString(val, 1000)).optional(),
   type: z.enum(['drip', 'blast', 'trigger']).default('drip'),
   targetCriteria: z.record(z.any()).optional(),
   settings: z.record(z.any()).optional(),
@@ -125,15 +125,11 @@ export const createCampaignSchema = z.object({
 
 // Email template with strict HTML sanitization
 export const emailTemplateSchema = z.object({
-  name: z.string().min(1).max(255).transform(val => DOMPurify.sanitize(val)),
-  subject: z.string().min(1).max(200).transform(val => DOMPurify.sanitize(val)),
+  name: z.string().min(1).max(255).transform(val => sanitizeString(val, 255)),
+  subject: z.string().min(1).max(200).transform(val => sanitizeString(val, 200)),
   body: z.string().min(1).max(50000).transform(val => {
     // Allow only safe HTML tags for emails
-    return DOMPurify.sanitize(val, {
-      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'img', 'table', 'tr', 'td', 'th'],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'class', 'id'],
-      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i
-    });
+    return sanitizeHtml(val);
   }),
   variables: z.array(z.string()).optional()
 }).strict();
@@ -169,9 +165,10 @@ export function sanitizeRequestBody(req: Request, res: Response, next: NextFunct
     delete req.body.__proto__;
     delete req.body.constructor;
     delete req.body.prototype;
-    
     // Remove undefined and null values
     req.body = JSON.parse(JSON.stringify(req.body));
+    // Recursively sanitize all string fields
+    req.body = sanitizeObjectStrings(req.body);
   }
   next();
 }

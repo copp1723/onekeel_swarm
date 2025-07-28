@@ -1,24 +1,13 @@
 // Enhanced Validation Schemas for Campaign Routes
 
 import { z } from 'zod';
+import { sanitizeHtml, sanitizeString } from '../../shared/validation/sanitization-utils';
 
 // Custom validators
 const safeString = (maxLength: number) => z.string()
-  .trim()
-  .min(1)
-  .max(maxLength)
-  .regex(/^[^<>'"`;]*$/, 'Invalid characters detected'); // Basic XSS prevention
+  .transform((val) => sanitizeString(val, maxLength));
 
-const safeHtml = z.string().transform((val) => {
-  // Sanitize HTML content
-  return DOMPurify.sanitize(val, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'a'],
-    ALLOWED_ATTR: ['href'],
-    ALLOW_DATA_ATTR: false,
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
-  });
-});
+const safeHtml = z.string().transform((val) => sanitizeHtml(val));
 
 // Enhanced campaign creation schema
 export const createCampaignSchema = z.object({
