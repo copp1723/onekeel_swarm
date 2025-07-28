@@ -131,10 +131,12 @@ export class DualTerminologyService {
 
     // Add safe sorting
     const sortColumn = leads[validSort as keyof typeof leads];
-    if (validOrder === 'desc') {
-      query.orderBy(desc(sortColumn));
-    } else {
-      query.orderBy(sortColumn);
+    if (sortColumn) {
+      if (validOrder === 'desc') {
+        query.orderBy(desc(sortColumn));
+      } else {
+        query.orderBy(sortColumn);
+      }
     }
 
     const entities = await query;
@@ -245,7 +247,6 @@ export class DualTerminologyService {
         assignedChannel: entityData.assignedChannel as any,
         boberdooId: entityData.boberdooId,
         campaignId: entityData.campaignId,
-        clientId: entityData.clientId,
         creditScore: entityData.creditScore,
         income: entityData.income,
         employer: entityData.employer,
@@ -287,7 +288,7 @@ export class DualTerminologyService {
         assignedChannel: updates.assignedChannel as any,
         boberdooId: updates.boberdooId,
         campaignId: updates.campaignId,
-        clientId: updates.clientId,
+
         creditScore: updates.creditScore,
         income: updates.income,
         employer: updates.employer,
@@ -368,7 +369,6 @@ export class DualTerminologyService {
         assignedChannel: entityData.assignedChannel,
         boberdooId: entityData.boberdooId,
         campaignId: entityData.campaignId,
-        clientId: entityData.clientId,
         creditScore: entityData.creditScore,
         income: entityData.income,
         employer: entityData.employer,

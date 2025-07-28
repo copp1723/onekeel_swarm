@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
@@ -12,7 +12,7 @@ interface CampaignWizardWrapperProps {
 }
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode;
+  children: ReactNode;
   onReset: () => void;
 }
 
@@ -21,7 +21,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class CampaignWizardErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class CampaignWizardErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -31,7 +31,7 @@ class CampaignWizardErrorBoundary extends React.Component<ErrorBoundaryProps, Er
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Campaign Wizard Error:', error, errorInfo);
   }
 

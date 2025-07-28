@@ -13,11 +13,7 @@ interface CampaignIntelligenceHubProps {
   onUpdate: () => void;
 }
 
-<<<<<<< HEAD
 export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelligenceHubProps) {
-=======
-export function CampaignIntelligenceHub({ campaigns, onCreateCampaign }: CampaignIntelligenceHubProps) {
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
   const [activeTab, setActiveTab] = useState('overview');
   const { agents } = useAgents();
 
@@ -108,8 +104,6 @@ export function CampaignIntelligenceHub({ campaigns, onCreateCampaign }: Campaig
             showAgentDetails={true}
           />
         </TabsContent>
-
-
 
         {/* Analytics Tab - Campaign Performance */}
         <TabsContent value="analytics">

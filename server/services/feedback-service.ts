@@ -199,10 +199,10 @@ export class FeedbackService {
   }> {
     const totalUsers = this.notifications.size;
     const connectedUsers = this.connections.size;
-    
+
     let totalNotifications = 0;
     let unreadNotifications = 0;
-    
+
     this.notifications.forEach(userNotifications => {
       totalNotifications += userNotifications.length;
       unreadNotifications += userNotifications.filter(n => !n.read).length;
@@ -214,6 +214,28 @@ export class FeedbackService {
       unreadNotifications,
       connectedUsers
     };
+  }
+
+  /**
+   * Send success notification to all connected users
+   */
+  success(message: string): void {
+    this.sendSystemNotification('success', 'Success', message);
+  }
+
+  /**
+   * Send error notification to all connected users
+   */
+  error(message: string): void {
+    this.sendSystemNotification('error', 'Error', message);
+  }
+
+  /**
+   * Send lead qualified notification to all connected users
+   */
+  leadQualified(lead: any): void {
+    const leadName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown Lead';
+    this.sendSystemNotification('success', 'Lead Qualified', `${leadName} has been qualified and sent to Boberdoo`);
   }
 }
 

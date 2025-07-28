@@ -1,7 +1,7 @@
 // Legacy BrandingProvider - now redirects to ClientProvider
 // This file is kept for backward compatibility
 
-import React from 'react'
+import { createContext, useContext, ReactNode } from 'react'
 import { ClientProvider, useClient } from '../contexts/ClientContext'
 
 interface BrandingContextType {

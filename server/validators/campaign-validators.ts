@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
 // Sanitize string to prevent XSS and injection
-const sanitizedString = (maxLength: number = 1000) => z.string().max(maxLength).transform(val => 
-  val.trim()
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<[^>]+>/g, '')
-);
+const sanitizedString = (maxLength: number = 1000) => z.string()
+  .max(maxLength)
+  .transform(val =>
+    val.trim()
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .substring(0, maxLength)
+  );
 
 // Email validation with additional checks
 const emailSchema = z.string()
@@ -17,18 +20,18 @@ const emailSchema = z.string()
 
 // Settings schema with strict validation
 export const campaignSettingsSchema = z.object({
-  goals: z.array(sanitizedString()).min(1).max(10),
+  goals: z.array(sanitizedString(100)).min(1).max(10),
   qualificationCriteria: z.object({
     minScore: z.number().min(0).max(100),
     requiredFields: z.array(z.enum(['email', 'phone', 'name', 'company'])).max(10),
-    requiredGoals: z.array(sanitizedString()).max(10)
+    requiredGoals: z.array(sanitizedString(100)).max(10)
   }),
   handoverCriteria: z.object({
     qualificationScore: z.number().min(0).max(100),
     conversationLength: z.number().min(1).max(100),
     timeThreshold: z.number().min(1).max(10080), // Max 1 week in minutes
-    keywordTriggers: z.array(sanitizedString()).max(50),
-    goalCompletionRequired: z.array(sanitizedString()).max(10),
+    keywordTriggers: z.array(sanitizedString(100)).max(50),
+    goalCompletionRequired: z.array(sanitizedString(100)).max(10),
     handoverRecipients: z.array(z.object({
       name: sanitizedString(100),
       email: emailSchema,
@@ -49,11 +52,7 @@ export const campaignSettingsSchema = z.object({
 });
 
 export const createCampaignSchema = z.object({
-  name: z.string().min(1).max(255).transform(val => 
-    val.trim()
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<[^>]+>/g, '')
-  ),
+  name: sanitizedString(255),
   description: sanitizedString(1000).optional(),
   type: z.enum(['standard', 'multi-agent']).optional(),
   settings: campaignSettingsSchema,

@@ -141,13 +141,18 @@ export class ConversationsRepository {
   
   static async updateStatus(id: string, status: string) {
     const [updated] = await db.update(conversations)
-      .set({ 
+      .set({
         status,
-        lastMessageAt: new Date() 
+        lastMessageAt: new Date()
       })
       .where(eq(conversations.id, id))
       .returning();
     return updated || null;
+  }
+
+  // Alias for appendMessage to match expected interface
+  static async addMessage(id: string, messageData: { role: string; content: string }) {
+    return await this.appendMessage(id, messageData.role, messageData.content);
   }
 }
 

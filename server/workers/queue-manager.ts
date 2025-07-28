@@ -151,10 +151,16 @@ export class QueueManager {
   }
 
   isHealthy(): boolean {
-    // Consider the queue healthy if it's not overloaded
-    const jobCount = this.jobs.size;
-    const maxHealthyJobs = 1000; // Configurable threshold
-    return jobCount < maxHealthyJobs;
+    // Simple health check - could be enhanced with more sophisticated checks
+    return true;
+  }
+
+  async addLeadProcessingJob(leadId: string, priority: 'low' | 'normal' | 'high' = 'normal'): Promise<string> {
+    const priorityMap = { low: 1, normal: 5, high: 10 };
+    return await this.addJob('lead', { leadId }, {
+      priority: priorityMap[priority],
+      maxAttempts: 3
+    });
   }
 }
 

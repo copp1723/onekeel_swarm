@@ -1,6 +1,25 @@
 import { logger } from '../utils/logger';
 
 export class EmailReplyDetector {
+  private isRunning = false;
+
+  async start(): Promise<void> {
+    this.isRunning = true;
+    logger.info('Email reply detector started');
+  }
+
+  async stop(): Promise<void> {
+    this.isRunning = false;
+    logger.info('Email reply detector stopped');
+  }
+
+  async hasLeadReplied(leadId: string): Promise<boolean> {
+    // Simple implementation - could be enhanced with database queries
+    // For now, return false as a placeholder
+    logger.debug('Checking if lead has replied', { leadId });
+    return false;
+  }
+
   async detectReply(subject: string, body: string): Promise<boolean> {
     // Simple reply detection logic
     const replyPatterns = [

@@ -1,19 +1,5 @@
-<<<<<<< HEAD
-import React from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Zap, Target, Users, Brain, Sparkles, Mail, Clock, Check } from 'lucide-react';
-import { useCampaignWizard } from './hooks/useCampaignWizard';
-import { WizardStep } from './types';
-import { BasicsStep } from './steps/BasicsStep';
-import { AudienceStep } from './steps/AudienceStep';
-import { AgentStep } from './steps/AgentStep';
-import { OfferStep } from './steps/OfferStep';
-import { TemplatesStep } from './steps/TemplatesStep';
-import { ScheduleStep } from './steps/ScheduleStep';
-import { ReviewStep } from './steps/ReviewStep';
-=======
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import * as React from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,41 +30,16 @@ import {
   Save,
   UserCheck
 } from 'lucide-react';
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
 
-interface Props {
+interface CampaignWizardProps {
   isOpen: boolean;
   onClose(): void;
   onComplete(data: any): void;
   agents?: any[];
 }
 
-const STEP_COMPONENT: Record<WizardStep, React.FC<any>> = {
-  basics: BasicsStep,
-  audience: AudienceStep,
-  agent: AgentStep,
-  offer: OfferStep,
-  templates: TemplatesStep,
-  schedule: ScheduleStep,
-  review: ReviewStep,
-};
+type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'schedule' | 'handover' | 'review';
 
-<<<<<<< HEAD
-const steps: { id: WizardStep; label: string; icon: React.ReactNode }[] = [
-  { id: 'basics', label: 'Campaign Basics', icon: <Target className="h-4 w-4" /> },
-  { id: 'audience', label: 'Target Audience', icon: <Users className="h-4 w-4" /> },
-  { id: 'agent', label: 'Select Agent', icon: <Brain className="h-4 w-4" /> },
-  { id: 'offer', label: 'Offer Details', icon: <Sparkles className="h-4 w-4" /> },
-  { id: 'templates', label: 'Email Templates', icon: <Mail className="h-4 w-4" /> },
-  { id: 'schedule', label: 'Schedule', icon: <Clock className="h-4 w-4" /> },
-  { id: 'review', label: 'Review & Launch', icon: <Check className="h-4 w-4" /> }
-];
-
-export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Props) {
-  const wiz = useCampaignWizard(onComplete);
-  const Current = STEP_COMPONENT[wiz.step];
-  const currentStepIndex = steps.findIndex(s => s.id === wiz.step);
-=======
 export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [csvError, setCsvError] = useState<string>('');
@@ -1320,7 +1281,6 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
       );
     }
   };
->>>>>>> d1a1ae0 (feat: Complete comprehensive CSV sanitization and validation system)
 
   return (
     <Sheet open={isOpen} onOpenChange={o => !o && onClose()}>
@@ -1364,7 +1324,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           {/* Step Content - Scrollable */}
           <div className="flex-1 overflow-y-auto px-1 min-h-0">
             <div className="pb-4">
-              <Current ctx={wiz} agents={agents} />
+              {renderStepContent()}
             </div>
           </div>
 
@@ -1372,19 +1332,19 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           <div className="flex justify-between pt-4 border-t flex-shrink-0">
             <Button
               variant="outline"
-              onClick={wiz.prev}
-              disabled={wiz.step === 'basics'}
+              onClick={handlePrevious}
+              disabled={currentStep === 'basics'}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
-            {wiz.step === 'review' ? (
-              <Button onClick={wiz.complete} className="bg-purple-600 hover:bg-purple-700">
+            {currentStep === 'review' ? (
+              <Button onClick={handleComplete} className="bg-purple-600 hover:bg-purple-700">
                 <Zap className="h-4 w-4 mr-2" />
                 Launch Campaign
               </Button>
             ) : (
-              <Button onClick={wiz.next}>
+              <Button onClick={handleNext}>
                 Next
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

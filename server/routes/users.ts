@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
         metadata: users.metadata,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-        lastLoginAt: users.lastLoginAt
+        lastLogin: users.lastLogin
       })
       .from(users)
       .limit(Number(limit))
@@ -68,10 +68,13 @@ router.get('/', async (req, res) => {
     }
 
     // Add sorting
-    if (order === 'desc') {
-      query.orderBy(desc(users[sort as keyof typeof users]));
-    } else {
-      query.orderBy(users[sort as keyof typeof users]);
+    const sortColumn = users[sort as keyof typeof users];
+    if (sortColumn) {
+      if (order === 'desc') {
+        query.orderBy(desc(sortColumn));
+      } else {
+        query.orderBy(sortColumn);
+      }
     }
 
     const userList = await query;
@@ -124,7 +127,7 @@ router.get('/:id', async (req, res) => {
         metadata: users.metadata,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-        lastLoginAt: users.lastLoginAt
+        lastLogin: users.lastLogin
       })
       .from(users)
       .where(eq(users.id, id))
@@ -293,7 +296,7 @@ router.put('/:id', validateRequest({ body: updateUserSchema }), async (req, res)
         metadata: users.metadata,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-        lastLoginAt: users.lastLoginAt
+        lastLogin: users.lastLogin
       });
 
     if (!updatedUser) {
@@ -364,7 +367,7 @@ router.patch('/:id/toggle', async (req, res) => {
         metadata: users.metadata,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-        lastLoginAt: users.lastLoginAt
+        lastLogin: users.lastLogin
       });
 
     res.json({
