@@ -98,15 +98,8 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
     { id: 'conversations', label: 'Communication', icon: Brain },
-    { 
-      id: 'agents-group', 
-      label: 'Agents', 
-      icon: Brain,
-      children: [
-        { id: 'agents', label: 'My Agents', icon: UserCog },
-        { id: 'agent-templates', label: 'Agent Templates', icon: Copy }
-      ]
-    },
+    { id: 'campaigns', label: 'Campaigns', icon: Target },
+    { id: 'leads', label: 'Leads', icon: Users },
     {
       id: 'settings-group',
       label: 'Settings',
