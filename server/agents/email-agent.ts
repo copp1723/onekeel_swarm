@@ -63,10 +63,11 @@ OUTPUT ONLY a valid JSON array, nothing else:
     try {
       const raw = await this.generateResponse(
         userPrompt,
-        { 
-          type: 'campaign_sequence_generation', 
-          campaignName: details.campaignName,
-          systemPrompt 
+        systemPrompt,
+        {
+          leadId: 'system',
+          type: 'campaign_sequence_generation',
+          metadata: { campaignName: details.campaignName }
         }
       );
 
@@ -125,15 +126,45 @@ OUTPUT ONLY a valid JSON array, nothing else:
 
   // Override getMockResponse for email-specific mock behavior
   protected getMockResponse(prompt: string): string {
+    if (prompt.includes('5-email cold-outreach sequence')) {
+      return JSON.stringify([
+        {
+          subject: "Quick question about your car financing",
+          body: "Hi {firstName},\n\nI noticed you might be looking into car financing options.\n\nI've been helping folks in your area secure better rates lately, and I'm curious - what's been your biggest challenge with the whole car buying process?\n\nBest,\n{agentName}",
+          order: 1
+        },
+        {
+          subject: "That financing headache (I get it)",
+          body: "Hi {firstName},\n\nMost people tell me the same thing: \"Car financing feels like a maze.\"\n\nHere's what I've learned after helping 500+ customers: the banks that advertise the lowest rates? They're usually not the ones that actually approve you.\n\nThe real winners work with lenders who specialize in your situation.\n\nWorth a quick chat?\n\n{agentName}",
+          order: 2
+        },
+        {
+          subject: "This week only (genuine deadline)",
+          body: "Hi {firstName},\n\nI have to be honest - I can only take on 3 more clients this month.\n\nMy lender partners have been swamped, and I want to make sure I can give everyone the attention they deserve.\n\nIf you're serious about getting pre-approved this week, let's talk today.\n\n[Get Pre-Approved Now](#)\n\n{agentName}",
+          order: 3
+        },
+        {
+          subject: "Sarah saved $127/month (here's how)",
+          body: "Hi {firstName},\n\nSarah from downtown was paying $487/month on her old loan.\n\nAfter we refinanced her car, she's down to $360/month. Same car, same coverage, $127 less every month.\n\nThat's $1,524 back in her pocket every year.\n\nWhat could you do with an extra $127/month?\n\n[Check Your Rate](#)\n\n{agentName}",
+          order: 4
+        },
+        {
+          subject: "Last call (then I'll stop bothering you)",
+          body: "Hi {firstName},\n\nI know your inbox is probably full, so this is my last message.\n\nIf you're still thinking about car financing, I'm here. If not, no worries at all.\n\nEither way, I hope you find exactly what you're looking for.\n\n[One Last Look](#)\n\nTake care,\n{agentName}\n\n*Licensed mortgage professional. Rates subject to approval.*",
+          order: 5
+        }
+      ]);
+    }
+
     if (prompt.includes('initial email') || prompt.includes('first contact')) {
-      return `Hello! Thank you for your interest in our services. We're excited to learn more about your needs and how we can help you. 
+      return `Hello! Thank you for your interest in our services. We're excited to learn more about your needs and how we can help you.
 
 I noticed you're interested in getting more information. Could you tell me a bit more about what you're looking for?
 
 Best regards,
 CCL-3 Team`;
     }
-    
+
     if (prompt.includes('response to this customer email')) {
       return `Thank you for your message! I understand your interest and I'm here to help. Let me address your questions and provide you with the information you need.
 
@@ -141,7 +172,7 @@ Based on what you've shared, I believe we can definitely assist you. Would you l
 
 Looking forward to hearing from you!`;
     }
-    
+
     return super.getMockResponse(prompt);
   }
 
@@ -283,4 +314,6 @@ The email should:
 
     return email;
   }
+
+
 }

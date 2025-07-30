@@ -32,7 +32,10 @@ export const LoginForm: React.FC = () => {
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
     try {
-      const success = await login('admin@completecarloans.com', 'password123');
+      // Use environment variables for demo credentials
+      const demoEmail = process.env.REACT_APP_DEMO_EMAIL || 'demo@example.com';
+      const demoPassword = process.env.REACT_APP_DEMO_PASSWORD || 'demo123';
+      const success = await login(demoEmail, demoPassword);
       if (!success) {
         setIsSubmitting(false);
       }
@@ -84,7 +87,7 @@ export const LoginForm: React.FC = () => {
                     type="text"
                     value={username}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-                    placeholder="admin@completecarloans.com"
+                    placeholder="Enter your email"
                     className="pl-10"
                     required
                     disabled={isSubmitting}
@@ -131,10 +134,10 @@ export const LoginForm: React.FC = () => {
             </form>
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h4>
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Access:</h4>
               <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>Email:</strong> admin@completecarloans.com</p>
-                <p><strong>Password:</strong> password123</p>
+                <p>Click "Demo Login" button to access the demo environment</p>
+                <p>Demo credentials are configured by the administrator</p>
               </div>
             </div>
           </CardContent>

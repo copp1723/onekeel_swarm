@@ -23,7 +23,7 @@ const userQuerySchema = z.object({
 const mockUsers = [
   {
     id: 'user-1',
-    email: 'admin@onekeel.com',
+    email: process.env.DEMO_ADMIN_EMAIL || 'admin@example.com',
     username: 'admin',
     firstName: 'Admin',
     lastName: 'User',
@@ -36,7 +36,7 @@ const mockUsers = [
   },
   {
     id: 'user-2',
-    email: 'manager@onekeel.com',
+    email: process.env.DEMO_MANAGER_EMAIL || 'manager@example.com',
     username: 'manager',
     firstName: 'Manager',
     lastName: 'User',
