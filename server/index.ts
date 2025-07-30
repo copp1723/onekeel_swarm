@@ -307,6 +307,14 @@ async function initializeApp() {
     } catch (error) {
       logger.error('Failed to initialize deployment services', error as Error);
     }
+
+    // Ensure admin user exists
+    try {
+      const { ensureAdminUser } = await import('../scripts/ensure-admin-user');
+      await ensureAdminUser();
+    } catch (error) {
+      logger.error('Failed to ensure admin user exists', error as Error);
+    }
     
     // Start enhanced email monitor (optional service)
     enhancedEmailMonitor.start().catch(error => logger.warn('Enhanced email monitor not available - continuing without it', { error: (error as Error).message }));

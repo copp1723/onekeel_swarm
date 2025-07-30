@@ -105,7 +105,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsLoading(false);
         return true;
       } else {
-        setError(data.error || 'Login failed');
+        // Handle error object or string
+        const errorMessage = typeof data.error === 'object'
+          ? data.error?.message || 'Login failed'
+          : data.error || 'Login failed';
+        setError(errorMessage);
         setIsLoading(false);
         return false;
       }
