@@ -1,4 +1,6 @@
 import { auditLogRepository as AuditLogRepository } from '../db';
+import { getCurrentContext, RequestContext } from '../middleware/request-context';
+import { Request } from 'express';
 
 /**
  * Security change type definition
@@ -19,6 +21,14 @@ export interface SecurityChange {
  * and user actions that are relevant for compliance and security auditing.
  */
 export class AuditLogger {
+  private currentRequest?: Request;
+
+  /**
+   * Set the current request for context extraction
+   */
+  setRequest(req: Request) {
+    this.currentRequest = req;
+  }
   /**
    * Log user creation event
    * 
@@ -229,24 +239,22 @@ export class AuditLogger {
 
   /**
    * Get the IP address from the current request context
-   * 
+   *
    * @returns IP address or undefined
    */
   private getRequestIp(): string | undefined {
-    // In a real implementation, this would use a request context
-    // For now, we'll return undefined
-    return undefined;
+    const context = getCurrentContext(this.currentRequest);
+    return context.ip;
   }
 
   /**
    * Get the user agent from the current request context
-   * 
+   *
    * @returns User agent or undefined
    */
   private getRequestUserAgent(): string | undefined {
-    // In a real implementation, this would use a request context
-    // For now, we'll return undefined
-    return undefined;
+    const context = getCurrentContext(this.currentRequest);
+    return context.userAgent;
   }
 }
 

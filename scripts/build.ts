@@ -52,15 +52,21 @@ async function build() {
     }
 
     // 3. Compile TypeScript for server
-    console.log('\n🏗️  Compiling TypeScript for server...');
+    console.log('\n🏗️  Checking TypeScript compilation...');
     runCommand('npx tsc --noEmit', serverDir);
-    
-    console.log('✅ TypeScript compilation completed');
 
-    // 4. Run database migrations
+    console.log('✅ TypeScript check completed');
+
+    // 4. Build server bundle
+    console.log('\n🏗️  Building server bundle...');
+    runCommand('npm run build:server', serverDir);
+
+    console.log('✅ Server bundle created');
+
+    // 5. Run database migrations
     console.log('\n🗄️  Running database migrations...');
     try {
-      runCommand('npx drizzle-kit push:pg', serverDir);
+      runCommand('npx drizzle-kit push', serverDir);
       console.log('✅ Database migrations completed');
     } catch (error) {
       console.log('⚠️  Database migrations failed (this may be expected if DB is not available)');
