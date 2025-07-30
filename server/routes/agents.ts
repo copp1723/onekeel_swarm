@@ -26,10 +26,7 @@ router.get('/', async (req, res) => {
     if (search) {
       const searchPattern = `%${search}%`;
       conditions.push(
-        or(
-          ilike(agentConfigurations.name, searchPattern),
-          ilike(agentConfigurations.systemPrompt, searchPattern)
-        )
+        ilike(agentConfigurations.name, searchPattern)
       );
     }
 

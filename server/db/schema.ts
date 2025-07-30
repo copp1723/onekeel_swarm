@@ -11,6 +11,7 @@ export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
 export const communicationDirectionEnum = pgEnum('communication_direction', ['inbound', 'outbound']);
 export const communicationStatusEnum = pgEnum('communication_status', ['pending', 'sent', 'delivered', 'failed', 'received']);
 export const campaignTypeEnum = pgEnum('campaign_type', ['drip', 'blast', 'trigger']);
+export const campaignStatusEnum = pgEnum('campaign_status', ['draft', 'active', 'paused', 'completed', 'archived']);
 export const agentTypeEnum = pgEnum('agent_type', ['email', 'sms', 'chat', 'voice']);
 
 // Feature flag enums
@@ -199,7 +200,8 @@ export const campaigns = pgTable('campaigns', {
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   type: campaignTypeEnum('type').default('drip').notNull(),
-  active: boolean('active').default(true).notNull(),
+  status: campaignStatusEnum('status').default('draft').notNull(),
+  active: boolean('active').default(true).notNull(), // Keep for backward compatibility
   
   // Targeting
   targetCriteria: jsonb('target_criteria').default({}),

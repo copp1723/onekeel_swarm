@@ -1,6 +1,6 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 import twilio from 'twilio';
-import { CCLLogger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { executeWithTwilioBreaker } from '../utils/circuit-breaker';
 
 export class SMSAgent extends BaseAgent {

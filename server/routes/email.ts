@@ -277,7 +277,7 @@ router.post('/test', validateRequest({
 router.get('/monitoring/rules', async (req, res) => {
   try {
     // This would connect to the email monitor service
-    const { emailMonitor } = await import('../services/email-monitor-mock');
+    const { emailMonitor } = await import('../services/email-monitor');
     const rules = emailMonitor.getRules();
     
     res.json({

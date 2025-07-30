@@ -3,11 +3,21 @@ import Mailgun from "mailgun.js";
 
 const mailgun = new Mailgun(formData);
 
-// Initialize Mailgun client
-const mg = mailgun.client({
-  username: "api",
-  key: process.env.MAILGUN_API_KEY || "",
-});
+// Lazy initialization of Mailgun client
+let mg: any = null;
+function getMailgunClient() {
+  if (!mg) {
+    const apiKey = process.env.MAILGUN_API_KEY;
+    if (!apiKey) {
+      throw new Error('MAILGUN_API_KEY is required but not set');
+    }
+    mg = mailgun.client({
+      username: "api",
+      key: apiKey,
+    });
+  }
+  return mg;
+}
 
 export interface EmailData {
   to: string;
@@ -56,7 +66,7 @@ export class MailgunService {
         text: emailData.text || this.stripHtml(sanitizedHtml),
       };
 
-      const result = await mg.messages.create(this.domain, messageData);
+      const result = await getMailgunClient().messages.create(this.domain, messageData);
       console.log(`Email sent to ${emailData.to}:`, result.id);
       
       return {

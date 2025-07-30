@@ -1,56 +1,50 @@
-interface LogContext {
-  [key: string]: any;
+import chalk from 'chalk';
+import { format } from 'date-fns';
+
+const logLevels = ['debug', 'info', 'warn', 'error'] as const;
+type LogLevel = typeof logLevels[number];
+
+class Logger {
+  private level: LogLevel = 'info';
+
+  setLevel(level: LogLevel) {
+    this.level = level;
+  }
+
+  debug(message: string, context?: object) {
+    this.log('debug', message, context);
+  }
+
+  info(message: string, context?: object) {
+    this.log('info', message, context);
+  }
+
+  warn(message: string, context?: object) {
+    this.log('warn', message, context);
+  }
+
+  error(message: string, context?: object) {
+    this.log('error', message, context);
+  }
+
+  private log(level: LogLevel, message: string, context?: object) {
+    if (logLevels.indexOf(level) < logLevels.indexOf(this.level)) return;
+    
+    const timestamp = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+    const levelLabel = level.toUpperCase().padEnd(5);
+    let formattedMessage = `[${timestamp}] ${levelLabel} ${message}`;
+    
+    // Apply color based on log level
+    switch(level) {
+      case 'debug': formattedMessage = chalk.blue(formattedMessage); break;
+      case 'info': formattedMessage = chalk.green(formattedMessage); break;
+      case 'warn': formattedMessage = chalk.yellow(formattedMessage); break;
+      case 'error': formattedMessage = chalk.red(formattedMessage); break;
+    }
+    
+    console.log(formattedMessage);
+    if (context) console.log(context);
+  }
 }
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-class UnifiedLogger {
-  private logLevel: LogLevel;
-  
-  constructor() {
-    this.logLevel = (process.env.LOG_LEVEL as LogLevel) || 'info';
-  }
-  
-  private shouldLog(level: LogLevel): boolean {
-    const levels = { debug: 0, info: 1, warn: 2, error: 3 };
-    return levels[level] >= levels[this.logLevel];
-  }
-  
-  private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
-    const timestamp = new Date().toISOString();
-    const contextStr = context ? ` | ${JSON.stringify(context)}` : '';
-    return `[${timestamp}] [${level.toUpperCase()}] ${message}${contextStr}`;
-  }
-
-  info(message: string, context?: LogContext): void {
-    if (this.shouldLog('info')) {
-      console.log(this.formatMessage('info', message, context));
-    }
-  }
-
-  error(message: string, context?: LogContext | Error): void {
-    const errorContext = context instanceof Error 
-      ? { error: context.message, stack: context.stack }
-      : context;
-    console.error(this.formatMessage('error', message, errorContext));
-  }
-
-  warn(message: string, context?: LogContext): void {
-    if (this.shouldLog('warn')) {
-      console.warn(this.formatMessage('warn', message, context));
-    }
-  }
-
-  debug(message: string, context?: LogContext): void {
-    if (this.shouldLog('debug')) {
-      console.debug(this.formatMessage('debug', message, context));
-    }
-  }
-}
-
-// Single logger instance
-export const logger = new UnifiedLogger();
-
-// Legacy compatibility
-export const CCLLogger = UnifiedLogger;
-export default logger;
+export const logger = new Logger();

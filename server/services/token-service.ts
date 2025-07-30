@@ -41,8 +41,14 @@ function validateSecrets() {
   }
 }
 
-// Initialize on module load
-validateSecrets();
+// Validate secrets on first use (lazy initialization)
+let secretsValidated = false;
+function ensureSecretsValidated() {
+  if (!secretsValidated) {
+    validateSecrets();
+    secretsValidated = true;
+  }
+}
 
 export interface TokenPayload {
   userId: string;
@@ -66,6 +72,8 @@ class TokenService {
    * Generate both access and refresh tokens
    */
   async generateTokens(user: { id: string; email: string; role: string }) {
+    ensureSecretsValidated(); // Validate secrets on first use
+
     const sessionId = crypto.randomUUID();
     const jti = crypto.randomUUID(); // Unique token ID for revocation
     

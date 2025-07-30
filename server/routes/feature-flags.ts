@@ -1,463 +1,272 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
-import { featureFlagService } from '../services/feature-flag-service';
-import type { FeatureFlagContext } from '../services/feature-flag-service';
 
 const router = Router();
 
 // Validation schemas
-const contextSchema = z.object({
-  userId: z.string().uuid().optional(),
-  userRole: z.enum(['admin', 'manager', 'agent', 'viewer']).optional(),
-  environment: z.enum(['development', 'staging', 'production']).default('development'),
-  customProperties: z.record(z.any()).optional()
-});
-
-const evaluateSchema = z.object({
-  flagKey: z.string().min(1),
-  context: contextSchema
-});
-
-const getAllFlagsSchema = z.object({
-  context: contextSchema
-});
-
-const createFlagSchema = z.object({
-  key: z.string().min(1).max(255),
-  name: z.string().min(1).max(255),
-  description: z.string().optional(),
-  enabled: z.boolean().default(false),
-  rolloutPercentage: z.number().min(0).max(100).default(0),
-  userRoles: z.array(z.enum(['admin', 'manager', 'agent', 'viewer'])).default(['admin']),
-  environments: z.array(z.enum(['development', 'staging', 'production'])).default(['development']),
-  category: z.enum([
-    'agent-tuning', 
-    'campaign-advanced', 
-    'system-config', 
-    'integrations', 
-    'ui-progressive', 
-    'debugging', 
-    'experimental'
-  ]).default('experimental'),
-  complexity: z.enum(['basic', 'intermediate', 'advanced']).default('basic'),
-  riskLevel: z.enum(['low', 'medium', 'high']).default('low')
-});
-
-const updateFlagSchema = createFlagSchema.partial().omit({ key: true });
-
-// Middleware to extract user context from request
-const extractContext = (req: any): FeatureFlagContext => {
-  return {
-    userId: req.user?.id,
-    userRole: req.user?.role,
-    environment: process.env.NODE_ENV as any || 'development'
-  };
+const evaluateSchema = {
+  body: z.object({
+    flagKey: z.string().min(1),
+    context: z.object({
+      userId: z.string().optional(),
+      userRole: z.string().optional(),
+      environment: z.string().optional(),
+      clientId: z.string().optional()
+    }).optional().default({})
+  })
 };
 
-// Public endpoints (for frontend feature flag checks)
+const getAllSchema = {
+  body: z.object({
+    context: z.object({
+      userId: z.string().optional(),
+      userRole: z.string().optional(),
+      environment: z.string().optional(),
+      clientId: z.string().optional()
+    }).optional().default({})
+  })
+};
 
-// Evaluate a single feature flag
-router.post('/evaluate', validateRequest({ body: evaluateSchema }), async (req, res) => {
+// TEMPORARY: Mock feature flag data for alpha testing
+const mockFeatureFlags: Record<string, boolean> = {
+  'ui.contacts-terminology': true,
+  'ui.advanced-analytics': true,
+  'ui.bulk-operations': true,
+  'ui.agent-templates': true,
+  'ui.campaign-wizard': true,
+  'ui.lead-scoring': true,
+  'ui.email-templates': true,
+  'ui.sms-campaigns': true,
+  'ui.reporting': true,
+  'ui.branding': true,
+  'ui.new-navigation': true,
+  'ui.enhanced-dashboard': true
+};
+
+// Evaluate a feature flag
+router.post('/evaluate', validateRequest(evaluateSchema), async (req, res) => {
   try {
     const { flagKey, context } = req.body;
     
-    const evaluation = await featureFlagService.evaluateFlag(flagKey, context);
+    // TEMPORARY: Return mock data for alpha testing
+    const enabled = mockFeatureFlags[flagKey] ?? false;
+    
+    console.log(`[FEATURE FLAG] ${flagKey}: ${enabled} (mock data)`);
     
     res.json({
       success: true,
-      evaluation,
-      timestamp: new Date().toISOString()
+      evaluation: {
+        flagKey,
+        enabled,
+        context,
+        timestamp: new Date().toISOString(),
+        source: 'mock'
+      }
     });
   } catch (error) {
     console.error('Error evaluating feature flag:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'EVALUATION_ERROR',
-        message: 'Failed to evaluate feature flag',
-        category: 'system'
-      }
+      error: 'Failed to evaluate feature flag',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Get all enabled flags for a context
-router.post('/all', validateRequest({ body: getAllFlagsSchema }), async (req, res) => {
+// Get all flags for a context
+router.post('/all', validateRequest(getAllSchema), async (req, res) => {
   try {
     const { context } = req.body;
     
-    const flags = await featureFlagService.getAllFlags(context);
+    // TEMPORARY: Return mock data for alpha testing
+    console.log('[FEATURE FLAGS] Returning all mock flags for alpha testing');
     
     res.json({
       success: true,
-      flags,
-      timestamp: new Date().toISOString()
+      flags: mockFeatureFlags,
+      context,
+      timestamp: new Date().toISOString(),
+      source: 'mock'
     });
   } catch (error) {
     console.error('Error getting all feature flags:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'FLAGS_FETCH_ERROR',
-        message: 'Failed to fetch feature flags',
-        category: 'system'
-      }
+      error: 'Failed to get feature flags',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Quick check endpoint (just returns boolean)
-router.get('/check/:flagKey', async (req, res) => {
-  try {
-    const { flagKey } = req.params;
-    const context = extractContext(req);
-    
-    const enabled = await featureFlagService.isEnabled(flagKey, context);
-    
-    res.json({
-      success: true,
-      enabled,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error checking feature flag:', error);
-    res.json({
-      success: false,
-      enabled: false,
-      error: 'Check failed'
-    });
-  }
-});
-
-// Administrative endpoints (require admin role)
-
-// Get all flags (admin only)
+// Admin endpoints
 router.get('/admin', async (req, res) => {
   try {
-    // Check if user is admin
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
-    const flags = await featureFlagService.getFlagsByCategory('all' as any);
+    // Return all flags with admin metadata
+    const adminFlags = Object.entries(mockFeatureFlags).map(([key, enabled]) => ({
+      id: key,
+      key,
+      name: key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: `Feature flag for ${key}`,
+      enabled,
+      category: key.split('.')[0] || 'general',
+      rolloutPercentage: enabled ? 100 : 0,
+      environments: ['development', 'staging', 'production'],
+      userRoles: ['admin', 'manager', 'agent', 'viewer'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'mock'
+    }));
     
     res.json({
       success: true,
-      flags,
-      timestamp: new Date().toISOString()
+      flags: adminFlags
     });
   } catch (error) {
-    console.error('Error fetching admin flags:', error);
+    console.error('Error getting admin feature flags:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'ADMIN_FLAGS_ERROR',
-        message: 'Failed to fetch admin flags',
-        category: 'system'
-      }
+      error: 'Failed to get admin feature flags',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Create a new feature flag (admin only)
-router.post('/admin', validateRequest({ body: createFlagSchema }), async (req, res) => {
+router.post('/admin', async (req, res) => {
   try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
+    const { key, name, description, enabled = false, category = 'general' } = req.body;
+    
+    if (!key) {
+      return res.status(400).json({
         success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
+        error: 'Flag key is required'
       });
     }
-
-    const flagData = {
-      ...req.body,
-      createdBy: context.userId,
-      lastModifiedBy: context.userId
-    };
-
-    const flag = await featureFlagService.createFlag(flagData);
     
-    res.status(201).json({
+    // Add to mock flags
+    mockFeatureFlags[key] = enabled;
+    
+    const newFlag = {
+      id: key,
+      key,
+      name: name || key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: description || `Feature flag for ${key}`,
+      enabled,
+      category,
+      rolloutPercentage: enabled ? 100 : 0,
+      environments: ['development', 'staging', 'production'],
+      userRoles: ['admin', 'manager', 'agent', 'viewer'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'mock'
+    };
+    
+    res.json({
       success: true,
-      flag,
-      timestamp: new Date().toISOString()
+      flag: newFlag
     });
   } catch (error) {
     console.error('Error creating feature flag:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'FLAG_CREATE_ERROR',
-        message: 'Failed to create feature flag',
-        category: 'system'
-      }
+      error: 'Failed to create feature flag',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Update a feature flag (admin only)
-router.put('/admin/:flagKey', validateRequest({ body: updateFlagSchema }), async (req, res) => {
+router.put('/admin/:flagKey', async (req, res) => {
   try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
     const { flagKey } = req.params;
-    const updates = {
-      ...req.body,
-      lastModifiedBy: context.userId
-    };
-
-    const flag = await featureFlagService.updateFlag(flagKey, updates);
+    const { enabled, name, description, rolloutPercentage } = req.body;
     
-    if (!flag) {
+    if (!(flagKey in mockFeatureFlags)) {
       return res.status(404).json({
         success: false,
-        error: {
-          code: 'FLAG_NOT_FOUND',
-          message: 'Feature flag not found'
-        }
+        error: 'Feature flag not found'
       });
     }
-
+    
+    // Update mock flag
+    if (typeof enabled === 'boolean') {
+      mockFeatureFlags[flagKey] = enabled;
+    }
+    
+    const updatedFlag = {
+      id: flagKey,
+      key: flagKey,
+      name: name || flagKey.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: description || `Feature flag for ${flagKey}`,
+      enabled: mockFeatureFlags[flagKey],
+      category: flagKey.split('.')[0] || 'general',
+      rolloutPercentage: rolloutPercentage || (mockFeatureFlags[flagKey] ? 100 : 0),
+      environments: ['development', 'staging', 'production'],
+      userRoles: ['admin', 'manager', 'agent', 'viewer'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'mock'
+    };
+    
     res.json({
       success: true,
-      flag,
-      timestamp: new Date().toISOString()
+      flag: updatedFlag
     });
   } catch (error) {
     console.error('Error updating feature flag:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'FLAG_UPDATE_ERROR',
-        message: 'Failed to update feature flag',
-        category: 'system'
-      }
+      error: 'Failed to update feature flag',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Delete a feature flag (admin only)
 router.delete('/admin/:flagKey', async (req, res) => {
   try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
     const { flagKey } = req.params;
-    const deleted = await featureFlagService.deleteFlag(flagKey);
     
-    if (!deleted) {
+    if (!(flagKey in mockFeatureFlags)) {
       return res.status(404).json({
         success: false,
-        error: {
-          code: 'FLAG_NOT_FOUND',
-          message: 'Feature flag not found'
-        }
+        error: 'Feature flag not found'
       });
     }
-
+    
+    delete mockFeatureFlags[flagKey];
+    
     res.json({
       success: true,
-      message: 'Feature flag deleted successfully',
-      timestamp: new Date().toISOString()
+      message: `Feature flag ${flagKey} deleted`
     });
   } catch (error) {
     console.error('Error deleting feature flag:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'FLAG_DELETE_ERROR',
-        message: 'Failed to delete feature flag',
-        category: 'system'
-      }
+      error: 'Failed to delete feature flag',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Emergency disable endpoint (admin only)
-router.post('/admin/:flagKey/disable', async (req, res) => {
-  try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
-    const { flagKey } = req.params;
-    const { reason = 'Emergency disable' } = req.body;
-    
-    const success = await featureFlagService.disableFlag(flagKey, reason);
-    
-    if (!success) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'FLAG_NOT_FOUND',
-          message: 'Feature flag not found'
-        }
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Feature flag disabled',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error disabling feature flag:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FLAG_DISABLE_ERROR',
-        message: 'Failed to disable feature flag',
-        category: 'system'
-      }
-    });
-  }
-});
-
-// Enable flag with rollout percentage (admin only)
-router.post('/admin/:flagKey/enable', async (req, res) => {
-  try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
-    const { flagKey } = req.params;
-    const { rolloutPercentage = 100 } = req.body;
-    
-    const success = await featureFlagService.enableFlag(flagKey, rolloutPercentage);
-    
-    if (!success) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'FLAG_NOT_FOUND',
-          message: 'Feature flag not found'
-        }
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Feature flag enabled',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error enabling feature flag:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FLAG_ENABLE_ERROR',
-        message: 'Failed to enable feature flag',
-        category: 'system'
-      }
-    });
-  }
-});
-
-// User override management (admin only)
-router.post('/admin/:flagKey/override/:userId', async (req, res) => {
-  try {
-    const context = extractContext(req);
-    if (context.userRole !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required'
-        }
-      });
-    }
-
-    const { flagKey, userId } = req.params;
-    const { enabled, reason, expiresAt } = req.body;
-    
-    const override = await featureFlagService.setUserOverride(
-      flagKey, 
-      userId, 
-      enabled, 
-      reason,
-      expiresAt ? new Date(expiresAt) : undefined
-    );
-    
-    res.json({
-      success: true,
-      override,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error setting user override:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'OVERRIDE_ERROR',
-        message: 'Failed to set user override',
-        category: 'system'
-      }
-    });
-  }
-});
-
-// Health check endpoint
+// Health check
 router.get('/health', async (req, res) => {
   try {
-    const health = await featureFlagService.healthCheck();
-    
+    // TEMPORARY: Return mock health data for alpha testing
     res.json({
       success: true,
-      health,
-      timestamp: new Date().toISOString()
+      health: {
+        status: 'healthy',
+        flagsCount: Object.keys(mockFeatureFlags).length,
+        cacheSize: 0,
+        source: 'mock'
+      }
     });
   } catch (error) {
-    console.error('Feature flag health check failed:', error);
+    console.error('Error checking feature flag health:', error);
     res.status(500).json({
       success: false,
-      error: {
-        code: 'HEALTH_CHECK_ERROR',
-        message: 'Health check failed',
-        category: 'system'
-      }
+      error: 'Feature flag health check failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

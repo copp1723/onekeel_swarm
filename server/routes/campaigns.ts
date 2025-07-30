@@ -4,6 +4,7 @@ import { db } from '../db/client';
 import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { campaignExecutor } from '../services/campaign-executor';
 
 const router = Router();
 
@@ -108,10 +109,7 @@ router.get('/', async (req, res) => {
     if (search) {
       const searchPattern = `%${search}%`;
       conditions.push(
-        or(
-          ilike(campaigns.name, searchPattern),
-          ilike(campaigns.description, searchPattern)
-        )
+        ilike(campaigns.name, searchPattern)
       );
     }
 
@@ -265,16 +263,67 @@ const createCampaignSchema = z.object({
 router.post('/', validateRequest({ body: createCampaignSchema }), async (req, res) => {
   try {
     const campaignData = req.body;
-    
+
+    // Create campaign data without description for now (schema mismatch)
+    const { description, ...campaignDataWithoutDesc } = campaignData;
+
     const [newCampaign] = await db
       .insert(campaigns)
       .values({
-        ...campaignData,
+        ...campaignDataWithoutDesc,
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()
       })
       .returning();
+
+    // Create leads from audience data if provided
+    if (campaignData.audience && campaignData.audience.contacts && Array.isArray(campaignData.audience.contacts)) {
+      const contacts = campaignData.audience.contacts;
+
+      for (const contact of contacts) {
+        if (contact.email) {
+          try {
+            // Create or find existing lead
+            const [lead] = await db
+              .insert(leads)
+              .values({
+                email: contact.email,
+                firstName: contact.firstName || contact['First Name'] || '',
+                lastName: contact.lastName || contact['Last Name'] || '',
+                customData: contact,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              })
+              .onConflictDoUpdate({
+                target: leads.email,
+                set: {
+                  firstName: contact.firstName || contact['First Name'] || '',
+                  lastName: contact.lastName || contact['Last Name'] || '',
+                  customData: contact,
+                  updatedAt: new Date()
+                }
+              })
+              .returning();
+
+            // Enroll lead in campaign
+            await db
+              .insert(leadCampaignEnrollments)
+              .values({
+                leadId: lead.id,
+                campaignId: newCampaign.id,
+                status: 'active',
+                enrolledAt: new Date()
+              })
+              .onConflictDoNothing();
+
+          } catch (leadError) {
+            console.error(`Error creating lead for ${contact.email}:`, leadError);
+            // Continue with other contacts
+          }
+        }
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -482,6 +531,153 @@ router.post('/:id/assign-leads', async (req, res) => {
       error: {
         code: 'LEAD_ASSIGN_ERROR',
         message: 'Failed to assign leads to campaign',
+        category: 'database'
+      }
+    });
+  }
+});
+
+// Launch campaign - start sending emails
+router.post('/:id/launch', async (req, res) => {
+  try {
+    const campaignId = req.params.id;
+
+    // Validate campaign exists
+    const campaign = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+    if (!campaign.length) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+
+    // Launch campaign
+    const result = await campaignExecutor.launchCampaign(campaignId);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'LAUNCH_FAILED',
+          message: result.message
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error launching campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'LAUNCH_ERROR',
+        message: 'Failed to launch campaign',
+        category: 'server'
+      }
+    });
+  }
+});
+
+// Get campaign execution status
+router.get('/:id/status', async (req, res) => {
+  try {
+    const campaignId = req.params.id;
+    const status = campaignExecutor.getCampaignStatus(campaignId);
+
+    res.json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting campaign status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'STATUS_ERROR',
+        message: 'Failed to get campaign status',
+        category: 'server'
+      }
+    });
+  }
+});
+
+// Stop campaign
+router.post('/:id/stop', async (req, res) => {
+  try {
+    const campaignId = req.params.id;
+    const result = await campaignExecutor.stopCampaign(campaignId);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'STOP_FAILED',
+          message: result.message
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error stopping campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'STOP_ERROR',
+        message: 'Failed to stop campaign',
+        category: 'server'
+      }
+    });
+  }
+});
+
+// Toggle campaign active status
+router.patch('/:id/toggle', async (req, res) => {
+  try {
+    const campaignId = req.params.id;
+
+    // Get current campaign
+    const campaign = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+    if (!campaign.length) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'CAMPAIGN_NOT_FOUND',
+          message: 'Campaign not found'
+        }
+      });
+    }
+
+    // Toggle active status
+    const newActiveStatus = !campaign[0].active;
+    await db.update(campaigns)
+      .set({ active: newActiveStatus, updatedAt: new Date() })
+      .where(eq(campaigns.id, campaignId));
+
+    res.json({
+      success: true,
+      data: { active: newActiveStatus },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error toggling campaign status:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'TOGGLE_ERROR',
+        message: 'Failed to toggle campaign status',
         category: 'database'
       }
     });

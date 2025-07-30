@@ -3,6 +3,7 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { redis } from '../services/redis';
 import { getEnvironmentConfig } from '../config';
+import { serviceMonitor } from '../utils/service-health/service-monitor';
 
 const router = Router();
 
@@ -99,31 +100,29 @@ async function checkAgents(): Promise<HealthStatus> {
   }
 }
 
-// External services health check
+// External services health check - enhanced with service monitor
 async function checkExternalServices(): Promise<HealthStatus> {
-  const config = getEnvironmentConfig();
-  const checks: any = {};
-  
   try {
-    // Check OpenAI API (if configured)
-    if (config.external?.openai?.apiKey) {
-      checks.openai = { configured: true, status: 'configured' };
-    }
-    
-    // Check email service
-    if (config.external?.email?.smtp?.host) {
-      checks.email = { configured: true, service: config.external.email.smtp.host };
-    }
-    
+    const serviceHealth = await serviceMonitor.checkAllServices();
+
+    // Convert service monitor format to existing health status format
+    const overallStatus = serviceHealth.status === 'healthy' ? 'healthy' :
+                         serviceHealth.status === 'degraded' ? 'degraded' : 'unhealthy';
+
     return {
-      status: 'healthy',
-      details: checks
+      status: overallStatus,
+      responseTime: serviceHealth.performance.averageResponseTime,
+      details: {
+        services: serviceHealth.services,
+        summary: serviceHealth.summary,
+        recommendations: serviceHealth.recommendations
+      }
     };
   } catch (error) {
     return {
-      status: 'degraded',
+      status: 'unhealthy',
       error: 'Failed to check external services',
-      details: checks
+      details: { error: error instanceof Error ? error.message : 'Unknown error' }
     };
   }
 }
@@ -248,6 +247,50 @@ router.get('/health/detailed', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Detailed health check failed'
+    });
+  }
+});
+
+// Service-specific health checks endpoint
+router.get('/health/services', async (req, res) => {
+  try {
+    const serviceHealth = await serviceMonitor.checkAllServices();
+
+    const statusCode = serviceHealth.status === 'healthy' ? 200 :
+                      serviceHealth.status === 'degraded' ? 200 : 503;
+
+    res.status(statusCode).json(serviceHealth);
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Service health check failed'
+    });
+  }
+});
+
+// Individual service health check endpoint
+router.get('/health/services/:serviceName', async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+    const serviceHealth = await serviceMonitor.checkService(serviceName);
+
+    if (!serviceHealth) {
+      return res.status(404).json({
+        error: 'Service not found',
+        availableServices: serviceMonitor.getServiceNames()
+      });
+    }
+
+    const statusCode = serviceHealth.status === 'healthy' ? 200 :
+                      serviceHealth.status === 'degraded' ? 200 : 503;
+
+    res.status(statusCode).json(serviceHealth);
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Service health check failed'
     });
   }
 });

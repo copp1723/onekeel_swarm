@@ -1,6 +1,6 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
 import { MailgunService } from '../services/email/providers/mailgun';
-import { CCLLogger } from '../utils/logger';
+import { logger } from '../utils/logger';
 
 export class EmailAgent extends BaseAgent {
   constructor() {

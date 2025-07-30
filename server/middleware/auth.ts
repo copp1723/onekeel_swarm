@@ -19,6 +19,16 @@ declare global {
 // JWT authentication middleware
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Skip auth in development if SKIP_AUTH is true
+    if (process.env.SKIP_AUTH === 'true' && process.env.NODE_ENV === 'development') {
+      req.user = {
+        id: 'dev-user-id',
+        email: 'dev@localhost',
+        role: 'admin'
+      };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -14,6 +14,9 @@ import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
 import featureFlagsRoutes from './feature-flags';
 import navigationRoutes from './navigation-aliases';
+import serviceConfigRoutes from './service-config';
+import templatesRoutes from './templates';
+import importRoutes from './import';
 
 const router = Router();
 
@@ -30,7 +33,10 @@ router.use('/clients', clientsRoutes);
 router.use('/users', usersRoutes);
 router.use('/monitoring', monitoringRoutes);
 router.use('/feature-flags', featureFlagsRoutes);
+router.use('/services', serviceConfigRoutes); // Service configuration and management
 router.use('/navigation', navigationRoutes); // Navigation configuration and aliases
+router.use('/templates', templatesRoutes); // Email and SMS templates
+router.use('/import', importRoutes); // CSV import functionality
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {
@@ -52,7 +58,10 @@ router.get('/health', (req, res) => {
       '/users',
       '/monitoring',
       '/feature-flags',
-      '/navigation'
+      '/navigation',
+      '/services',
+      '/templates',
+      '/import'
     ]
   });
 });
@@ -215,6 +224,33 @@ router.get('/docs', (req, res) => {
           'GET /navigation/route-aliases',
           'GET /navigation/breadcrumbs'
         ]
+      },
+      '/services': {
+        description: 'Service configuration and management',
+        endpoints: [
+          'GET /services/config',
+          'PUT /services/config/:service',
+          'POST /services/test/:service',
+          'GET /services/health/:service'
+        ]
+      },
+      '/templates': {
+        description: 'Email and SMS template management',
+        endpoints: [
+          'GET /templates',
+          'GET /templates/:id',
+          'POST /templates',
+          'PUT /templates/:id',
+          'DELETE /templates/:id',
+          'POST /templates/:id/duplicate'
+        ]
+      },
+      '/import': {
+        description: 'Data import functionality',
+        endpoints: [
+          'POST /import/analyze',
+          'POST /import/leads'
+        ]
       }
     }
   });
@@ -242,5 +278,8 @@ export {
   usersRoutes,
   monitoringRoutes,
   featureFlagsRoutes,
-  navigationRoutes
+  navigationRoutes,
+  serviceConfigRoutes,
+  templatesRoutes,
+  importRoutes
 };

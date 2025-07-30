@@ -4,6 +4,14 @@ import { db } from '../db/client';
 import { leads, conversations, campaigns, communications, leadCampaignEnrollments } from '../db/schema';
 import { sql, gte, and, eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
+import {
+  unifiedMonitor,
+  healthChecker,
+  metricsCollector,
+  databaseMonitor,
+  enhancedServiceMonitor
+} from '../monitoring';
+import { schemaValidator } from '../utils/schema-validator';
 
 const router = Router();
 
@@ -85,39 +93,130 @@ const getBusinessData = () => ({
   }
 });
 
-// Simple health check endpoint (public)
+// Enhanced health check endpoint using unified monitoring
 router.get('/health', async (req: Request, res: Response) => {
   try {
-    const health = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor(process.uptime()),
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
-      },
-      services: {
-        database: 'healthy',
-        redis: 'healthy',
-        email: 'healthy'
-      }
-    };
+    const includeDetails = req.query.details === 'true';
+    const healthStatus = await healthChecker.checkSystemHealth({
+      includeDetails,
+      timeout: 5000
+    });
 
-    res.status(200).json({
-      success: true,
-      data: health,
-      message: 'Health check completed'
+    const statusCode = healthStatus.status === 'healthy' ? 200 :
+                      healthStatus.status === 'degraded' ? 200 : 503;
+
+    res.status(statusCode).json({
+      success: healthStatus.status !== 'unhealthy',
+      data: healthStatus,
+      message: `Health check completed - ${healthStatus.status}`
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error('Health check error:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'HEALTH_CHECK_ERROR',
         message: 'Health check failed',
         category: 'system'
+      }
+    });
+  }
+});
+
+// Detailed health check for debugging
+router.get('/health/detailed', async (req: Request, res: Response) => {
+  try {
+    const healthStatus = await healthChecker.checkSystemHealth({
+      includeDetails: true,
+      timeout: 10000
+    });
+
+    res.json({
+      success: true,
+      data: healthStatus,
+      message: 'Detailed health check completed'
+    });
+  } catch (error) {
+    console.error('Detailed health check error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'DETAILED_HEALTH_ERROR',
+        message: 'Detailed health check failed',
+        category: 'system'
+      }
+    });
+  }
+});
+
+// Performance metrics endpoint
+router.get('/performance', async (req: Request, res: Response) => {
+  try {
+    const performanceMetrics = await metricsCollector.collectPerformanceMetrics();
+
+    res.json({
+      success: true,
+      data: performanceMetrics,
+      message: 'Performance metrics collected'
+    });
+  } catch (error) {
+    console.error('Performance metrics error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PERFORMANCE_METRICS_ERROR',
+        message: 'Failed to collect performance metrics',
+        category: 'system'
+      }
+    });
+  }
+});
+
+// Business metrics endpoint
+router.get('/business', async (req: Request, res: Response) => {
+  try {
+    const businessMetrics = await metricsCollector.collectBusinessMetrics();
+
+    res.json({
+      success: true,
+      data: businessMetrics,
+      message: 'Business metrics collected'
+    });
+  } catch (error) {
+    console.error('Business metrics error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'BUSINESS_METRICS_ERROR',
+        message: 'Failed to collect business metrics',
+        category: 'system'
+      }
+    });
+  }
+});
+
+// Schema validation status endpoint
+router.get('/schema-status', async (req: Request, res: Response) => {
+  try {
+    const validationResult = await schemaValidator.validateAll();
+
+    res.json({
+      success: true,
+      data: {
+        isValid: validationResult.isValid,
+        timestamp: new Date().toISOString(),
+        details: validationResult
+      },
+      message: 'Schema validation completed'
+    });
+  } catch (error) {
+    console.error('Schema validation error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SCHEMA_VALIDATION_ERROR',
+        message: 'Failed to validate schema',
+        category: 'database'
       }
     });
   }
