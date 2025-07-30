@@ -16,6 +16,7 @@ import os from 'os';
 
 // Core imports
 import { closeConnection } from './db';
+import { sql } from 'drizzle-orm';
 import { logger } from './utils/logger';
 import { registerRoutes } from './routes';
 import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
@@ -299,6 +300,15 @@ async function initializeApp() {
       memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
       features: config.features
     });
+
+    // Add server error handling
+    server.on('error', (error) => {
+      logger.error('Server error:', error);
+    });
+
+    server.on('close', () => {
+      logger.info('Server closed');
+    });
     
     // Initialize all deployment services
     try {
@@ -308,13 +318,40 @@ async function initializeApp() {
       logger.error('Failed to initialize deployment services', error as Error);
     }
 
-    // Ensure admin user exists
-    try {
-      const { ensureAdminUser } = await import('../scripts/ensure-admin-user');
-      await ensureAdminUser();
-    } catch (error) {
-      logger.error('Failed to ensure admin user exists', error as Error);
-    }
+    // Test database connection and setup (completely non-blocking)
+    setTimeout(() => {
+      // Wrap in an immediately invoked async function to prevent any promise rejections from bubbling up
+      (async () => {
+        try {
+          logger.info('Testing database connection...');
+          const { db } = await import('./db/client');
+          await db.execute(sql`SELECT 1 as test`);
+          logger.info('✅ Database connection successful');
+
+          // Only try to ensure admin user if database connection works
+          try {
+            const { ensureAdminUser } = await import('../scripts/ensure-admin-user');
+            await ensureAdminUser();
+            logger.info('✅ Database initialization completed');
+          } catch (error) {
+            logger.warn('⚠️ Admin user setup failed - this is normal if database schema is not migrated yet', {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            // Ensure this error doesn't propagate and cause process exit
+          }
+        } catch (error) {
+          logger.warn('⚠️ Database connection failed - application will continue without database features', {
+            error: error instanceof Error ? error.message : String(error),
+            code: (error as any)?.code
+          });
+        }
+      })().catch((error) => {
+        // Final safety net - log any errors that somehow escape
+        logger.error('Unexpected error in database initialization', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
+    }, 1000); // Wait 1 second after server starts
     
     // Start enhanced email monitor (optional service)
     enhancedEmailMonitor.start().catch(error => logger.warn('Enhanced email monitor not available - continuing without it', { error: (error as Error).message }));
@@ -334,52 +371,129 @@ async function initializeApp() {
     } catch (error) {
       logger.error('Failed to initialize cron jobs', error as Error);
     }
+
+    // Keep the process alive with a heartbeat
+    const heartbeat = setInterval(() => {
+      // This keeps the event loop active
+      logger.debug('Server heartbeat');
+    }, 30000); // Every 30 seconds
+
+    // Store heartbeat for cleanup
+    if (global.appShutdownRefs) {
+      global.appShutdownRefs.heartbeat = heartbeat;
+    }
+
+    logger.info('🚀 Server initialization complete - ready to accept connections');
   });
 
-  // Graceful shutdown
-  process.on('SIGTERM', gracefulShutdown);
-  process.on('SIGINT', gracefulShutdown);
+  // Graceful shutdown handlers are set up below
 
-  async function gracefulShutdown() {
-    logger.info('Graceful shutdown initiated');
-    
-    // Clear memory monitor
-    if (memoryMonitor) {
-      clearInterval(memoryMonitor);
-    }
-    
-    // Stop services
-    if (config.features.enableAgents) {
-      campaignExecutionEngine.stop();
-      communicationHubService.stop();
-    }
-    
-    // Close WebSocket connections
-    if (wss) {
-      wss.clients.forEach(client => client.close());
-      wss.close();
-    }
-    
-    server.close(() => {
-      logger.info('HTTP server closed');
-      closeConnection()
-        .then(() => {
-          logger.info('Database connection closed');
-          process.exit(0);
-        })
-        .catch(err => {
-          logger.error('Error closing database', err);
-          process.exit(1);
-        });
-    });
-    
-    // Force exit after 10 seconds
-    setTimeout(() => {
-      logger.error('Forced shutdown after timeout');
-      process.exit(1);
-    }, 10000);
-  }
+  // Store references for graceful shutdown
+  global.appShutdownRefs = {
+    server,
+    wss,
+    memoryMonitor,
+    config
+  };
 }
+
+// Graceful shutdown function
+async function gracefulShutdown() {
+  logger.info('Graceful shutdown initiated');
+
+  const refs = global.appShutdownRefs;
+  if (!refs) {
+    logger.warn('No shutdown references available');
+    process.exit(1);
+    return;
+  }
+
+  // Clear memory monitor
+  if (refs.memoryMonitor) {
+    clearInterval(refs.memoryMonitor);
+  }
+
+  // Clear heartbeat
+  if (refs.heartbeat) {
+    clearInterval(refs.heartbeat);
+  }
+
+  // Stop services
+  if (refs.config.features.enableAgents) {
+    campaignExecutionEngine.stop();
+    communicationHubService.stop();
+  }
+
+  // Close WebSocket connections
+  if (refs.wss) {
+    refs.wss.clients.forEach(client => client.close());
+    refs.wss.close();
+  }
+
+  refs.server.close(() => {
+    logger.info('HTTP server closed');
+    closeConnection()
+      .then(() => {
+        logger.info('Database connection closed');
+        process.exit(0);
+      })
+      .catch(err => {
+        logger.error('Error closing database', err);
+        process.exit(1);
+      });
+  });
+
+  // Force exit after 10 seconds
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+}
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Promise Rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+    promise: promise
+  });
+  // Don't exit the process for unhandled rejections in production
+  // Just log them and continue
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', {
+    message: error.message,
+    stack: error.stack
+  });
+
+  // Only exit for critical errors, not database schema issues
+  if (error.message.includes('column') && error.message.includes('does not exist')) {
+    logger.warn('Database schema issue detected - continuing without admin user setup');
+    return;
+  }
+
+  // For other uncaught exceptions, we should exit gracefully
+  logger.error('Critical uncaught exception - initiating graceful shutdown');
+  gracefulShutdown();
+});
+
+// Add warning for process exit
+process.on('exit', (code) => {
+  logger.info('Process exiting', { code });
+});
+
+// Set up graceful shutdown handlers
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received');
+  gracefulShutdown();
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received');
+  gracefulShutdown();
+});
 
 // Start the application
 initializeApp().catch(error => {
