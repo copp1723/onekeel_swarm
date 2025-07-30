@@ -141,7 +141,7 @@ function AppContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && <EnhancedDashboardView />}
-        {activeView === 'intelligence' && <CampaignIntelligenceView onNavigateToCampaigns={() => setActiveView('campaigns')} />}
+        {activeView === 'intelligence' && <CampaignIntelligenceView />}
         {activeView === 'conversations' && <ConversationsView />}
         {activeView === 'leads' && <EnhancedLeadsView />}
         {activeView === 'branding' && <BrandingManagementView />}

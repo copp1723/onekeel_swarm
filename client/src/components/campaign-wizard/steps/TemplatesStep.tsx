@@ -8,10 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateTemplates } from '../hooks/useEmailTemplates';
 import { WizardContext, EmailTemplate } from '../types';
 import { TemplateSelector } from '@/components/templates/TemplateSelector';
-import { useNavigate } from 'react-router-dom';
-
 export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
-  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<'generate' | 'library'>('generate');
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
 
@@ -50,7 +47,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
         </p>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={(value: 'generate' | 'library') => setSelectedTab(value)}>
+      <Tabs value={selectedTab} onValueChange={(value: string) => setSelectedTab(value as 'generate' | 'library')}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="generate" className="flex items-center space-x-2">
             <Wand2 className="h-4 w-4" />
@@ -148,7 +145,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           </div>
 
           <TemplateSelector
-            channel={ctx.data.channels.includes('email') ? 'email' : 'sms'}
+            channel="email"
             selectedTemplates={selectedTemplateIds}
             onTemplateSelect={setSelectedTemplateIds}
             onTemplatesApply={handleTemplatesFromLibrary}

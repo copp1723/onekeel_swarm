@@ -1,4 +1,4 @@
-export type ViewType = 
+export type ViewType =
   | 'dashboard'
   | 'leads'
   | 'conversations'
@@ -12,7 +12,9 @@ export type ViewType =
   | 'feature-flags'
   | 'email-settings'
   | 'intelligence'
-  | 'analytics';
+  | 'analytics'
+  | 'system-health'
+  | 'service-config';
 
 export interface User {
   id: string;
