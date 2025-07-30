@@ -360,8 +360,8 @@ export class EnvironmentValidator {
 // Export singleton instance
 export const envValidator = new EnvironmentValidator();
 
-// Validate on import if not in test environment
-if (process.env.NODE_ENV !== 'test') {
+// Validate on import if not in test environment and explicitly enabled
+if (process.env.NODE_ENV !== 'test' && process.env.ENABLE_ENV_VALIDATION === 'true') {
   envValidator.validate().catch(error => {
     console.error('Failed to validate environment:', error);
     process.exit(1);
