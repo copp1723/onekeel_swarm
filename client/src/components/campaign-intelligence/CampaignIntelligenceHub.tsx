@@ -11,9 +11,10 @@ import { useAgents } from '@/hooks/useAgents';
 interface CampaignIntelligenceHubProps {
   campaigns: any[];
   onUpdate: () => void;
+  onNavigateToCampaigns?: () => void;
 }
 
-export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelligenceHubProps) {
+export function CampaignIntelligenceHub({ campaigns, onUpdate, onNavigateToCampaigns }: CampaignIntelligenceHubProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const { agents } = useAgents();
 
@@ -27,7 +28,7 @@ export function CampaignIntelligenceHub({ campaigns, onUpdate }: CampaignIntelli
           </h2>
           <p className="text-gray-600">AI-powered agent management and campaign orchestration</p>
         </div>
-        <Button onClick={() => window.location.href = '/campaigns/new'}>
+        <Button onClick={() => onNavigateToCampaigns?.()}>
           <Zap className="h-4 w-4 mr-2" />
           Create Smart Campaign
         </Button>
