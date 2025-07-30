@@ -1,7 +1,11 @@
-// Only load .env in development
-if (process.env.NODE_ENV !== 'production') {
-  await import('dotenv/config');
-}
+// Always load .env file first, then check NODE_ENV
+await import('dotenv/config');
+
+// Debug: Check if environment variables are loaded
+console.log('🔍 Environment check:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -20,12 +24,13 @@ import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { configureCsrf } from './middleware/csrf';
-import { enhancedEmailMonitor } from './services/enhanced-email-monitor-mock';
+import { enhancedEmailMonitor } from './services/enhanced-email-monitor';
 import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
 import { StartupService } from './services/startup-service';
 import { WebSocketMessageHandler } from './websocket/message-handler';
 import { SecureWebSocketMessageHandler } from './websocket/secure-message-handler';
+import { MonitoringWebSocketHandler } from './websocket/monitoring';
 import { LeadProcessor } from './services/lead-processor';
 import { initializeCronJobs } from './services/cron-service';
 
@@ -164,7 +169,7 @@ async function initializeApp() {
   // WebSocket handling
   if (wss) {
     const leadProcessor = new LeadProcessor();
-    
+
     // Use secure WebSocket handler in production, regular handler in development
     if (config.nodeEnv === 'production' || process.env.SECURE_WEBSOCKET === 'true') {
       logger.info('Initializing secure WebSocket server');
@@ -181,6 +186,32 @@ async function initializeApp() {
         });
       });
     }
+  }
+
+  // Create separate WebSocket server for monitoring on different port
+  let monitoringWss: WebSocketServer | null = null;
+  let monitoringWsHandler: MonitoringWebSocketHandler | null = null;
+
+  if (config.features.enableWebSocket) {
+    const monitoringPort = parseInt(process.env.MONITORING_WS_PORT || '3001');
+    const monitoringServer = createServer();
+
+    monitoringWss = new WebSocketServer({ server: monitoringServer });
+    monitoringWsHandler = new MonitoringWebSocketHandler(monitoringWss);
+
+    monitoringServer.listen(monitoringPort, () => {
+      logger.info(`Monitoring WebSocket server listening on port ${monitoringPort}`);
+    });
+
+    // Cleanup monitoring handler on server shutdown
+    process.on('SIGTERM', () => {
+      monitoringWsHandler?.cleanup();
+      monitoringServer.close();
+    });
+    process.on('SIGINT', () => {
+      monitoringWsHandler?.cleanup();
+      monitoringServer.close();
+    });
   }
 
   // Initialize services (conditional)
@@ -282,7 +313,7 @@ async function initializeApp() {
     
     // Start email monitor if configured
     if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
-      const { emailMonitor } = await import('./services/email-monitor-mock');
+      const { emailMonitor } = await import('./services/email-monitor');
       emailMonitor.start().catch((error: Error) => logger.error('Email monitor failed to start', error));
     } else {
       logger.info('Email monitor not started - IMAP configuration missing');
