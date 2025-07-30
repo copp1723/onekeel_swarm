@@ -5,6 +5,8 @@ import { users, auditLogs } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { mailgunService } from '../../email-system/services/mailgun-service';
 
 const router = Router();
 
@@ -600,6 +602,102 @@ router.get('/:id/stats', async (req, res) => {
         code: 'STATS_FETCH_ERROR',
         message: 'Failed to fetch user statistics',
         category: 'database'
+      }
+    });
+  }
+});
+
+// Invite user endpoint
+const inviteUserSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['admin', 'manager', 'agent', 'viewer']).default('viewer')
+});
+
+router.post('/invite', validateRequest({ body: inviteUserSchema }), async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    const invitedBy = (req as any).userId; // From auth middleware
+    
+    // Check if user already exists
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'USER_EXISTS',
+          message: 'A user with this email already exists'
+        }
+      });
+    }
+    
+    // Generate invite token
+    const inviteToken = crypto.randomBytes(32).toString('hex');
+    const inviteExpiry = new Date();
+    inviteExpiry.setDate(inviteExpiry.getDate() + 7); // 7 days expiry
+    
+    // Store invite token in metadata (temporary solution until we create invite_tokens table)
+    const inviteData = {
+      token: inviteToken,
+      email,
+      role,
+      invitedBy,
+      expiresAt: inviteExpiry.toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    
+    // For now, we'll store the invite in audit logs as a temporary solution
+    await db.insert(auditLogs).values({
+      userId: invitedBy,
+      action: 'user_invite',
+      resource: 'users',
+      resourceId: inviteToken,
+      metadata: inviteData,
+      createdAt: new Date()
+    });
+    
+    // Generate invite link
+    const baseUrl = process.env.APP_URL || 'http://localhost:5173';
+    const inviteLink = `${baseUrl}/register?token=${inviteToken}`;
+    
+    // Send invitation email
+    await mailgunService.sendEmail({
+      from: process.env.EMAIL_FROM || 'noreply@onekeel.com',
+      to: email,
+      subject: 'You\'ve been invited to OneKeel',
+      html: `
+        <h2>Welcome to OneKeel!</h2>
+        <p>You've been invited to join OneKeel as a ${role}.</p>
+        <p>Click the link below to set up your account:</p>
+        <p><a href="${inviteLink}" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
+        <p>This invitation will expire in 7 days.</p>
+        <p>If you did not expect this invitation, please ignore this email.</p>
+      `,
+      text: `Welcome to OneKeel! You've been invited to join as a ${role}. 
+      
+Click this link to set up your account: ${inviteLink}
+
+This invitation will expire in 7 days.
+
+If you did not expect this invitation, please ignore this email.`
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Invitation sent successfully'
+    });
+  } catch (error) {
+    console.error('Error inviting user:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INVITE_ERROR',
+        message: 'Failed to send invitation',
+        category: 'email'
       }
     });
   }

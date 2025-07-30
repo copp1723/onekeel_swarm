@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Shield, Mail, Calendar, ToggleLeft } from 'lucide-react';
+import { User, Shield, Mail, Calendar, ToggleLeft, UserPlus, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserData {
@@ -17,6 +17,20 @@ interface UserData {
 export const UsersView: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'admin' | 'manager' | 'agent' | 'viewer'>('agent');
+  const [inviting, setInviting] = useState(false);
+  const [createFormData, setCreateFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    role: 'agent' as 'admin' | 'manager' | 'agent' | 'viewer'
+  });
+  const [creating, setCreating] = useState(false);
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -61,6 +75,93 @@ export const UsersView: React.FC = () => {
     }
   };
 
+  const inviteUser = async () => {
+    if (!inviteEmail || !inviteEmail.includes('@')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setInviting(true);
+    try {
+      const response = await fetch('/api/users/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole
+        })
+      });
+
+      if (response.ok) {
+        setShowInviteDialog(false);
+        setInviteEmail('');
+        setInviteRole('agent');
+        alert('Invitation sent successfully!');
+      } else {
+        const error = await response.json();
+        alert(error.error?.message || 'Failed to send invitation');
+      }
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+      alert('Failed to send invitation');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const createUser = async () => {
+    // Validate form
+    if (!createFormData.username || createFormData.username.length < 3) {
+      alert('Username must be at least 3 characters');
+      return;
+    }
+    if (!createFormData.email || !createFormData.email.includes('@')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    if (!createFormData.password || createFormData.password.length < 8) {
+      alert('Password must be at least 8 characters');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(createFormData)
+      });
+
+      if (response.ok) {
+        setShowCreateDialog(false);
+        setCreateFormData({
+          username: '',
+          email: '',
+          password: '',
+          firstName: '',
+          lastName: '',
+          role: 'agent'
+        });
+        alert('User created successfully!');
+        fetchUsers();
+      } else {
+        const error = await response.json();
+        alert(error.error?.message || 'Failed to create user');
+      }
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      alert('Failed to create user');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'text-red-600 bg-red-100';
@@ -80,9 +181,29 @@ export const UsersView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">User Management</h2>
-        <p className="text-gray-600">Manage user accounts and permissions</p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">User Management</h2>
+          <p className="text-gray-600">Manage user accounts and permissions</p>
+        </div>
+        {currentUser?.role === 'admin' && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowInviteDialog(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Send className="h-4 w-4" />
+              Invite User
+            </button>
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create User
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow">
@@ -176,6 +297,184 @@ export const UsersView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Invite User Dialog */}
+      {showInviteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-lg font-semibold mb-4">Invite New User</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="user@example.com"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Role
+              </label>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as any)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="agent">Agent</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowInviteDialog(false);
+                  setInviteEmail('');
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                disabled={inviting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={inviteUser}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                disabled={inviting}
+              >
+                {inviting ? 'Sending...' : 'Send Invitation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Dialog */}
+      {showCreateDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Create New User</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={createFormData.username}
+                  onChange={(e) => setCreateFormData({ ...createFormData, username: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="johndoe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={createFormData.email}
+                  onChange={(e) => setCreateFormData({ ...createFormData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="john@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={createFormData.password}
+                  onChange={(e) => setCreateFormData({ ...createFormData, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="••••••••"
+                />
+                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={createFormData.firstName}
+                  onChange={(e) => setCreateFormData({ ...createFormData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="John"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={createFormData.lastName}
+                  onChange={(e) => setCreateFormData({ ...createFormData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role
+                </label>
+                <select
+                  value={createFormData.role}
+                  onChange={(e) => setCreateFormData({ ...createFormData, role: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="agent">Agent</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateDialog(false);
+                  setCreateFormData({
+                    username: '',
+                    email: '',
+                    password: '',
+                    firstName: '',
+                    lastName: '',
+                    role: 'agent'
+                  });
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                disabled={creating}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createUser}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                disabled={creating}
+              >
+                {creating ? 'Creating...' : 'Create User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

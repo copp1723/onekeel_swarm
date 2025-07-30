@@ -7,15 +7,18 @@ import {
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 import { EnhancedDashboardView } from '@/views/EnhancedDashboardView';
-import { LeadsView } from '@/views/LeadsView';
+import { EnhancedLeadsView } from '@/views/EnhancedLeadsView';
 import { ConversationsView } from '@/views/ConversationsView';
 import { BrandingManagementView } from '@/views/BrandingManagementView';
-import { AgentsView } from '@/views/AgentsView';
+import { AgentManagementView } from '@/views/AgentManagementView';
 import { CampaignsView } from '@/views/CampaignsView';
+import { CampaignIntelligenceView } from '@/views/CampaignIntelligenceView';
 import { ClientManagementView } from '@/views/ClientManagementView';
 import { TemplateLibraryView } from '@/views/TemplateLibraryView';
 import { AgentTemplatesView } from '@/views/AgentTemplatesView';
 import { UsersView } from '@/views/UsersView';
+import { SystemHealthView } from '@/views/SystemHealthView';
+import { ServiceConfigView } from '@/views/ServiceConfigView';
 import { FeatureFlagDashboard } from '@/components/FeatureFlagDashboard';
 import { EmailSettingsView } from '@/views/EmailSettingsView';
 
@@ -27,6 +30,7 @@ import { ClientSwitcher } from '@/components/client-management/ClientSwitcher';
 import { NavigationBar } from '@/components/navigation/NavigationBar';
 import { useTerminology } from '@/hooks/useTerminology';
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
+import { RegistrationView } from '@/views/RegistrationView';
 
 function AppContent() {
   const [showImport, setShowImport] = useState(false);
@@ -36,6 +40,9 @@ function AppContent() {
   const branding = activeClient?.brand_config || DEFAULT_BRANDING;
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const terminology = useTerminology();
+  
+  // Check if we're on the registration page
+  const isRegistrationPage = window.location.pathname === '/register';
 
   if (isLoading) {
     return (
@@ -46,6 +53,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+  
+  // Show registration page if on /register route
+  if (isRegistrationPage) {
+    return <RegistrationView />;
   }
 
   if (!isAuthenticated) {
@@ -129,15 +141,18 @@ function AppContent() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeView === 'dashboard' && <EnhancedDashboardView />}
+        {activeView === 'intelligence' && <CampaignIntelligenceView onNavigateToCampaigns={() => setActiveView('campaigns')} />}
         {activeView === 'conversations' && <ConversationsView />}
-        {activeView === 'leads' && <LeadsView />}
+        {activeView === 'leads' && <EnhancedLeadsView />}
         {activeView === 'branding' && <BrandingManagementView />}
-        {activeView === 'agents' && <AgentsView />}
+        {activeView === 'agents' && <AgentManagementView />}
         {activeView === 'agent-templates' && <AgentTemplatesView />}
         {activeView === 'campaigns' && <CampaignsView />}
         {activeView === 'clients' && <ClientManagementView />}
         {activeView === 'templates' && <TemplateLibraryView />}
         {activeView === 'users' && <UsersView />}
+        {activeView === 'system-health' && <SystemHealthView />}
+        {activeView === 'service-config' && <ServiceConfigView />}
         {activeView === 'feature-flags' && <FeatureFlagDashboard />}
         {activeView === 'email-settings' && <EmailSettingsView />}
       </div>
