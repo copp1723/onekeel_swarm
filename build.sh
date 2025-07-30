@@ -5,16 +5,21 @@ set -e
 
 echo "🚀 Starting build process..."
 
-# Skip root dependencies for now (has dependency conflicts)
-echo "📦 Skipping root dependencies (client-only build)..."
+# Install dependencies
+echo "📦 Installing dependencies..."
+npm ci
 
-# Build only the client for now (backend has dependency issues)
+# Build client application
 echo "🔨 Building client application..."
 npm run build:client
 
-# Copy client build to dist for deployment
+# Build server application
+echo "🔧 Building server application..."
+npm run build:server
+
+# Copy client build to dist for static serving
 echo "📁 Copying client build to dist..."
-mkdir -p dist
-cp -r client/dist/* dist/
+mkdir -p dist/client
+cp -r client/dist/* dist/client/
 
 echo "✅ Build completed successfully!"
