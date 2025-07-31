@@ -2,11 +2,11 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 // Default branding configuration
 const DEFAULT_BRANDING = {
-  companyName: 'Complete Car Loans',
+  companyName: 'OneKeel Swarm',
   primaryColor: '#2563eb',
   secondaryColor: '#1d4ed8',
-  emailFromName: 'Complete Car Loans',
-  supportEmail: 'support@completecarloans.com'
+  emailFromName: 'OneKeel Swarm',
+  supportEmail: 'support@oneswarm.ai'
 };
 
 interface BrandConfig {
@@ -49,7 +49,7 @@ interface ClientProviderProps {
 export const ClientProvider: React.FC<ClientProviderProps> = ({ children }) => {
   const [activeClient, setActiveClient] = useState<Client | null>({
     id: 'default',
-    name: 'Complete Car Loans',
+    name: 'OneKeel Swarm',
     brand_config: DEFAULT_BRANDING,
     active: true
   });
@@ -57,7 +57,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({ children }) => {
   const [clients] = useState<Client[]>([
     {
       id: 'default',
-      name: 'Complete Car Loans',
+      name: 'OneKeel Swarm',
       brand_config: DEFAULT_BRANDING,
       active: true
     }

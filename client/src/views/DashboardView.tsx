@@ -102,30 +102,7 @@ export const DashboardView: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Common tasks and shortcuts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <button className="w-full text-left p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                <div className="font-medium">Import Contacts</div>
-                <div className="text-sm text-gray-500">Upload CSV file with contact data</div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                <div className="font-medium">Create Campaign</div>
-                <div className="text-sm text-gray-500">Set up new email campaign</div>
-              </button>
-              <button className="w-full text-left p-3 rounded-lg border hover:bg-gray-50 transition-colors">
-                <div className="font-medium">View Analytics</div>
-                <div className="text-sm text-gray-500">Check campaign performance</div>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick Actions card removed as requested */}
       </div>
     </div>
   );

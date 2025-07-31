@@ -130,16 +130,16 @@ export const ReportingSnapshot: React.FC<ReportingSnapshotProps> = ({
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 border-b border-gray-50">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+          <CardTitle className="text-sm font-normal text-gray-600 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-gray-400" />
             Campaign Snapshot
           </CardTitle>
           {onViewAll && (
             <button
               onClick={onViewAll}
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
             >
               View All
               <ArrowRight className="h-3 w-3" />
@@ -149,43 +149,36 @@ export const ReportingSnapshot: React.FC<ReportingSnapshotProps> = ({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Summary Row */}
-        <div className="grid grid-cols-5 gap-2 pb-3 border-b">
+        <div className="grid grid-cols-5 gap-2 pb-3 border-b border-gray-50">
           <div className="text-center">
-            <p className="text-xs text-gray-500">Sent</p>
-            <p className="font-semibold text-sm">
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Sent</p>
+            <p className="text-sm font-normal text-gray-700">
               {formatNumber(campaigns.reduce((sum, c) => sum + c.metrics.sent, 0))}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Open Rate</p>
-            <p className="font-semibold text-sm">
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Open Rate</p>
+            <p className="text-sm font-normal text-gray-700">
               {campaigns.length > 0 
                 ? `${(campaigns.reduce((sum, c) => sum + c.metrics.openRate, 0) / campaigns.length).toFixed(0)}%`
                 : '0%'}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Reply Rate</p>
-            <p className="font-semibold text-sm">
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Reply Rate</p>
+            <p className="text-sm font-normal text-gray-700">
               {campaigns.length > 0 
                 ? `${(campaigns.reduce((sum, c) => sum + c.metrics.replyRate, 0) / campaigns.length).toFixed(0)}%`
                 : '0%'}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Handovers</p>
-            <p className="font-semibold text-sm">
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Handovers</p>
+            <p className="text-sm font-normal text-gray-700">
               {campaigns.reduce((sum, c) => sum + c.metrics.handovers, 0)}
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500">Conversion</p>
-            <p className="font-semibold text-sm">
-              {campaigns.length > 0 
-                ? `${(campaigns.reduce((sum, c) => sum + c.metrics.conversionRate, 0) / campaigns.length).toFixed(0)}%`
-                : '0%'}
-            </p>
-          </div>
+          {/* Conversion rate column removed as requested */}
         </div>
 
         {/* Campaign List */}
@@ -196,33 +189,28 @@ export const ReportingSnapshot: React.FC<ReportingSnapshotProps> = ({
               className="flex items-center justify-between py-2 hover:bg-gray-50 rounded px-2 -mx-2 cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-sm font-medium truncate">{campaign.name}</span>
+                <span className="text-sm font-normal text-gray-700 truncate">{campaign.name}</span>
                 <Badge 
                   variant="secondary" 
-                  className={`text-xs px-1.5 py-0 ${getStatusColor(campaign.status)}`}
+                  className={`text-xs px-1.5 py-0 bg-opacity-50 ${getStatusColor(campaign.status)}`}
                 >
                   {campaign.status}
                 </Badge>
               </div>
-              <div className="flex items-center gap-4 text-xs">
-                <span className="text-gray-600">
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span>
                   {formatNumber(campaign.metrics.sent)}
                 </span>
-                <span className="font-medium">
+                <span>
                   {campaign.metrics.openRate}%
                 </span>
-                <span className="font-medium">
+                <span>
                   {campaign.metrics.replyRate}%
                 </span>
-                <span className="text-gray-600">
+                <span>
                   {campaign.metrics.handovers}
                 </span>
-                <span className={`font-medium ${
-                  campaign.metrics.conversionRate > 10 ? 'text-green-600' : 
-                  campaign.metrics.conversionRate > 5 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {campaign.metrics.conversionRate}%
-                </span>
+                {/* Conversion rate display removed as requested */}
               </div>
             </div>
           ))}

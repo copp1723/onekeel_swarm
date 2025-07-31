@@ -66,19 +66,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
+    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+      <CardHeader className="pb-2 border-b border-gray-50">
+        <CardTitle className="text-xs font-normal text-gray-500 flex items-center justify-between uppercase tracking-wider">
           <span>{title}</span>
-          {Icon && <Icon className={`h-4 w-4 ${iconColor}`} />}
+          {Icon && <Icon className={`h-3.5 w-3.5 text-gray-400`} />}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="space-y-1">
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
+          <div className="text-xl font-normal text-gray-800">{value}</div>
           {(change !== undefined || changeLabel) && (
-            <div className={`flex items-center space-x-1 text-sm ${getTrendColor()}`}>
-              <TrendIcon className="h-4 w-4" />
+            <div className={`flex items-center space-x-1 text-xs ${getTrendColor()}`}>
+              <TrendIcon className="h-3 w-3" />
               <span>
                 {change !== undefined && (
                   <>

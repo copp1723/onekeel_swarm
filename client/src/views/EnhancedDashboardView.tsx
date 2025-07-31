@@ -166,8 +166,8 @@ export const EnhancedDashboardView: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Real-time performance insights</p>
+        <h1 className="text-2xl font-normal text-gray-800">Dashboard</h1>
+        <p className="text-sm text-gray-500">Real-time performance insights</p>
         </div>
         <div className="flex items-center space-x-2 text-sm text-gray-500">
           <Clock className="h-4 w-4" />
@@ -177,7 +177,7 @@ export const EnhancedDashboardView: React.FC = () => {
 
       {/* Performance Metrics Grid */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Key Performance Indicators</h2>
+        <h2 className="text-base font-normal text-gray-600 mb-4">Key Performance Indicators</h2>
         <PerformanceMetrics />
       </div>
 
@@ -283,41 +283,7 @@ export const EnhancedDashboardView: React.FC = () => {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Frequently used features</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button variant="outline" className="justify-start">
-              <Users className="h-4 w-4 mr-2" />
-              {terminology.importBulk}
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Target className="h-4 w-4 mr-2" />
-              Create Campaign
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              View Analytics
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Mail className="h-4 w-4 mr-2" />
-              Send Email Blast
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Calendar className="h-4 w-4 mr-2" />
-              Schedule Follow-up
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Export Reports
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Actions component removed as requested */}
     </div>
   );
 };

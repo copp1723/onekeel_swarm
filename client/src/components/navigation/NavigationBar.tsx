@@ -87,7 +87,6 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
       icon: Settings,
       children: [
         { id: 'branding', label: 'Branding', icon: Palette },
-        { id: 'email-settings', label: 'Email Settings', icon: Mail },
         { id: 'users', label: 'Users', icon: Users, adminOnly: true },
         { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
       ]
@@ -106,7 +105,6 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
       icon: Settings,
       children: [
         { id: 'branding', label: 'Branding', icon: Palette },
-        { id: 'email-settings', label: 'Email Settings', icon: Mail },
         { id: 'users', label: 'Users', icon: Users, adminOnly: true },
         { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
       ]
@@ -155,22 +153,23 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                     e.stopPropagation();
                     handleNavigationClick(item);
                   }}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 transition-colors ${
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-1 transition-colors ${
                     active
-                      ? 'border-current'
+                      ? 'border-current text-gray-800'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                   style={active ? {
-                    color: brandingColor,
-                    borderColor: brandingColor
+                    color: '#556677',
+                    borderColor: '#556677',
+                    borderBottomWidth: '1px'
                   } : {}}
                   aria-label={`${item.label}${item.children ? ' menu' : ''}`}
                   aria-expanded={item.id === 'settings-group' ? showSettingsDropdown : undefined}
                   aria-haspopup={item.children ? "menu" : undefined}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span className="font-medium">{item.label}</span>
-                  {item.children && <ChevronDown className="h-4 w-4" />}
+                  <Icon className="h-4 w-4 text-gray-500" />
+                  <span className="font-normal text-sm">{item.label}</span>
+                  {item.children && <ChevronDown className="h-3 w-3 text-gray-400" />}
                 </button>
                 
                 {/* Dropdown for settings */}
@@ -178,7 +177,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                   <div 
                     id="settings-dropdown"
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+                    className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-100 rounded shadow-sm z-50"
                     role="menu"
                     aria-labelledby="settings-button"
                   >
@@ -191,12 +190,12 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                             setActiveView(child.id);
                             setShowSettingsDropdown(false);
                           }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center space-x-2 ${
-                            activeView === child.id ? 'bg-gray-50 text-gray-900' : 'text-gray-700'
+                          className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center space-x-2 ${
+                            activeView === child.id ? 'bg-gray-50 text-gray-700' : 'text-gray-600'
                           }`}
                           role="menuitem"
                         >
-                          <ChildIcon className="h-4 w-4" />
+                          <ChildIcon className="h-3.5 w-3.5 text-gray-400" />
                           <span>{child.label}</span>
                         </button>
                       );

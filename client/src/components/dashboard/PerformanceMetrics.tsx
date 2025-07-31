@@ -138,25 +138,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         loading={loading}
       />
       
-      <MetricCard
-        title="Conversion Rate"
-        value={`${metrics?.conversionRate || 0}%`}
-        change={2.3}
-        changeLabel="vs last month"
-        icon={TrendingUp}
-        iconColor="text-purple-600"
-        loading={loading}
-      />
-      
-      <MetricCard
-        title="Total Revenue"
-        value={formatCurrency(metrics?.totalRevenue || 0)}
-        change={15.2}
-        changeLabel="this month"
-        icon={DollarSign}
-        iconColor="text-green-600"
-        loading={loading}
-      />
+      {/* Conversion Rate and Total Revenue metrics removed as requested */}
       
       <MetricCard
         title="Campaign Engagement"
@@ -188,15 +170,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         loading={loading}
       />
       
-      <MetricCard
-        title="SMS Delivered"
-        value="98.7%"
-        change={0.5}
-        changeLabel="vs yesterday"
-        icon={Phone}
-        iconColor="text-teal-600"
-        loading={loading}
-      />
+      {/* SMS Delivered metric removed as requested */}
     </div>
   );
 };
