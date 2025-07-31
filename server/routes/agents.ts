@@ -326,4 +326,42 @@ router.post('/email/generate-sequence', validateRequest({ body: generateSequence
   }
 });
 
+// Campaign field enhancement endpoint
+const enhanceFieldSchema = z.object({
+  field: z.enum(['context']),
+  campaignData: z.object({
+    name: z.string().optional(),
+    context: z.string().optional(),
+    product: z.string().optional(),
+    benefits: z.array(z.string()).optional(),
+    pricing: z.string().optional(),
+    urgency: z.string().optional(),
+    targetCount: z.number().optional(),
+    currentValue: z.string().optional()
+  })
+});
+
+router.post('/enhance-campaign-field', validateRequest({ body: enhanceFieldSchema }), async (req, res) => {
+  try {
+    const { field, campaignData } = req.body;
+    const emailAgent = new EmailAgent();
+    const enhancedContent = await emailAgent.enhanceCampaignField(field, campaignData);
+
+    res.json({
+      success: true,
+      enhancedContent
+    });
+  } catch (error) {
+    console.error('Error enhancing campaign field:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'FIELD_ENHANCEMENT_ERROR',
+        message: 'Failed to enhance campaign field',
+        category: 'ai'
+      }
+    });
+  }
+});
+
 export default router;

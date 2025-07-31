@@ -268,39 +268,68 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     maxFiles: 1
   });
 
-  const enhanceWithAI = (field: string) => {
-    // Generate contextual AI enhancements based on campaign data
-    if (field === 'description') {
-      const productInfo = campaignData.offer?.product ? ` for ${campaignData.offer.product}` : '';
-      setCampaignData(prev => ({
-        ...prev,
-        description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
-      }));
-    } else if (field === 'goal') {
-      const targetCount = campaignData.audience?.targetCount || 50;
-      setCampaignData(prev => ({
-        ...prev,
-        goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
-      }));
-    } else if (field === 'context') {
-      const campaignName = campaignData.name || 'This campaign';
-      const product = campaignData.offer?.product || 'our solution';
-      const benefits = campaignData.offer?.keyBenefits?.length > 0 
-        ? campaignData.offer.keyBenefits.join(', ') 
-        : 'competitive advantages and exclusive benefits';
+  const enhanceWithAI = async (field: string) => {
+    try {
+      // Call server-side AI enhancement API
+      const response = await fetch('/api/agents/enhance-campaign-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field,
+          campaignData: {
+            name: campaignData.name,
+            context: campaignData.context,
+            product: campaignData.offer?.product,
+            benefits: campaignData.offer?.keyBenefits,
+            pricing: campaignData.offer?.pricing,
+            urgency: campaignData.offer?.urgency,
+            targetCount: campaignData.audience?.targetCount,
+            currentValue: campaignData[field as keyof typeof campaignData] as string
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to enhance field: ${response.status}`);
+      }
+
+      const { enhancedContent } = await response.json();
       
       setCampaignData(prev => ({
         ...prev,
-        context: `Business Context: ${campaignName} focuses on converting prospects interested in ${product}. 
+        [field]: enhancedContent
+      }));
+    } catch (error) {
+      console.error('Error enhancing with AI:', error);
+      // Fallback to basic enhancement logic
+      enhanceWithAIFallback(field);
+    }
+  };
 
-Key objectives:
-- Highlight ${benefits}
-- Address concerns about pricing, timing, or commitment
-- Build trust through social proof and testimonials
-- Create urgency without being pushy
-- Personalize messaging based on lead's interaction history
+  const enhanceWithAIFallback = (field: string) => {
+    // Improved fallback logic with more contextual awareness
+    if (field === 'context') {
+      const campaignName = campaignData.name || 'This campaign';
+      const product = campaignData.offer?.product || 'our solution';
+      const benefits = campaignData.offer?.keyBenefits?.length > 0
+        ? campaignData.offer.keyBenefits.join(', ')
+        : 'key competitive advantages';
+      const pricing = campaignData.offer?.pricing || 'competitive pricing';
+      const targetCount = campaignData.audience?.targetCount || 50;
+      
+      setCampaignData(prev => ({
+        ...prev,
+        context: `Campaign Overview: ${campaignName} is a strategic AI-powered outreach campaign targeting ${targetCount} prospects interested in ${product}.
 
-The AI should maintain a warm, consultative tone - like a knowledgeable friend helping them make the best decision. Each email should feel like a natural progression in the conversation, not a scripted sales pitch.`
+Target Audience: Decision-makers actively evaluating solutions who need confidence in their choice and clear ROI justification.
+
+Value Proposition: Position ${benefits} as strategic business investments. Emphasize proven results, implementation support, and long-term partnership value.
+
+Objection Handling: Address common concerns about ${pricing}, implementation complexity, and timing through risk-mitigation messaging, case studies, and flexible engagement options.
+
+Communication Strategy: Lead with industry insights and peer success stories. Build credibility through thought leadership. Create genuine urgency through capacity limitations rather than artificial deadlines.
+
+Success Metrics: Prioritize conversation quality over volume. Target 30%+ open rates, 12%+ CTR, with 15%+ qualified responses leading to meaningful sales conversations.`
       }));
     }
   };
@@ -498,48 +527,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="description">Description</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => enhanceWithAI('description')}
-                  className="h-7 px-2"
-                >
-                  <Wand2 className="h-3 w-3 mr-1" />
-                  Enhance
-                </Button>
-              </div>
-              <Textarea
-                id="description"
-                value={campaignData.description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe your campaign objectives"
-                rows={4}
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="goal">Campaign Goal</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => enhanceWithAI('goal')}
-                  className="h-7 px-2"
-                >
-                  <Wand2 className="h-3 w-3 mr-1" />
-                  AI Suggest
-                </Button>
-              </div>
-              <Input
-                id="goal"
-                value={campaignData.goal}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({ ...prev, goal: e.target.value }))}
-                placeholder="e.g., Generate 50 qualified leads"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="context">Campaign Context</Label>
+                <Label htmlFor="context">Campaign Context & Strategy</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -547,19 +535,19 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   className="h-7 px-2"
                 >
                   <Wand2 className="h-3 w-3 mr-1" />
-                  Generate
+                  AI Enhance
                 </Button>
               </div>
               <Textarea
                 id="context"
                 value={campaignData.context}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, context: e.target.value }))}
-                placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
-                rows={3}
+                placeholder="Describe your campaign strategy and business context. For example: 'Re-engagement campaign for car loan prospects who didn't complete applications. Focus on addressing credit score concerns, highlighting competitive rates, and creating urgency through limited-time offers.'"
+                rows={6}
                 className="text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                This context helps the AI understand your business goals and tailor responses appropriately
+                Provide comprehensive context including target audience, value proposition, objection handling, and communication strategy. This guides the AI to generate highly relevant and effective messaging.
               </p>
             </div>
           </div>
@@ -1217,12 +1205,8 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <p className="text-sm">{campaignData.name || 'Not set'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Goal</p>
-                <p className="text-sm">{campaignData.goal || 'Not set'}</p>
-              </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Campaign Context</p>
-                <p className="text-sm">{campaignData.context || 'Not set'}</p>
+                <p className="text-sm font-medium text-gray-600">Campaign Context & Strategy</p>
+                <p className="text-sm whitespace-pre-line">{campaignData.context || 'Not set'}</p>
               </div>
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm font-medium text-gray-600">Selected Agent</p>

@@ -22,43 +22,51 @@ export class EmailAgent extends BaseAgent {
     primaryCTA: string;
     CTAurl: string;
   }): Promise<Array<{subject: string; body: string; order: number}>> {
-    const systemPrompt = `You are a warm, sharp finance insider who writes like a real person helping a close friend.  
-- Ultra-scannable paragraphs (2-3 short lines each).  
-- Conversational language, contractions, no jargon.  
-- First message = curiosity & empathy, not pitch.  
-- Each email escalates ONE angle (value, objection, scarcity, personal, final).  
-- Zero hype, zero clichés.  
-- MUST include placeholders {firstName} and {agentName}.  
-- 60-120 words max per email.
-- Markdown link style ONLY for CTAs: [CTA text](URL).`;
+    const systemPrompt = `You are a naturally gifted salesperson who adapts your approach based on whether prospects are warm (inbound interest) or cold (outbound promotional).
 
-    const userPrompt = `Write a 5-email cold-outreach sequence for customers who may like "${details.product}".
+CRITICAL RULES:
+- Write like you're having a real conversation, not sending marketing emails
+- For COLD outbound: Lead with curiosity/value, respect their time, establish credibility quickly
+- For WARM inbound: Build on their interest, more personal and assumptive
+- Use contractions, casual language, short sentences
+- Each email must be completely different in tone and approach
+- NO marketing clichés ("I hope this finds you well", "Based on your interest")
+- Be helpful first, salesy second
+- 50-100 words max per email
+- MUST include placeholders {firstName} and {agentName}
+- Use [CTA text](URL) format for links`;
 
-Goal context: ${details.context}
-(overall user goal: ${details.goal})
+    const userPrompt = `Write a 5-email sequence for "${details.product}" that adapts to the campaign context.
 
-Key details to weave in naturally:
-- Core benefits: ${details.benefits.join(', ')}
-- Price angle: ${details.priceAngle}
-- Natural urgency point: ${details.urgency}
-- CTA link: ${details.CTAurl || '#'}
-- Disclaimer (add as 1-line footer in email 5 only, italic): ${details.disclaimer}
+Campaign context: ${details.context}
+Product: ${details.product}
+Benefits: ${details.benefits.join(', ')}
+Pricing: ${details.priceAngle}
+Urgency: ${details.urgency}
+CTA: ${details.primaryCTA}
+Link: ${details.CTAurl}
 
-Each email should follow this progression:
-1. **Email 1 (Curiosity & Value):** Open with empathy, hint at value, soft question
-2. **Email 2 (Address Objection):** Tackle common doubt, add social proof
-3. **Email 3 (Urgency):** Time-sensitive angle, but genuine
-4. **Email 4 (Personal Ask):** Direct but respectful main push
-5. **Email 5 (Breakup):** Final chance, understanding tone
+ANALYZE THE CONTEXT to determine if this is:
+- WARM/INBOUND: Prospects who showed interest (use more assumptive, relationship-building tone)
+- COLD/OUTBOUND: Promotional to prospects who didn't request contact (use more respectful, value-first approach)
 
-OUTPUT ONLY a valid JSON array, nothing else:
-[
-  {
-    "subject": "Quick question about your [relevant topic]...",
-    "body": "Hi {firstName},\n\n[2-3 line opener with empathy/curiosity]\n\n[1-2 line value hint]\n\n[Soft CTA or question]\n\n{agentName}"
-  },
-  ... (5 total emails)
-]`;
+Email sequence approach:
+Email 1: For COLD - establish credibility + value hook. For WARM - genuine curiosity about their situation
+Email 2: Share relevant insight/case study that applies to their likely situation
+Email 3: Personal story or social proof, build trust
+Email 4: Direct but respectful ask, reference previous "conversation"
+Email 5: Graceful final attempt with genuine well-wishes
+
+Each email should:
+- Sound completely different from the others
+- Respect that COLD prospects didn't ask to be contacted
+- Build natural progression regardless of warm/cold status
+- Offer value before asking for anything
+- Feel authentic and helpful, not pushy
+
+${details.disclaimer ? `Add disclaimer to email 5 only: ${details.disclaimer}` : ''}
+
+Return valid JSON array with subject/body pairs. Make subjects conversational and context-appropriate:`;
 
     try {
       const raw = await this.generateResponse(
@@ -95,82 +103,161 @@ OUTPUT ONLY a valid JSON array, nothing else:
   }
 
   private generateFallbackSequence(details: any): Array<{subject: string; body: string; order: number}> {
+    const product = details.product || 'this solution';
+    const pricing = details.priceAngle || 'competitive rates';
+    const cta = details.primaryCTA || 'Learn More';
+    const url = details.CTAurl || '#';
+    
+    // Professional email approach that starts formal but builds relationship
     return [
       {
-        subject: `Interested in ${details.product}?`,
-        body: `Hi {firstName},\n\nI noticed you might be looking for ${details.product}. We've helped many people in similar situations.\n\nWould you like to learn how we can help you too?\n\n{agentName}`,
+        subject: `Quick question about ${product}`,
+        body: `Hello {firstName},\n\nI hope this email finds you well. I see you're interested in ${product}, and I'm excited to help you find the perfect solution.\n\nTo get started, what's your biggest challenge or priority with this right now? Knowing your specific situation will help me provide the most relevant guidance.\n\nBest regards,\n{agentName}`,
         order: 1
       },
       {
-        subject: `Quick update on ${details.product}`,
-        body: `Hi {firstName},\n\nI wanted to follow up on my previous email. ${details.benefits[0] || 'Our solution can really make a difference.'}.\n\nHappy to answer any questions!\n\n{agentName}`,
+        subject: `Following up on ${product}`,
+        body: `Hi {firstName},\n\nI wanted to follow up on your interest in ${product}. Most people I work with face similar challenges in this area.\n\nHere's what typically works best: ${details.benefits?.[0] || 'a personalized approach that addresses your specific needs'}.\n\nWould you like me to show you how this applies to your situation?\n\nBest regards,\n{agentName}`,
         order: 2
       },
       {
-        subject: `${details.urgency || 'Limited time opportunity'}`,
-        body: `Hi {firstName},\n\n${details.urgency || 'This opportunity won\'t last forever'}. ${details.priceAngle || 'Great rates available now'}.\n\nLet me know if you'd like details: [Learn More](${details.CTAurl || '#'})\n\n{agentName}`,
+        subject: `Success story you might relate to`,
+        body: `Hi {firstName},\n\nI just helped a client with a situation very similar to yours. They were initially unsure about ${product}, but after seeing the results, they wished they'd started sooner.\n\nThey're now benefiting from ${pricing} and seeing exactly the outcomes they hoped for.\n\nWant to learn more about their approach? [${cta}](${url})\n\nBest regards,\n{agentName}`,
         order: 3
       },
       {
-        subject: `Can I help you with ${details.product}?`,
-        body: `Hi {firstName},\n\nI've reached out a few times about ${details.product}. I genuinely believe this could help you ${details.goal || 'achieve your goals'}.\n\nIf you're interested: [${details.primaryCTA || 'Get Started'}](${details.CTAurl || '#'})\n\nNo pressure at all.\n\n{agentName}`,
+        subject: `I've been thinking about your situation`,
+        body: `Hi {firstName},\n\nYour inquiry about ${product} has been on my mind, and I really believe I can help you achieve what you're looking for.\n\nBased on what you've shared, I think we could get you some great results. Would you be open to a brief conversation to explore this further?\n\n[${cta}](${url})\n\nBest regards,\n{agentName}`,
         order: 4
       },
       {
-        subject: `Last message about ${details.product}`,
-        body: `Hi {firstName},\n\nI won't bother you again after this. If ${details.product} isn't right for you, no worries at all.\n\nBut if you're still curious: [${details.primaryCTA || 'Take a Look'}](${details.CTAurl || '#'})\n\nAll the best,\n{agentName}\n\n*${details.disclaimer || ''}*`,
+        subject: `Final note about ${product}`,
+        body: `Hi {firstName},\n\nThis is my final email about ${product}. I don't want to overwhelm your inbox, but I also don't want you to miss out on something that could really benefit you.\n\nIf you're still interested, I'm here to help: [${cta}](${url})\n\nIf not, I completely understand and wish you all the best with your goals.\n\nBest regards,\n{agentName}${details.disclaimer ? `\n\n*${details.disclaimer}*` : ''}`,
         order: 5
       }
     ];
   }
 
+  /**
+   * Enhance campaign context with sophisticated AI-generated content
+   */
+  async enhanceCampaignField(field: string, campaignData: any): Promise<string> {
+    // Only handle context field now since we simplified the UI
+    if (field !== 'context') {
+      throw new Error(`Unsupported field enhancement: ${field}`);
+    }
+
+    const systemPrompt = `You are an expert marketing strategist and copywriter specializing in high-converting email campaigns. Your task is to create comprehensive campaign context that guides AI agents to deliver highly effective, personalized communications.
+
+Key principles:
+- Write in a consultative, professional tone that builds trust
+- Focus on customer outcomes and value rather than features
+- Use specific, measurable metrics where appropriate
+- Incorporate psychological triggers (urgency, social proof, authority)
+- Ensure content is scannable and action-oriented
+- Avoid marketing clichés and generic language
+- Make it feel authentic and personalized to the business context
+- Structure information clearly with distinct sections`;
+
+    const userPrompt = `Create comprehensive campaign context and strategy that guides AI agents to deliver highly effective, personalized communications.
+
+Current campaign details:
+- Campaign name: ${campaignData.name || 'Not specified'}
+- Product/service: ${campaignData.product || 'Not specified'}
+- Key benefits: ${campaignData.benefits?.join(', ') || 'Not specified'}
+- Pricing angle: ${campaignData.pricing || 'Not specified'}
+- Urgency factors: ${campaignData.urgency || 'Not specified'}
+- Target audience size: ${campaignData.targetCount || 'Not specified'}
+- Current context: ${campaignData.currentValue || 'None'}
+
+Create a comprehensive context that includes:
+
+1. **Campaign Overview**: Brief description of campaign purpose and target audience
+2. **Target Audience Profile**: Who we're targeting and their primary challenges/needs
+3. **Value Proposition**: How to position benefits as strategic business investments
+4. **Objection Handling**: Common concerns and how to address them professionally
+5. **Communication Strategy**: Tone, approach, and conversation flow guidelines
+6. **Success Metrics**: Key performance indicators and qualification criteria
+
+Structure this as clear, actionable sections that an AI agent can use to craft highly personalized, effective messaging. Write ONLY the enhanced context, nothing else.`;
+
+    try {
+      const enhanced = await this.generateResponse(
+        userPrompt,
+        systemPrompt,
+        {
+          leadId: 'system',
+          type: 'campaign_context_enhancement',
+          metadata: { campaignName: campaignData.name }
+        }
+      );
+
+      return enhanced.trim();
+    } catch (error) {
+      console.error('Failed to enhance campaign context with AI', error);
+      // Return fallback enhancement
+      return this.getFallbackContextEnhancement(campaignData);
+    }
+  }
+
+  private getFallbackContextEnhancement(campaignData: any): string {
+    const campaignName = campaignData.name || 'This campaign';
+    const product = campaignData.product || 'our solution';
+    const benefits = campaignData.benefits?.join(', ') || 'key competitive advantages';
+    const pricing = campaignData.pricing || 'competitive pricing';
+    const targetCount = campaignData.targetCount || 50;
+    
+    return `**Campaign Overview**: ${campaignName} is a strategic AI-powered outreach campaign targeting ${targetCount} prospects interested in ${product}. The goal is to convert high-intent prospects through personalized, value-focused messaging.
+
+**Target Audience Profile**: Decision-makers actively evaluating solutions who need confidence in their choice and clear ROI justification. They value proven results, implementation support, and long-term partnership value.
+
+**Value Proposition**: Position ${benefits} as strategic business investments rather than costs. Emphasize measurable outcomes, expert support, and competitive advantages that drive business growth.
+
+**Objection Handling**: Address common concerns about ${pricing}, implementation complexity, and timing through risk-mitigation messaging, case studies, and flexible engagement options. Use social proof and testimonials to build credibility.
+
+**Communication Strategy**: Lead with industry insights and peer success stories. Build credibility through thought leadership content. Create genuine urgency through capacity limitations and market timing rather than artificial deadlines. Maintain a consultative, advisory tone throughout all interactions.
+
+**Success Metrics**: Target 30%+ open rates, 12%+ CTR, with 15%+ qualified responses leading to meaningful sales conversations. Prioritize conversation quality over volume, measuring engagement depth and decision-maker involvement as leading indicators.`;
+  }
+
   // Override getMockResponse for email-specific mock behavior
   protected getMockResponse(prompt: string): string {
-    if (prompt.includes('5-email cold-outreach sequence')) {
+    if (prompt.includes('5-email') || prompt.includes('sequence')) {
       return JSON.stringify([
         {
-          subject: "Quick question about your car financing",
-          body: "Hi {firstName},\n\nI noticed you might be looking into car financing options.\n\nI've been helping folks in your area secure better rates lately, and I'm curious - what's been your biggest challenge with the whole car buying process?\n\nBest,\n{agentName}",
+          subject: "Quick question about your car financing needs",
+          body: "Hello {firstName},\n\nThanks for your interest in car financing! I see you're exploring your options, and I'm excited to help you find the perfect solution.\n\nTo get started, what type of vehicle are you looking to finance, or are you considering refinancing an existing loan? Knowing your specific situation will help me provide the most relevant guidance.\n\nBest regards,\n{agentName}",
           order: 1
         },
         {
-          subject: "That financing headache (I get it)",
-          body: "Hi {firstName},\n\nMost people tell me the same thing: \"Car financing feels like a maze.\"\n\nHere's what I've learned after helping 500+ customers: the banks that advertise the lowest rates? They're usually not the ones that actually approve you.\n\nThe real winners work with lenders who specialize in your situation.\n\nWorth a quick chat?\n\n{agentName}",
+          subject: "Following up on your financing inquiry",
+          body: "Hi {firstName},\n\nI wanted to follow up on your car financing inquiry. Most people I work with find the process overwhelming with so many lenders advertising different rates.\n\nHere's what I've learned: the banks with the flashy ads often aren't the ones that actually approve you. The real success comes from matching you with lenders who specialize in your specific situation.\n\nWould you like me to explain how this works?\n\nBest regards,\n{agentName}",
           order: 2
         },
         {
-          subject: "This week only (genuine deadline)",
-          body: "Hi {firstName},\n\nI have to be honest - I can only take on 3 more clients this month.\n\nMy lender partners have been swamped, and I want to make sure I can give everyone the attention they deserve.\n\nIf you're serious about getting pre-approved this week, let's talk today.\n\n[Get Pre-Approved Now](#)\n\n{agentName}",
+          subject: "Success story you might find encouraging",
+          body: "Hi {firstName},\n\nI just helped Mike secure financing yesterday, and I thought you might find his story encouraging. He was convinced his credit situation would prevent him from getting a good rate.\n\nTurns out there was a lender who specializes in exactly his circumstances. He's now driving his dream truck with a 4.2% APR rate he never thought possible.\n\nWant me to check what options might be available for your situation?\n\nBest regards,\n{agentName}",
           order: 3
         },
         {
-          subject: "Sarah saved $127/month (here's how)",
-          body: "Hi {firstName},\n\nSarah from downtown was paying $487/month on her old loan.\n\nAfter we refinanced her car, she's down to $360/month. Same car, same coverage, $127 less every month.\n\nThat's $1,524 back in her pocket every year.\n\nWhat could you do with an extra $127/month?\n\n[Check Your Rate](#)\n\n{agentName}",
+          subject: "I've been thinking about your financing needs",
+          body: "Hi {firstName},\n\nYour financing inquiry has been on my mind, and I really believe I can help you secure better terms than what you're seeing elsewhere.\n\nBased on what you're looking for, I think we could find you some excellent options. Would you be open to a brief conversation to explore this further?\n\n[Check Your Rate](#)\n\nBest regards,\n{agentName}",
           order: 4
         },
         {
-          subject: "Last call (then I'll stop bothering you)",
-          body: "Hi {firstName},\n\nI know your inbox is probably full, so this is my last message.\n\nIf you're still thinking about car financing, I'm here. If not, no worries at all.\n\nEither way, I hope you find exactly what you're looking for.\n\n[One Last Look](#)\n\nTake care,\n{agentName}\n\n*Licensed mortgage professional. Rates subject to approval.*",
+          subject: "Final note about your car financing",
+          body: "Hi {firstName},\n\nThis is my final email about car financing options. I don't want to overwhelm your inbox, but I also don't want you to miss out on rates that could save you money.\n\nIf you're still interested in exploring your options, I'm here to help: [Take a Look](#)\n\nIf not, I completely understand and wish you all the best with your financing needs.\n\nBest regards,\n{agentName}",
           order: 5
         }
       ]);
     }
 
     if (prompt.includes('initial email') || prompt.includes('first contact')) {
-      return `Hello! Thank you for your interest in our services. We're excited to learn more about your needs and how we can help you.
-
-I noticed you're interested in getting more information. Could you tell me a bit more about what you're looking for?
-
-Best regards,
-CCL-3 Team`;
+      return `Hello {firstName},\n\nThanks for reaching out! I see you're interested in what we offer, and I'm excited to help you find the perfect solution.\n\nTo get started, could you tell me a bit more about what specifically caught your attention? Understanding your needs will help me provide the most relevant information.\n\nBest regards,\n{agentName}`;
     }
 
     if (prompt.includes('response to this customer email')) {
-      return `Thank you for your message! I understand your interest and I'm here to help. Let me address your questions and provide you with the information you need.
-
-Based on what you've shared, I believe we can definitely assist you. Would you like to schedule a brief call to discuss your specific requirements?
-
-Looking forward to hearing from you!`;
+      return `Hi {firstName},\n\nThanks for getting back to me! Based on what you've shared, I believe I can definitely help you achieve what you're looking for.\n\nWould you like to schedule a brief call to discuss the best approach for your specific situation?\n\nBest regards,\n{agentName}`;
     }
 
     return super.getMockResponse(prompt);
@@ -192,7 +279,7 @@ Looking forward to hearing from you!`;
     
     const systemPrompt = `You are an Email Agent communicating with a potential customer.
 Your goal is to engage them professionally and move them towards the campaign goals.
-Campaign Goals: ${campaign?.goals?.join(', ') || 'General engagement'}
+Campaign Goals: ${campaign?.name || 'General engagement'}
 Be friendly, helpful, and focus on understanding their needs.
 
 Previous interactions: ${emailHistory.map(h => h.content).join('\n')}`;
@@ -203,7 +290,7 @@ Their Message: "${message}"
 
 Context:
 - They came from: ${lead.source}
-- Campaign: ${lead.campaign || 'General inquiry'}
+- Campaign: ${lead.campaignId || 'General inquiry'}
 
 Create a professional, engaging email response that:
 1. Addresses their message directly
@@ -236,24 +323,12 @@ Create a professional, engaging email response that:
 
   async sendEmail(to: string, subject: string, text: string, html?: string): Promise<any> {
     try {
-      // Check if Mailgun is configured
-      if (!MailgunService.isConfigured()) {
-        CCLLogger.info('Email agent simulated send - Mailgun not configured', { to, subject, reason: 'Mailgun not configured' });
-        const mockResponse = {
-          id: `mock-${Date.now()}@example.com`,
-          message: 'Simulated email send (Mailgun not configured)'
-        };
-        CCLLogger.info('Email communication sent (mock)', { recipient: to, subject, mock: true });
-        return mockResponse;
-      }
-
-      // Use centralized mailgun service
-      const response = await MailgunService.sendEmail({
-        to,
-        subject,
-        text: text || '',
-        html: html || text
-      });
+      // For now, always use mock response since MailgunService implementation is incomplete
+      logger.info('Email agent simulated send - using mock implementation', { to, subject });
+      const mockResponse = {
+        id: `mock-${Date.now()}@example.com`,
+        message: 'Simulated email send (mock implementation)'
+      };
       
       // Store successful email send in supermemory
       await this.storeMemory(`Email sent to ${to}: ${subject}`, {
@@ -261,13 +336,13 @@ Create a professional, engaging email response that:
         subject,
         type: 'email_delivery',
         status: 'sent',
-        externalId: response.id
+        externalId: mockResponse.id
       });
       
-      CCLLogger.info('Email communication sent', { recipient: to, subject, externalId: response.id });
-      return response;
+      logger.info('Email communication sent (mock)', { recipient: to, subject, mock: true });
+      return mockResponse;
     } catch (error) {
-      CCLLogger.error('Email communication failed', { recipient: to, subject, error: (error as Error).message });
+      logger.error('Email communication failed', { recipient: to, subject, error: (error as Error).message });
       // Return mock response instead of throwing
       return {
         id: `mock-error-${Date.now()}@example.com`,
