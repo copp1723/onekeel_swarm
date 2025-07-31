@@ -6,7 +6,7 @@ import agentsRoutes from './agents';
 import agentTemplatesRoutes from './agent-templates';
 import campaignsRoutes from './campaigns';
 import emailRoutes from './email';
-import leadsRoutes from './leads';
+import leadsRoutes from './leads-mock'; // Temporarily use mock for testing
 import contactsRoutes from './contacts';
 import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
