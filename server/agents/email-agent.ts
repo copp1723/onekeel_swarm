@@ -123,36 +123,36 @@ Return valid JSON array with subject/body pairs. Make subjects conversational an
   }
 
   private generateFallbackSequence(details: any): Array<{subject: string; body: string; order: number}> {
-    const product = details.product || 'this solution';
+    const product = details.product || 'vehicle financing';
     const pricing = details.priceAngle || 'competitive rates';
-    const cta = details.primaryCTA || 'Learn More';
+    const cta = details.primaryCTA || 'Schedule Test Drive';
     const url = details.CTAurl || '#';
-    
-    // Professional email approach that starts formal but builds relationship
+
+    // Automotive dealership sales representative approach
     return [
       {
-        subject: `Quick question about ${product}`,
-        body: `Hello {firstName},\n\nI hope this email finds you well. I see you're interested in ${product}, and I'm excited to help you find the perfect solution.\n\nTo get started, what's your biggest challenge or priority with this right now? Knowing your specific situation will help me provide the most relevant guidance.\n\nBest regards,\n{agentName}`,
+        subject: `Quick question about your ${product} needs`,
+        body: `Hi {firstName},\n\nThanks for your interest in ${product}! I'm excited to help you find the perfect vehicle solution.\n\nTo get started, what type of vehicle are you looking for, or are you considering refinancing an existing loan? Knowing your specific situation will help me provide the most relevant guidance.\n\nBest regards,\n{agentName}`,
         order: 1
       },
       {
-        subject: `Following up on ${product}`,
-        body: `Hi {firstName},\n\nI wanted to follow up on your interest in ${product}. Most people I work with face similar challenges in this area.\n\nHere's what typically works best: ${details.benefits?.[0] || 'a personalized approach that addresses your specific needs'}.\n\nWould you like me to show you how this applies to your situation?\n\nBest regards,\n{agentName}`,
+        subject: `Great ${product} options available`,
+        body: `Hi {firstName},\n\nI wanted to follow up on your vehicle interest. We have some fantastic options that might be perfect for you.\n\nHere's what's working great for customers like you: ${details.benefits?.[0] || 'competitive financing rates and flexible terms'}.\n\nWould you like me to show you what's available in your price range?\n\nBest regards,\n{agentName}`,
         order: 2
       },
       {
-        subject: `Success story you might relate to`,
-        body: `Hi {firstName},\n\nI just helped a client with a situation very similar to yours. They were initially unsure about ${product}, but after seeing the results, they wished they'd started sooner.\n\nThey're now benefiting from ${pricing} and seeing exactly the outcomes they hoped for.\n\nWant to learn more about their approach? [${cta}](${url})\n\nBest regards,\n{agentName}`,
+        subject: `Customer success story you'll love`,
+        body: `Hi {firstName},\n\nI just helped a customer with a situation very similar to yours. They were initially unsure about ${product}, but after seeing our inventory and rates, they drove home the same day!\n\nThey're now enjoying ${pricing} and absolutely love their new vehicle.\n\nWant to see what we have available? [${cta}](${url})\n\nBest regards,\n{agentName}`,
         order: 3
       },
       {
-        subject: `I've been thinking about your situation`,
-        body: `Hi {firstName},\n\nYour inquiry about ${product} has been on my mind, and I really believe I can help you achieve what you're looking for.\n\nBased on what you've shared, I think we could get you some great results. Would you be open to a brief conversation to explore this further?\n\n[${cta}](${url})\n\nBest regards,\n{agentName}`,
+        subject: `I've been thinking about your vehicle needs`,
+        body: `Hi {firstName},\n\nYour inquiry about ${product} has been on my mind, and I really believe we can find you the perfect vehicle.\n\nBased on what you're looking for, I think we have some great options on the lot. Would you be open to a quick visit to see what catches your eye?\n\n[${cta}](${url})\n\nBest regards,\n{agentName}`,
         order: 4
       },
       {
-        subject: `Final note about ${product}`,
-        body: `Hi {firstName},\n\nThis is my final email about ${product}. I don't want to overwhelm your inbox, but I also don't want you to miss out on something that could really benefit you.\n\nIf you're still interested, I'm here to help: [${cta}](${url})\n\nIf not, I completely understand and wish you all the best with your goals.\n\nBest regards,\n{agentName}${details.disclaimer ? `\n\n*${details.disclaimer}*` : ''}`,
+        subject: `Last chance - ${product} opportunity`,
+        body: `Hi {firstName},\n\nThis is my final email about ${product}. I don't want to fill up your inbox, but I also don't want you to miss out on some really great vehicles we have right now.\n\nIf you're still interested, I'm here to help: [${cta}](${url})\n\nIf not, I completely understand and wish you all the best finding the right vehicle.\n\nBest regards,\n{agentName}${details.disclaimer ? `\n\n${details.disclaimer}` : ''}`,
         order: 5
       }
     ];
