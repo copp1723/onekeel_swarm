@@ -661,12 +661,12 @@ router.post('/invite', validateRequest({ body: inviteUserSchema }), async (req, 
     });
     
     // Generate invite link
-    const baseUrl = process.env.APP_URL || 'http://localhost:5173';
+    const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.APP_URL || 'http://localhost:5173';
     const inviteLink = `${baseUrl}/register?token=${inviteToken}`;
     
     // Send invitation email
     await mailgunService.sendEmail({
-      from: process.env.EMAIL_FROM || 'noreply@onekeel.com',
+      from: process.env.MAILGUN_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@onekeel.com',
       to: email,
       subject: 'You\'ve been invited to OneKeel',
       html: `

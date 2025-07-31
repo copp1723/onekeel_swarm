@@ -93,23 +93,60 @@ export class MailgunService {
   }
 
   private async callMailgunAPI(emailData: EmailData): Promise<EmailResponse> {
-    // This is a stub implementation - replace with actual Mailgun API calls
-    // For now, simulate the API call
-    
-    const delay = Math.random() * 1000 + 200; // Simulate API latency
-    await new Promise(resolve => setTimeout(resolve, delay));
-
-    // Simulate occasional failures
-    if (Math.random() < 0.02) { // 2% failure rate
-      throw new Error('Mailgun API rate limit exceeded');
+    if (!this.config) {
+      throw new Error('Mailgun not configured');
     }
 
-    const messageId = `${Date.now()}.${Math.random().toString(36).substring(7)}@${this.config!.domain}`;
+    const formData = new FormData();
+    formData.append('from', emailData.from);
     
+    // Handle multiple recipients
+    if (Array.isArray(emailData.to)) {
+      emailData.to.forEach(recipient => formData.append('to', recipient));
+    } else {
+      formData.append('to', emailData.to);
+    }
+    
+    formData.append('subject', emailData.subject);
+    
+    if (emailData.html) {
+      formData.append('html', emailData.html);
+    }
+    
+    if (emailData.text) {
+      formData.append('text', emailData.text);
+    }
+    
+    // Add tags if provided
+    if (emailData.tags) {
+      emailData.tags.forEach(tag => formData.append('o:tag', tag));
+    }
+    
+    // Add metadata if provided
+    if (emailData.metadata) {
+      Object.entries(emailData.metadata).forEach(([key, value]) => {
+        formData.append(`v:${key}`, String(value));
+      });
+    }
+
+    const response = await fetch(`${this.config.baseUrl}/${this.config.domain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`
+      },
+      body: formData
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`Mailgun API error: ${responseData.message || response.statusText}`);
+    }
+
     return {
       success: true,
-      messageId,
-      status: 200
+      messageId: responseData.id,
+      status: response.status
     };
   }
 
@@ -221,16 +258,25 @@ export class MailgunService {
     success: boolean;
     error?: string;
   }> {
-    if (!this.isConfigured) {
+    if (!this.isConfigured || !this.config) {
       return { success: false, error: 'Service not configured' };
     }
 
     try {
-      // Test with a simple domain verification
       logger.info('Testing Mailgun connection');
       
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Test connection by getting domain info
+      const response = await fetch(`${this.config.baseUrl}/${this.config.domain}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Mailgun API error: ${errorData.message || response.statusText}`);
+      }
       
       return { success: true };
     } catch (error) {
