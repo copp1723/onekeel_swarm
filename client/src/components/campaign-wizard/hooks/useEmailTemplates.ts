@@ -51,37 +51,38 @@ export async function generateTemplates(
 }
 
 const generateSubjectLine = (emailNumber: number, offer: CampaignData['offer']) => {
-  const product = offer.product || 'our financing solution';
+  const product = offer.product || 'vehicle financing';
   const subjects = [
-    `Interested in ${product}? Let's explore your options`,
-    `Quick update on ${product} - rates still available`,
-    `Don't miss out: ${product} application deadline approaching`,
-    `Final reminder: ${product} offer expires soon`,
-    `Last chance: ${product} - shall we proceed?`
+    `Quick question about your ${product} needs`,
+    `Great ${product} options available for you`,
+    `Customer success story you'll love`,
+    `I've been thinking about your vehicle needs`,
+    `Last chance - ${product} opportunity`
   ];
-  
+
   return subjects[Math.min(emailNumber - 1, subjects.length - 1)];
 };
 
 const generateEmailBody = (emailNumber: number, urgencyLevel: number, data: CampaignData) => {
   const { product, pricing, cta, disclaimer } = data.offer;
   const context = data.context;
-  
-  const intro = emailNumber === 1 
-    ? `Hi {firstName},\n\nI hope this email finds you well! I wanted to reach out regarding ${product || 'our financing options'}.`
-    : `Hi {firstName},\n\nI wanted to follow up on ${product || 'the financing opportunity'} I mentioned earlier.`;
-  
-  const body = urgencyLevel < 0.5 
-    ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} that could save you money.\n\n${data.goal ? `Our goal is simple: ${data.goal}` : 'We\'re here to help you achieve your financial goals.'}`
-    : `Time is running out! ${data.offer.urgency || 'This offer won\'t last long'}, and I don\'t want you to miss this opportunity.\n\n${pricing ? `With rates starting at ${pricing}, ` : ''}${product || 'This solution'} could be exactly what you've been looking for.`;
-  
-  const ctaSection = cta.primary 
+
+  // Automotive dealership sales representative approach
+  const intro = emailNumber === 1
+    ? `Hi {firstName},\n\nThanks for your interest in ${product || 'vehicle financing'}! I'm excited to help you find the perfect vehicle solution.`
+    : `Hi {firstName},\n\nI wanted to follow up on your vehicle interest. We have some fantastic options that might be perfect for you.`;
+
+  const body = urgencyLevel < 0.5
+    ? `${context ? 'Based on your situation, ' : ''}${product ? `our ${product} offers` : 'we offer'} ${pricing || 'competitive financing rates'} and flexible terms.\n\n${data.goal ? `Our goal: ${data.goal}` : 'We\'re here to help you drive home in the perfect vehicle.'}`
+    : `This is a limited-time opportunity! ${data.offer.urgency || 'These rates won\'t last long'}, and I don\'t want you to miss out.\n\n${pricing ? `With ${pricing}, ` : ''}${product || 'this vehicle financing'} could be exactly what you\'ve been looking for.`;
+
+  const ctaSection = cta.primary
     ? `\n\n[${cta.primary}](${cta.link || '#'})\n\n${cta.secondary || 'Or reply to this email with any questions.'}`
-    : '\n\nReply to this email or give me a call if you\'d like to discuss further.';
-  
-  const footer = disclaimer 
-    ? `\n\nBest regards,\n{agentName}\n\n---\n${disclaimer}`
+    : '\n\nReply to this email or give me a call if you\'d like to discuss your vehicle options.';
+
+  const footer = disclaimer
+    ? `\n\nBest regards,\n{agentName}\n\n${disclaimer}`
     : '\n\nBest regards,\n{agentName}';
-  
+
   return intro + '\n\n' + body + ctaSection + footer;
 };

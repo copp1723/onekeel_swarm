@@ -408,15 +408,15 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
   };
 
   const generateSubjectLine = (emailNumber: number) => {
-    const product = campaignData.offer.product || 'our financing solution';
+    const product = campaignData.offer.product || 'vehicle financing';
     const subjects = [
-      `Interested in ${product}? Let's explore your options`,
-      `Quick update on ${product} - rates still available`,
-      `Don't miss out: ${product} application deadline approaching`,
-      `Final reminder: ${product} offer expires soon`,
-      `Last chance: ${product} - shall we proceed?`
+      `Quick question about your ${product} needs`,
+      `Great ${product} options available for you`,
+      `Customer success story you'll love`,
+      `I've been thinking about your vehicle needs`,
+      `Last chance - ${product} opportunity`
     ];
-    
+
     return subjects[Math.min(emailNumber - 1, subjects.length - 1)];
   };
 
@@ -424,13 +424,14 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     const { product, pricing, cta, disclaimer } = campaignData.offer;
     const context = campaignData.context;
 
-    const intro = emailNumber === 1 
-      ? `Hi {firstName},\n\nI hope this email finds you well! I wanted to reach out regarding ${product || 'our solution'}.`
-      : `Hi {firstName},\n\nI wanted to follow up on ${product || 'the opportunity'} I mentioned earlier.`;
+    // Automotive dealership sales representative approach
+    const intro = emailNumber === 1
+      ? `Hi {firstName},\n\nThanks for your interest in ${product || 'vehicle financing'}! I'm excited to help you find the perfect vehicle solution.`
+      : `Hi {firstName},\n\nI wanted to follow up on your vehicle interest. We have some fantastic options that might be perfect for you.`;
 
-    const body = emailNumber <= 3 
-      ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} designed to meet your needs.\n\n${campaignData.goal ? `Our goal is to help you achieve: ${campaignData.goal}` : 'We are committed to supporting your success.'}`
-      : `Time is running out! ${campaignData.offer.urgency || 'This offer is only available for a limited time'}, and I don’t want you to miss this opportunity.\n\n${pricing ? `With rates starting at ${pricing}, ` : ''}${product || 'This solution'} could be the perfect fit for you.`;
+    const body = emailNumber <= 3
+      ? `${context ? 'Based on your situation, ' : ''}${product ? `our ${product} offers` : 'we offer'} ${pricing || 'competitive financing rates'} and flexible terms.\n\n${campaignData.goal ? `Our goal: ${campaignData.goal}` : 'We\'re here to help you drive home in the perfect vehicle.'}`
+      : `This is a limited-time opportunity! ${campaignData.offer.urgency || 'These rates won\'t last long'}, and I don’t want you to miss out.\n\n${pricing ? `With ${pricing}, ` : ''}${product || 'this vehicle financing'} could be exactly what you\'ve been looking for.`;
 
     const ctaSection = cta.primary 
       ? `\n\n[${cta.primary}](${cta.link || '#'})\n\n${cta.secondary || 'Feel free to reply to this email with any questions.'}`

@@ -204,21 +204,24 @@ Return valid JSON array with subject/body pairs. Make subjects conversational an
       throw new Error(`Unsupported field enhancement: ${field}`);
     }
 
-    const systemPrompt = `You are an expert marketing strategist and copywriter specializing in high-converting email campaigns. Your task is to create comprehensive campaign context that guides AI agents to deliver highly effective, personalized communications.
+    const systemPrompt = `You are an expert automotive dealership marketing strategist and copywriter specializing in high-converting automotive sales campaigns. Your task is to create comprehensive campaign context that guides AI agents to deliver highly effective, personalized automotive dealership communications.
 
-Key principles:
-- Write in a consultative, professional tone that builds trust
-- Focus on customer outcomes and value rather than features
-- Use specific, measurable metrics where appropriate
-- Incorporate psychological triggers (urgency, social proof, authority)
-- Ensure content is scannable and action-oriented
-- Avoid marketing clichés and generic language
-- Make it feel authentic and personalized to the business context
-- Structure information clearly with distinct sections`;
+AUTOMOTIVE DEALERSHIP CONTEXT REQUIREMENTS:
+- Write in a consultative, professional automotive sales tone that builds trust
+- Focus on vehicle benefits, financing options, and customer automotive outcomes
+- Use automotive-specific terminology (financing, test drives, inventory, trade-ins)
+- Incorporate automotive psychological triggers (limited inventory, seasonal sales, financing rates)
+- Reference dealership experience, team, and automotive expertise naturally
+- Ensure content is scannable and action-oriented for automotive customers
+- Avoid generic marketing clichés - use authentic automotive dealership language
+- Make it feel like genuine automotive dealership communication
+- Structure information clearly with distinct automotive sales sections
+- Preserve and enhance any automotive dealership offers, promotions, or vehicle-specific details
+- CRITICAL: If the input contains automotive dealership language (0% interest, test drives, car sales, etc.), PRESERVE and ENHANCE that context rather than converting to generic business terms`;
 
-    const userPrompt = `Create comprehensive campaign context and strategy that guides AI agents to deliver highly effective, personalized communications.
+    const userPrompt = `Create comprehensive automotive dealership campaign context and strategy that guides AI agents to deliver highly effective, personalized automotive sales communications.
 
-Current campaign details:
+Current automotive dealership campaign details:
 - Campaign name: ${campaignData.name || 'Not specified'}
 - Product/service: ${campaignData.product || 'Not specified'}
 - Key benefits: ${campaignData.benefits?.join(', ') || 'Not specified'}
@@ -227,7 +230,9 @@ Current campaign details:
 - Target audience size: ${campaignData.targetCount || 'Not specified'}
 - Current context: ${campaignData.currentValue || 'None'}
 
-Create a comprehensive context that includes:
+CRITICAL INSTRUCTION: If the current context or any campaign details contain automotive dealership language (such as "0% interest", "test drives", "car sales", "vehicle financing", "dealership", etc.), you MUST preserve and enhance that automotive context. Do NOT convert automotive dealership language into generic business terms.
+
+Create a comprehensive automotive dealership context that includes:
 
 1. **Campaign Overview**: Brief description of campaign purpose and target audience
 2. **Target Audience Profile**: Who we're targeting and their primary challenges/needs
