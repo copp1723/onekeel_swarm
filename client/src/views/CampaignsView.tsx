@@ -4,11 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
 import { CampaignWizard } from '@/components/campaign-wizard';
+import { CampaignManagement } from '@/components/campaigns/CampaignManagement';
 
 export const CampaignsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [agents, setAgents] = useState([]);
+  const [campaigns, setCampaigns] = useState([
+    {
+      id: '1',
+      name: 'Auto Loan Outreach',
+      description: 'No description',
+      status: 'active' as const,
+      type: 'standard' as const,
+      leadCount: 150,
+      conversions: 12,
+      createdAt: '2025-07-26T00:00:00.000Z'
+    }
+  ]);
 
   useEffect(() => {
     // Load agents
@@ -18,32 +31,22 @@ export const CampaignsView: React.FC = () => {
       .catch(console.error);
   }, []);
 
+  const handleEditCampaign = (campaignId: string) => {
+    console.log('Edit campaign:', campaignId);
+    // TODO: Implement edit functionality
+  };
+
+  const handleCloneCampaign = (campaignId: string) => {
+    console.log('Clone campaign:', campaignId);
+    // TODO: Implement clone functionality
+  };
+
+  const handleDeleteCampaign = (campaignId: string) => {
+    setCampaigns(campaigns.filter(c => c.id !== campaignId));
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-          <p className="text-gray-600">Manage your marketing campaigns</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button 
-            onClick={() => setShowWizard(true)} 
-            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
-          >
-            <Wand2 className="h-4 w-4" />
-            <span>Create Campaign</span>
-          </Button>
-          <Button 
-            onClick={() => setShowCreateForm(true)} 
-            variant="outline"
-            className="flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Classic Editor</span>
-          </Button>
-        </div>
-      </div>
-
       {/* Campaign Wizard Sidebar */}
       <CampaignWizard
         isOpen={showWizard}
@@ -57,7 +60,7 @@ export const CampaignsView: React.FC = () => {
       />
 
       {showCreateForm ? (
-        <CampaignEditor 
+        <CampaignEditor
           agents={agents}
           onSave={() => {
             setShowCreateForm(false);
@@ -66,31 +69,16 @@ export const CampaignsView: React.FC = () => {
           onCancel={() => setShowCreateForm(false)}
         />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Target className="h-5 w-5" />
-              <span>Campaign Management</span>
-            </CardTitle>
-            <CardDescription>
-              Create and manage email campaigns
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Campaigns</h3>
-              <p className="text-gray-500 mb-4">
-                Create and manage your email marketing campaigns.
-              </p>
-              <Button onClick={() => setShowCreateForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Campaign
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <CampaignManagement
+          campaigns={campaigns}
+          onCreateCampaign={() => setShowWizard(true)}
+          onEditCampaign={handleEditCampaign}
+          onCloneCampaign={handleCloneCampaign}
+          onDeleteCampaign={handleDeleteCampaign}
+          onOpenClassicEditor={() => setShowCreateForm(true)}
+        />
       )}
+
     </div>
   );
 }; 
