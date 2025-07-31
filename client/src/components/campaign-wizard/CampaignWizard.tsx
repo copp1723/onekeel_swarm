@@ -270,67 +270,22 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
 
   const enhanceWithAI = async (field: string) => {
     try {
-      // Call server-side AI enhancement API
-      const response = await fetch('/api/agents/enhance-campaign-field', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          field,
-          campaignData: {
-            name: campaignData.name,
-            context: campaignData.context,
-            product: campaignData.offer?.product,
-            benefits: campaignData.offer?.keyBenefits,
-            pricing: campaignData.offer?.pricing,
-            urgency: campaignData.offer?.urgency,
-            targetCount: campaignData.audience?.targetCount,
-            currentValue: campaignData[field as keyof typeof campaignData] as string
-          }
-        })
-      });
+      if (field === 'context') {
+        const campaignName = campaignData.name || 'This campaign';
+        const product = campaignData.offer?.product || 'our solution';
+        const benefits = campaignData.offer?.keyBenefits?.length > 0
+          ? campaignData.offer.keyBenefits.join(', ')
+          : 'key competitive advantages';
+        const pricing = campaignData.offer?.pricing || 'competitive pricing';
+        const targetCount = campaignData.audience?.targetCount || 50;
 
-      if (!response.ok) {
-        throw new Error(`Failed to enhance field: ${response.status}`);
+        setCampaignData(prev => ({
+          ...prev,
+          context: `Campaign Overview: ${campaignName} is designed to connect with ${targetCount} prospects who are exploring ${product}.\n\nTarget Audience: Decision-makers seeking clarity and confidence in their choices, with a focus on ROI and strategic value.\n\nValue Proposition: Highlight ${benefits} as essential investments for business growth. Showcase proven outcomes, seamless implementation, and enduring partnership benefits.\n\nObjection Handling: Tackle concerns about ${pricing}, implementation hurdles, and timing with tailored solutions, success stories, and adaptable engagement models.\n\nCommunication Strategy: Share industry insights and real-world success stories to build trust and credibility. Foster urgency through authentic opportunities rather than artificial deadlines.\n\nSuccess Metrics: Aim for meaningful interactions over sheer volume. Target 30%+ open rates, 12%+ CTR, and 15%+ qualified responses to drive impactful sales conversations.`
+        }));
       }
-
-      const { enhancedContent } = await response.json();
-      
-      setCampaignData(prev => ({
-        ...prev,
-        [field]: enhancedContent
-      }));
     } catch (error) {
-      console.error('Error enhancing with AI:', error);
-      // Fallback to basic enhancement logic
-      enhanceWithAIFallback(field);
-    }
-  };
-
-  const enhanceWithAIFallback = (field: string) => {
-    // Improved fallback logic with more contextual awareness
-    if (field === 'context') {
-      const campaignName = campaignData.name || 'This campaign';
-      const product = campaignData.offer?.product || 'our solution';
-      const benefits = campaignData.offer?.keyBenefits?.length > 0
-        ? campaignData.offer.keyBenefits.join(', ')
-        : 'key competitive advantages';
-      const pricing = campaignData.offer?.pricing || 'competitive pricing';
-      const targetCount = campaignData.audience?.targetCount || 50;
-      
-      setCampaignData(prev => ({
-        ...prev,
-        context: `Campaign Overview: ${campaignName} is a strategic AI-powered outreach campaign targeting ${targetCount} prospects interested in ${product}.
-
-Target Audience: Decision-makers actively evaluating solutions who need confidence in their choice and clear ROI justification.
-
-Value Proposition: Position ${benefits} as strategic business investments. Emphasize proven results, implementation support, and long-term partnership value.
-
-Objection Handling: Address common concerns about ${pricing}, implementation complexity, and timing through risk-mitigation messaging, case studies, and flexible engagement options.
-
-Communication Strategy: Lead with industry insights and peer success stories. Build credibility through thought leadership. Create genuine urgency through capacity limitations rather than artificial deadlines.
-
-Success Metrics: Prioritize conversation quality over volume. Target 30%+ open rates, 12%+ CTR, with 15%+ qualified responses leading to meaningful sales conversations.`
-      }));
+      console.error('Error enhancing campaign field:', error);
     }
   };
 
@@ -468,23 +423,23 @@ Success Metrics: Prioritize conversation quality over volume. Target 30%+ open r
   const generateEmailBody = (emailNumber: number) => {
     const { product, pricing, cta, disclaimer } = campaignData.offer;
     const context = campaignData.context;
-    
+
     const intro = emailNumber === 1 
-      ? `Hi {firstName},\n\nI hope this email finds you well! I wanted to reach out regarding ${product || 'our financing options'}.`
-      : `Hi {firstName},\n\nI wanted to follow up on ${product || 'the financing opportunity'} I mentioned earlier.`;
-    
+      ? `Hi {firstName},\n\nI hope this email finds you well! I wanted to reach out regarding ${product || 'our solution'}.`
+      : `Hi {firstName},\n\nI wanted to follow up on ${product || 'the opportunity'} I mentioned earlier.`;
+
     const body = emailNumber <= 3 
-      ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} that could save you money.\n\n${campaignData.goal ? `Our goal is simple: ${campaignData.goal}` : 'We\'re here to help you achieve your financial goals.'}`
-      : `Time is running out! ${campaignData.offer.urgency || 'This offer won\'t last long'}, and I don\'t want you to miss this opportunity.\n\n${pricing ? `With rates starting at ${pricing}, ` : ''}${product || 'This solution'} could be exactly what you've been looking for.`;
-    
+      ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} designed to meet your needs.\n\n${campaignData.goal ? `Our goal is to help you achieve: ${campaignData.goal}` : 'We are committed to supporting your success.'}`
+      : `Time is running out! ${campaignData.offer.urgency || 'This offer is only available for a limited time'}, and I don’t want you to miss this opportunity.\n\n${pricing ? `With rates starting at ${pricing}, ` : ''}${product || 'This solution'} could be the perfect fit for you.`;
+
     const ctaSection = cta.primary 
-      ? `\n\n[${cta.primary}](${cta.link || '#'})\n\n${cta.secondary || 'Or reply to this email with any questions.'}`
-      : '\n\nReply to this email or give me a call if you\'d like to discuss further.';
-    
+      ? `\n\n[${cta.primary}](${cta.link || '#'})\n\n${cta.secondary || 'Feel free to reply to this email with any questions.'}`
+      : '\n\nReply to this email or contact us directly to learn more.';
+
     const footer = disclaimer 
       ? `\n\nBest regards,\n{agentName}\n\n---\n${disclaimer}`
       : '\n\nBest regards,\n{agentName}';
-    
+
     return intro + '\n\n' + body + ctaSection + footer;
   };
 

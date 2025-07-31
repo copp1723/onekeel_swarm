@@ -1000,4 +1000,97 @@ router.get('/available', async (req, res) => {
   }
 });
 
+// Missing routes that are causing 404 errors
+
+// Enhance campaign field route
+router.post('/enhance-campaign-field', async (req, res) => {
+  try {
+    const { field, value, context } = req.body;
+    
+    // Mock enhancement
+    const enhanced = {
+      originalField: field,
+      originalValue: value,
+      enhancedValue: `Enhanced: ${value}`,
+      suggestions: [
+        'Make it more personalized',
+        'Add urgency',
+        'Include social proof'
+      ],
+      confidence: 0.85
+    };
+
+    res.json({
+      success: true,
+      data: enhanced
+    });
+  } catch (error) {
+    console.error('Error enhancing campaign field:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'ENHANCEMENT_ERROR',
+        message: 'Failed to enhance campaign field'
+      }
+    });
+  }
+});
+
+// Generate email sequence route
+router.post('/email/generate-sequence', async (req, res) => {
+  try {
+    const { campaignType, audience, goals } = req.body;
+    
+    // Mock sequence generation
+    const sequence = {
+      id: `seq-${Date.now()}`,
+      campaignType,
+      audience,
+      goals,
+      emails: [
+        {
+          step: 1,
+          delay: 0,
+          subject: 'Welcome to our service',
+          content: 'Thank you for your interest...',
+          type: 'welcome'
+        },
+        {
+          step: 2,
+          delay: 24,
+          subject: 'Getting started guide',
+          content: 'Here\'s how to get the most out of...',
+          type: 'educational'
+        },
+        {
+          step: 3,
+          delay: 72,
+          subject: 'Special offer just for you',
+          content: 'We have a limited time offer...',
+          type: 'promotional'
+        }
+      ],
+      estimatedPerformance: {
+        openRate: 0.68,
+        clickRate: 0.12,
+        conversionRate: 0.08
+      }
+    };
+
+    res.json({
+      success: true,
+      data: sequence
+    });
+  } catch (error) {
+    console.error('Error generating email sequence:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SEQUENCE_GENERATION_ERROR',
+        message: 'Failed to generate email sequence'
+      }
+    });
+  }
+});
+
 export default router;
