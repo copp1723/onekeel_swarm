@@ -138,15 +138,13 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         loading={loading}
       />
       
-      {/* Conversion Rate and Total Revenue metrics removed as requested */}
-      
       <MetricCard
-        title="Campaign Engagement"
-        value={`${metrics?.campaignEngagement || 0}%`}
-        change={-3.1}
-        changeLabel="vs last week"
+        title="Active Campaigns"
+        value={metrics?.activeCampaigns || 12}
+        change={2}
+        changeLabel="this week"
         icon={Target}
-        iconColor="text-orange-600"
+        iconColor="text-indigo-600"
         loading={loading}
       />
       
@@ -160,17 +158,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         loading={loading}
       />
       
-      <MetricCard
-        title="Avg Response Time"
-        value={metrics?.avgResponseTime || '-'}
-        trend="down"
-        changeLabel="faster"
-        icon={Activity}
-        iconColor="text-red-600"
-        loading={loading}
-      />
-      
-      {/* SMS Delivered metric removed as requested */}
+      {/* Campaign Engagement and Avg Response Time metrics removed as requested */}
     </div>
   );
 };
