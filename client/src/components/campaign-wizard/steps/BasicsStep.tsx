@@ -8,38 +8,33 @@ import { WizardContext } from '../types';
 
 export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   const enhanceWithAI = (field: string) => {
-    // Generate contextual AI enhancements based on campaign data
+    // Generate practical context for email template creation
     if (field === 'description') {
       const productInfo = ctx.data.offer?.product ? ` for ${ctx.data.offer.product}` : '';
       ctx.setData((prev) => ({
         ...prev,
-        description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
+        description: `${prev.description || `Outreach campaign${productInfo}`}\n\nFocus on building genuine relationships with prospects through helpful, relevant messaging.`
       }));
     } else if (field === 'goal') {
-      const targetCount = ctx.data.audience?.targetCount || 50;
       ctx.setData((prev) => ({
         ...prev,
-        goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
+        goal: `Start meaningful conversations with prospects and provide value that helps them make informed decisions.`
       }));
     } else if (field === 'context') {
       const campaignName = ctx.data.name || 'This campaign';
       const product = ctx.data.offer?.product || 'our solution';
-      const benefits = ctx.data.offer?.keyBenefits?.length > 0 
-        ? ctx.data.offer.keyBenefits.join(', ') 
-        : 'competitive advantages and exclusive benefits';
       
       ctx.setData((prev) => ({
         ...prev,
-        context: `Business Context: ${campaignName} focuses on converting prospects interested in ${product}. 
+        context: `Campaign: ${campaignName}
+Product/Service: ${product}
 
-Key objectives:
-- Highlight ${benefits}
-- Address concerns about pricing, timing, or commitment
-- Build trust through social proof and testimonials
-- Create urgency without being pushy
-- Personalize messaging based on lead's interaction history
+Email Tone: Conversational and helpful, like talking to a colleague
+Approach: Focus on the prospect's needs and challenges
+Value: Share insights, tips, or resources that are genuinely useful
 
-The AI should maintain a warm, consultative tone - like a knowledgeable friend helping them make the best decision. Each email should feel like a natural progression in the conversation, not a scripted sales pitch.`
+Avoid: Sales-y language, made-up urgency, corporate buzzwords
+Include: Real benefits, honest timelines, authentic personality`
       }));
     }
   };
@@ -66,7 +61,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
             className="h-7 px-2"
           >
             <Wand2 className="h-3 w-3 mr-1" />
-            Enhance
+            Add Context
           </Button>
         </div>
         <Textarea
@@ -87,7 +82,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
             className="h-7 px-2"
           >
             <Wand2 className="h-3 w-3 mr-1" />
-            AI Suggest
+            Suggest Goal
           </Button>
         </div>
         <Input
@@ -107,19 +102,19 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
             className="h-7 px-2"
           >
             <Wand2 className="h-3 w-3 mr-1" />
-            Generate
+            Add Template Context
           </Button>
         </div>
         <Textarea
           id="context"
           value={ctx.data.context}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({ ...prev, context: e.target.value }))}
-          placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
+          placeholder="Describe your business context to help create better email templates (e.g., 'Re-engaging leads who showed interest but didn't buy. Common concerns: pricing, timing, trust. Keep it friendly and helpful, not pushy.')"
           rows={3}
           className="text-sm"
         />
         <p className="text-xs text-gray-500 mt-1">
-          This context helps the AI understand your business goals and tailor responses appropriately
+          This context helps create more relevant and effective email templates
         </p>
       </div>
     </div>

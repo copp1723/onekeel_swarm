@@ -86,7 +86,7 @@ export function useAgentConfig(
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateForm();
     if (!validation.isValid) {
       setErrors(validation.errors);
@@ -95,14 +95,14 @@ export function useAgentConfig(
 
     setSubmissionState(prev => ({ ...prev, isSubmitting: true }));
     setErrors({});
-    
+
     try {
       const cleanedData = cleanAgentConfig(formData);
       await onSave(cleanedData);
-      setSubmissionState(prev => ({ 
-        ...prev, 
-        hasChanges: false, 
-        lastSaved: new Date() 
+      setSubmissionState(prev => ({
+        ...prev,
+        hasChanges: false,
+        lastSaved: new Date()
       }));
     } catch (error) {
       console.error('Failed to save agent:', error);

@@ -95,7 +95,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
       const data = await response.json();
       const updatedAgent = data.agent;
-      
+
       setAgents(prev => prev.map(agent => agent.id === id ? updatedAgent : agent));
       return updatedAgent;
     } catch (err) {

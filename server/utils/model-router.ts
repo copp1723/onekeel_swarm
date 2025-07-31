@@ -1,254 +1,237 @@
 import { logger } from './logger';
+import { executeWithOpenRouterBreaker } from './circuit-breaker';
 
 export interface ModelRequestOptions {
-  model?: string;
+  prompt: string;
+  systemPrompt?: string;
+  agentType: string;
+  decisionType: string;
+  conversationHistory: any[];
+  requiresReasoning: boolean;
+  businessCritical: boolean;
   temperature?: number;
   maxTokens?: number;
-  timeout?: number;
-  retries?: number;
+  responseFormat?: any;
+  model?: string;
 }
 
 export interface ModelResponse {
   content: string;
   model: string;
   tokensUsed?: number;
-  latency: number;
-  success: boolean;
-  error?: string;
+  executionTime: number;
+  complexity: {
+    score: number;
+    tier: 'basic' | 'standard' | 'advanced' | 'expert';
+  }
 }
 
+/**
+ * ModelRouter handles intelligent routing of model requests based on task complexity and requirements
+ */
 export class ModelRouter {
-  private models: string[] = [
-    // OpenAI models
-    'openai/gpt-4o-mini',
-    'openai/gpt-4o',
-    'openai/gpt-4-turbo',
-    'openai/gpt-3.5-turbo',
-    'openai/gpt-4',
-    
-    // Anthropic models
-    'anthropic/claude-3-haiku',
-    'anthropic/claude-3-sonnet',
-    'anthropic/claude-3-opus',
-    'anthropic/claude-3.5-sonnet',
-    
-    // Meta models
-    'meta-llama/llama-3.1-8b-instruct',
-    'meta-llama/llama-3.1-70b-instruct',
-    'meta-llama/llama-3.1-405b-instruct',
-    
-    // Google models
-    'google/gemini-pro',
-    'google/gemini-pro-1.5',
-    'google/gemini-flash-1.5',
-    
-    // Mistral models
-    'mistralai/mistral-7b-instruct',
-    'mistralai/mixtral-8x7b-instruct',
-    'mistralai/mistral-large',
-    
-    // Other popular models
-    'perplexity/llama-3.1-sonar-small-128k-online',
-    'perplexity/llama-3.1-sonar-large-128k-online',
-    'qwen/qwen-2.5-72b-instruct',
-    'deepseek/deepseek-chat'
-  ];
-  
-  private modelStats: Map<string, { requests: number; failures: number; avgLatency: number }> = new Map();
-
-  constructor() {
-    // Initialize stats for all models
-    this.models.forEach(model => {
-      this.modelStats.set(model, { requests: 0, failures: 0, avgLatency: 0 });
-    });
-  }
-
-  async makeRequest(
-    prompt: string, 
-    systemPrompt?: string, 
-    options: ModelRequestOptions = {}
-  ): Promise<ModelResponse> {
+  /**
+   * Routes a request to the appropriate model based on context and complexity
+   */
+  static async routeRequest(options: ModelRequestOptions): Promise<ModelResponse> {
     const startTime = Date.now();
-    const selectedModel = options.model || this.selectBestModel();
     
-    logger.info('Making model request', { 
-      model: selectedModel, 
-      promptLength: prompt.length 
-    });
+    // Evaluate task complexity to determine appropriate model tier
+    const complexity = this.evaluateComplexity(options);
+    
+    // If model is explicitly specified, use it
+    let modelToUse = options.model;
+    
+    // Handle OpenRouter auto-select feature
+    if (modelToUse === 'openrouter-auto') {
+      modelToUse = undefined; // Let OpenRouter choose the best model
+    } 
+    // If no model specified, select based on complexity
+    else if (!modelToUse) {
+      modelToUse = this.selectModelForComplexity(complexity.tier);
+    }
 
     try {
-      // Simulate API call - replace with actual implementation
-      const response = await this.callModel(selectedModel, prompt, systemPrompt, options);
-      const latency = Date.now() - startTime;
-
-      // Update stats
-      this.updateModelStats(selectedModel, true, latency);
-
-      return {
-        content: response,
-        model: selectedModel,
-        latency,
-        success: true
-      };
-    } catch (error) {
-      const latency = Date.now() - startTime;
-      this.updateModelStats(selectedModel, false, latency);
-
-      logger.error('Model request failed', { 
-        model: selectedModel, 
-        error: (error as Error).message 
+      const response = await this.callOpenRouter({
+        prompt: options.prompt,
+        systemPrompt: options.systemPrompt,
+        temperature: options.temperature || 0.7,
+        maxTokens: options.maxTokens || 500,
+        model: modelToUse, // This can be undefined, letting OpenRouter choose the best model
+        responseFormat: options.responseFormat
       });
 
-      // Try fallback model if available
-      if (!options.model && this.models.length > 1) {
-        return this.makeRequestWithFallback(prompt, systemPrompt, options, selectedModel);
-      }
+      const executionTime = Date.now() - startTime;
+      
+      logger.info('Model request successful', {
+        model: response.model || modelToUse || 'auto-selected',
+        executionTime,
+        complexity: complexity.tier,
+        agentType: options.agentType
+      });
 
       return {
-        content: '',
-        model: selectedModel,
-        latency,
-        success: false,
-        error: (error as Error).message
+        content: response.content,
+        model: response.model || modelToUse || 'auto-selected',
+        tokensUsed: response.tokensUsed,
+        executionTime,
+        complexity
       };
+    } catch (error) {
+      logger.error('Model request failed', {
+        error: error instanceof Error ? error.message : String(error),
+        model: modelToUse || 'auto-selected',
+        complexity: complexity.tier,
+        agentType: options.agentType
+      });
+      
+      throw error;
     }
   }
 
-  private async makeRequestWithFallback(
-    prompt: string,
-    systemPrompt?: string,
-    options: ModelRequestOptions = {},
-    failedModel?: string
-  ): Promise<ModelResponse> {
-    const availableModels = this.models.filter(m => m !== failedModel);
+  /**
+   * Evaluates the complexity of a request to determine appropriate model
+   */
+  private static evaluateComplexity(options: ModelRequestOptions): {
+    score: number;
+    tier: 'basic' | 'standard' | 'advanced' | 'expert';
+  } {
+    let score = 0;
     
-    for (const model of availableModels) {
-      try {
-        return await this.makeRequest(prompt, systemPrompt, { ...options, model });
-      } catch (error) {
-        logger.warn('Fallback model also failed', { model, error: (error as Error).message });
-        continue;
-      }
+    // Base score on prompt length
+    score += Math.min(30, options.prompt.length / 200);
+    
+    // Conversation history complexity
+    score += Math.min(20, options.conversationHistory.length * 2);
+    
+    // Critical decision factor
+    if (options.businessCritical) score += 15;
+    
+    // Reasoning requirements
+    if (options.requiresReasoning) score += 20;
+    
+    // Agent type complexity
+    if (options.agentType === 'overlord') score += 15;
+    else if (options.agentType === 'email') score += 10;
+    
+    // Decision type complexity
+    if (options.decisionType === 'strategic') score += 15;
+    
+    // Determine tier based on score
+    let tier: 'basic' | 'standard' | 'advanced' | 'expert';
+    if (score < 30) tier = 'basic';
+    else if (score < 50) tier = 'standard';
+    else if (score < 70) tier = 'advanced';
+    else tier = 'expert';
+    
+    return { score, tier };
+  }
+
+  /**
+   * Selects appropriate model based on complexity tier
+   */
+  private static selectModelForComplexity(tier: 'basic' | 'standard' | 'advanced' | 'expert'): string | undefined {
+    switch (tier) {
+      case 'basic':
+        return 'openai/gpt-3.5-turbo'; // Less complex tasks
+      case 'standard':
+        return 'openai/gpt-4o-mini'; // Standard complexity
+      case 'advanced':
+        return 'anthropic/claude-3-sonnet'; // More complex reasoning
+      case 'expert':
+        return 'openai/gpt-4o'; // Most complex tasks
+      default:
+        return undefined; // Let OpenRouter decide
+    }
+  }
+
+  /**
+   * Makes the actual call to OpenRouter API
+   */
+  private static async callOpenRouter(options: {
+    prompt: string;
+    systemPrompt?: string;
+    temperature?: number;
+    maxTokens?: number;
+    model?: string;
+    responseFormat?: any;
+  }): Promise<{
+    content: string;
+    model?: string;
+    tokensUsed?: number;
+  }> {
+    const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('OpenRouter API key not configured');
     }
 
-    return {
-      content: 'I apologize, but I am unable to process your request at this time due to technical difficulties.',
-      model: 'fallback',
-      latency: 0,
-      success: false,
-      error: 'All models failed'
+    // Prepare messages array
+    const messages = [];
+    
+    // Add system message if provided
+    if (options.systemPrompt) {
+      messages.push({
+        role: 'system',
+        content: options.systemPrompt
+      });
+    }
+    
+    // Add user message
+    messages.push({
+      role: 'user',
+      content: options.prompt
+    });
+
+    // Prepare request body
+    const requestBody: any = {
+      messages,
+      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens || 500,
+      route: 'fallback' // This ensures the request will try multiple providers if needed
     };
-  }
-
-  private async callModel(
-    model: string,
-    prompt: string,
-    systemPrompt?: string,
-    options: ModelRequestOptions = {}
-  ): Promise<string> {
-    // This is a stub implementation - replace with actual API calls
-    // For now, return a simple response based on the prompt
     
-    const delay = Math.random() * 1000 + 500; // Simulate API latency
-    await new Promise(resolve => setTimeout(resolve, delay));
-
-    // Simulate occasional failures
-    if (Math.random() < 0.05) { // 5% failure rate
-      throw new Error(`Model ${model} temporarily unavailable`);
-    }
-
-    // Generate a simple response
-    const response = this.generateMockResponse(prompt, systemPrompt);
-    return response;
-  }
-
-  // Commented out - not currently used
-  // private generateMockResponse(prompt: string): string {
-  //   // Simple mock response generation
-  //   if (prompt.toLowerCase().includes('email')) {
-  //     return 'Thank you for your interest. I will get back to you soon with more information.';
-  //   } else if (prompt.toLowerCase().includes('sms')) {
-  //     return 'Thanks for reaching out! We\'ll contact you shortly.';
-  //   } else if (prompt.toLowerCase().includes('chat')) {
-  //     return 'Hello! How can I help you today?';
-  //   } else {
-  //     return 'I understand your request and will provide assistance accordingly.';
-  //   }
-  // }
-
-  private selectBestModel(): string {
-    // Simple round-robin selection with performance weighting
-    const availableModels = this.models.filter(model => {
-      const stats = this.modelStats.get(model);
-      return !stats || (stats.failures / Math.max(stats.requests, 1)) < 0.5; // Less than 50% failure rate
-    });
-
-    if (availableModels.length === 0) {
-      return this.models[0]; // Fallback to first model
-    }
-
-    // Select based on performance
-    let bestModel = availableModels[0];
-    let bestScore = 0;
-
-    availableModels.forEach(model => {
-      const stats = this.modelStats.get(model)!;
-      const successRate = stats.requests === 0 ? 1 : 1 - (stats.failures / stats.requests);
-      const speedScore = stats.avgLatency === 0 ? 1 : Math.max(0, 1 - (stats.avgLatency / 5000)); // Normalize to 5s max
-      const score = (successRate * 0.7) + (speedScore * 0.3);
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestModel = model;
-      }
-    });
-
-    return bestModel;
-  }
-
-  private updateModelStats(model: string, success: boolean, latency: number): void {
-    const stats = this.modelStats.get(model) || { requests: 0, failures: 0, avgLatency: 0 };
-    
-    stats.requests++;
-    if (!success) {
-      stats.failures++;
+    // Add model if specified
+    if (options.model) {
+      requestBody.model = options.model;
     }
     
-    // Update average latency
-    stats.avgLatency = ((stats.avgLatency * (stats.requests - 1)) + latency) / stats.requests;
-    
-    this.modelStats.set(model, stats);
-  }
+    // Add response format if specified
+    if (options.responseFormat) {
+      requestBody.response_format = options.responseFormat;
+    }
 
-  getModelStats(): Record<string, any> {
-    const stats: Record<string, any> = {};
-    
-    this.modelStats.forEach((modelStats, model) => {
-      stats[model] = {
-        ...modelStats,
-        successRate: modelStats.requests === 0 ? 1 : 1 - (modelStats.failures / modelStats.requests)
+    // Use circuit breaker to make the request
+    try {
+      const response = await executeWithOpenRouterBreaker(async () => {
+        const result = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.SERVICE_URL || 'http://localhost:3000',
+            'X-Title': 'OneKeel Swarm'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!result.ok) {
+          const errorData = await result.json().catch(() => ({}));
+          throw new Error(`OpenRouter API error: ${result.status} ${result.statusText} - ${JSON.stringify(errorData)}`);
+        }
+
+        return await result.json();
+      });
+
+      // Extract content from response
+      return {
+        content: response.choices[0]?.message?.content || '',
+        model: response.model,
+        tokensUsed: response.usage?.total_tokens
       };
-    });
-
-    return stats;
-  }
-
-  addModel(model: string): void {
-    if (!this.models.includes(model)) {
-      this.models.push(model);
-      this.modelStats.set(model, { requests: 0, failures: 0, avgLatency: 0 });
-      logger.info('Model added to router', { model });
-    }
-  }
-
-  removeModel(model: string): void {
-    const index = this.models.indexOf(model);
-    if (index > -1) {
-      this.models.splice(index, 1);
-      this.modelStats.delete(model);
-      logger.info('Model removed from router', { model });
+    } catch (error) {
+      logger.error('OpenRouter API call failed', { error });
+      throw error;
     }
   }
 }
-
-export const modelRouter = new ModelRouter();

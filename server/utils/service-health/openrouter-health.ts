@@ -119,9 +119,9 @@ export class OpenRouterHealthChecker {
     }
 
     try {
-      // Test with a simple completion request
+      // Test with a simple completion request using auto-select
       const testRequest = {
-        model: "openai/gpt-3.5-turbo",
+        // No model specified to test auto-select capability
         messages: [
           {
             role: "user",
@@ -129,7 +129,8 @@ export class OpenRouterHealthChecker {
           }
         ],
         max_tokens: 10,
-        temperature: 0
+        temperature: 0,
+        route: "fallback" // Enable fallback routing for auto-select
       };
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -137,6 +138,8 @@ export class OpenRouterHealthChecker {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.SERVICE_URL || 'http://localhost:3000',
+          'X-Title': 'OneKeel Swarm'
         },
         body: JSON.stringify(testRequest)
       });

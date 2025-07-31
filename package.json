@@ -42,6 +42,7 @@
     "type-check:client": "cd client && tsc --noEmit --skipLibCheck",
     "type-check:server": "cd server && tsc --noEmit --skipLibCheck",
     "db:verify": "tsx scripts/verify-schema.ts",
+    "db:fix": "tsx scripts/fix-database-schema.ts",
     "test:db": "tsx scripts/test-db-connection.ts"
   },
   "dependencies": {
