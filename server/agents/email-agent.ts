@@ -48,6 +48,8 @@ When you receive raw offer details, you MUST filter them through authenticity:
 Email 1: Build rapport, ask genuine questions, filter the offer
 Email 2: Address their specific needs based on their response
 Email 3: Make it easy to move forward without pressure
+Email 4: Follow up with helpful information, no pressure
+Email 5: Final helpful touch, leave door open
 
 **EXAMPLES OF AUTHENTIC TRANSLATION:**
 
@@ -74,9 +76,9 @@ Before generating, ask yourself:
 - NO asterisks (*) - use dashes (-) for bullet points, CAPS or "quotes" for emphasis
 - NEVER use asterisks (*) for formatting - use dashes (-) for bullet points`;
 
-    const userPrompt = `TASK: Create a sophisticated 5-email automotive dealership sales sequence that demonstrates expert-level understanding of automotive sales psychology and customer journey.
+    const userPrompt = `Create a 5-email automotive sales sequence using the authentic conversation approach above.
 
-CAMPAIGN ANALYSIS:
+CAMPAIGN DETAILS TO TRANSLATE:
 Campaign Context: ${details.context}
 Product/Service: ${details.product}
 Key Benefits: ${details.benefits.join(', ')}
@@ -85,51 +87,23 @@ Urgency Elements: ${details.urgency}
 Primary CTA: ${details.primaryCTA}
 Destination URL: ${details.CTAurl}
 
-DEEP REASONING REQUIRED:
-1. ANALYZE the automotive context:
-   - What type of automotive offer is this? (new cars, used cars, financing, lease deals, etc.)
-   - What customer segment is being targeted? (first-time buyers, luxury buyers, budget-conscious, etc.)
-   - What are the key motivators and pain points for this audience?
-   - How does this offer position against competitors?
+SEQUENCE STRUCTURE:
+Email 1 (Day 1): First contact - filter the marketing speak, ask genuine questions, build rapport
+Email 2 (Day 4): Follow up based on their likely needs, provide helpful info
+Email 3 (Day 7): Share something useful (customer story, market insight), no pressure
+Email 4 (Day 10): Direct but friendly check-in, reference timing if relevant
+Email 5 (Day 13): Final helpful touch, leave door open
 
-2. DETERMINE campaign type and approach:
-   - WARM/INBOUND: Prospects who expressed interest (use relationship-building, assumptive tone)
-   - COLD/OUTBOUND: Promotional outreach (use value-first, respectful approach)
-
-3. CRAFT SOPHISTICATED EMAIL SEQUENCE:
-   Email 1: HOOK - Establish credibility and create immediate interest with automotive expertise
-   Email 2: VALUE - Share automotive insights, market trends, or customer success story
-   Email 3: TRUST - Build relationship with personal dealership experience or social proof
-   Email 4: ENGAGE - Direct but consultative approach, reference "our conversation"
-   Email 5: CLOSE - Professional final attempt with genuine automotive expertise and open door
-
-ADVANCED REQUIREMENTS:
-- Each email must feel like it's from a seasoned automotive sales professional
-- Use sophisticated automotive terminology and industry knowledge
-- Reference specific automotive benefits, financing options, and market dynamics
-- Create authentic urgency based on real automotive sales patterns
-- Build progressive trust and relationship throughout the sequence
-- Show deep understanding of automotive customer psychology
-- Use natural conversation flow that feels authentic, not scripted
-
-AUTOMOTIVE EXPERTISE TO DEMONSTRATE:
-- Knowledge of financing options, APR rates, and payment structures
-- Understanding of vehicle features, trim levels, and value propositions
-- Awareness of seasonal automotive trends and market timing
-- Experience with trade-in processes and vehicle evaluations
-- Familiarity with dealership operations and team dynamics
-
-SOPHISTICATED WRITING STYLE:
-- Professional but conversational automotive sales tone
-- Natural use of automotive industry language
-- Authentic enthusiasm for helping customers find the right vehicle
-- Subtle psychological triggers appropriate for automotive sales
-- Progressive relationship building across the sequence
-- 75-150 words per email for optimal engagement
+AUTHENTICITY REQUIREMENTS:
+- Filter ALL marketing hype through the examples above
+- Ask real questions that show you care about their situation
+- Provide genuine value, not sales pitches
+- Build trust before trying to sell anything
+- Sound like a real person, not a template
 
 ${details.disclaimer ? `COMPLIANCE: Add this disclaimer to email 5 only: ${details.disclaimer}` : ''}
 
-OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "body" fields. Make subjects compelling and automotive-focused.`;
+OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "body" fields.`;
 
     try {
       const raw = await this.generateResponse(
