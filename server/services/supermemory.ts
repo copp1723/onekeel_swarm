@@ -122,6 +122,23 @@ export class MockSuperMemory extends SuperMemory {
     logger.info('MockSuperMemory: Retrieve called', { key });
     return super.retrieve(key);
   }
+
+  // Add compatibility methods for agent memory interface
+  async addMemory(data: { content: string; metadata?: Record<string, any>; spaces?: string[] }): Promise<string> {
+    const key = `memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    logger.info('MockSuperMemory: AddMemory called', { key, spaces: data.spaces });
+    return this.store(key, data.content, data.metadata);
+  }
+
+  async searchMemories(query: string, limit: number = 5): Promise<any[]> {
+    logger.info('MockSuperMemory: SearchMemories called', { query, limit });
+    const results = await this.search(query);
+    return results.slice(0, limit).map(entry => ({
+      content: entry.value,
+      metadata: entry.metadata,
+      id: entry.id
+    }));
+  }
 }
 
 export const superMemory = new SuperMemory();

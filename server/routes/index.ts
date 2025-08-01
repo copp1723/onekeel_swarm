@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 // Import all route modules
 import authRoutes from './auth';
-import agentsRoutes from './agents-mock'; // Temporarily use mock for local dev
+import agentsRoutes from './agents'; // Use real agents with AI integration
 import agentTemplatesRoutes from './agent-templates';
 import campaignsRoutes from './campaigns';
 import emailRoutes from './email';
