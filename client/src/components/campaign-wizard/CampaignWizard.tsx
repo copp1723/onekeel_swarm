@@ -271,18 +271,32 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
   const enhanceWithAI = async (field: string) => {
     try {
       if (field === 'context') {
-        const campaignName = campaignData.name || 'This campaign';
-        const product = campaignData.offer?.product || 'our solution';
-        const benefits = campaignData.offer?.keyBenefits?.length > 0
-          ? campaignData.offer.keyBenefits.join(', ')
-          : 'key competitive advantages';
-        const pricing = campaignData.offer?.pricing || 'competitive pricing';
-        const targetCount = campaignData.audience?.targetCount || 50;
+        // Call the backend API that generates authentic content
+        const response = await fetch('/api/agents/enhance-campaign-field', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            field: 'context',
+            campaignData: {
+              name: campaignData.name,
+              product: campaignData.offer?.product,
+              benefits: campaignData.offer?.keyBenefits,
+              pricing: campaignData.offer?.pricing,
+              urgency: campaignData.offer?.urgency,
+              targetCount: campaignData.audience?.targetCount
+            }
+          })
+        });
 
-        setCampaignData(prev => ({
-          ...prev,
-          context: `Campaign Overview: ${campaignName} is designed to connect with ${targetCount} prospects who are exploring ${product}.\n\nTarget Audience: Decision-makers seeking clarity and confidence in their choices, with a focus on ROI and strategic value.\n\nValue Proposition: Highlight ${benefits} as essential investments for business growth. Showcase proven outcomes, seamless implementation, and enduring partnership benefits.\n\nObjection Handling: Tackle concerns about ${pricing}, implementation hurdles, and timing with tailored solutions, success stories, and adaptable engagement models.\n\nCommunication Strategy: Share industry insights and real-world success stories to build trust and credibility. Foster urgency through authentic opportunities rather than artificial deadlines.\n\nSuccess Metrics: Aim for meaningful interactions over sheer volume. Target 30%+ open rates, 12%+ CTR, and 15%+ qualified responses to drive impactful sales conversations.`
-        }));
+        if (response.ok) {
+          const { enhancedContent } = await response.json();
+          setCampaignData(prev => ({
+            ...prev,
+            context: enhancedContent
+          }));
+        } else {
+          console.error('Failed to enhance campaign field');
+        }
       }
     } catch (error) {
       console.error('Error enhancing campaign field:', error);
