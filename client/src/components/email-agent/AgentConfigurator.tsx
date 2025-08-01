@@ -188,18 +188,18 @@ export function AgentConfigurator({ agent, onSave, onCancel }: AgentConfigurator
   };
 
   const enhancePrompt = (field: string) => {
-    // AI-powered prompt enhancement
+    // Authentic, straight-talking enhancement
     if (field === 'role') {
-      const enhancedRole = formData.role + (formData.role ? '\n\n' : '') + 
-        'Expert Sales Development Representative specializing in personalized outreach, ' +
-        'relationship building, and converting cold leads into qualified opportunities ' +
-        'through intelligent conversation and value-driven messaging.';
+      const enhancedRole = formData.role + (formData.role ? '\n\n' : '') +
+        'Experienced automotive sales professional. Knowledgeable, direct, and genuinely helpful. ' +
+        'Talk like a real person who knows cars and understands that buying one is a big decision. ' +
+        'No BS, no pushy sales tactics - just honest advice.';
       handleInputChange('role', enhancedRole);
     } else if (field === 'endGoal') {
-      const enhancedGoal = 
-        'Schedule qualified demo calls with decision-makers who have expressed genuine interest ' +
-        'in our solution. Focus on quality over quantity, ensuring each handover represents ' +
-        'a real opportunity with budget, authority, need, and timeline clearly identified.';
+      const enhancedGoal =
+        'Have real conversations that help people figure out what they actually want. ' +
+        'Build trust through honest advice. If they\'re ready to move forward, make it easy. ' +
+        'If not, give them something useful and stay in touch.';
       handleInputChange('endGoal', enhancedGoal);
     }
   };

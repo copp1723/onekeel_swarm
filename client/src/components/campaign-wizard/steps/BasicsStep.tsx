@@ -8,17 +8,17 @@ import { WizardContext } from '../types';
 
 export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   const enhanceWithAI = (field: string) => {
-    // Generate practical context for email template creation
+    // Generate practical, authentic context for real conversations
     if (field === 'description') {
       const productInfo = ctx.data.offer?.product ? ` for ${ctx.data.offer.product}` : '';
       ctx.setData((prev) => ({
         ...prev,
-        description: `${prev.description || `Outreach campaign${productInfo}`}\n\nFocus on building genuine relationships with prospects through helpful, relevant messaging.`
+        description: `${prev.description || `Outreach campaign${productInfo}`}\n\nStraight-talking approach. No BS. Help people figure out what they actually need.`
       }));
     } else if (field === 'goal') {
       ctx.setData((prev) => ({
         ...prev,
-        goal: `Start meaningful conversations with prospects and provide value that helps them make informed decisions.`
+        goal: `Have real conversations that help people make good decisions. Build trust, not just leads.`
       }));
     } else if (field === 'context') {
       const campaignName = ctx.data.name || 'This campaign';

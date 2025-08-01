@@ -27,13 +27,13 @@ export class SMSAgent extends BaseAgent {
   // Override getMockResponse for SMS-specific mock behavior
   protected getMockResponse(prompt: string): string {
     if (prompt.includes('initial SMS') || prompt.includes('first contact')) {
-      return `Hi! Thanks for your interest. We'd love to help with your needs. Reply YES to learn more or call us at 1-800-EXAMPLE.`;
+      return `Hey! Saw you're looking at vehicles. What's driving the search? Text back or call 1-800-EXAMPLE.`;
     }
-    
+
     if (prompt.includes('SMS response')) {
-      return `Thanks for your reply! We can definitely help with that. When would be a good time for a quick call to discuss?`;
+      return `Got it. When works for a quick call to figure out what you need?`;
     }
-    
+
     return super.getMockResponse(prompt);
   }
 
@@ -51,48 +51,35 @@ export class SMSAgent extends BaseAgent {
     const memories = await this.searchMemory(`SMS ${lead.firstName || ''} ${lead.lastName || ''} ${lead.phone}`);
     const smsHistory = memories.filter(m => m.metadata?.type?.includes('sms')).slice(0, 2);
     
-    const systemPrompt = `CRITICAL FORMATTING INSTRUCTION: DO NOT USE ASTERISKS (*) OR STARS IN ANY RESPONSES. Use dashes (-) for bullet points, and use CAPITALIZATION, "quotes", or plain text for emphasis.
+    const systemPrompt = `You are a straight-talking automotive sales professional responding via SMS.
 
-You are an automotive dealership sales representative communicating with a potential customer via text message. You are a REAL human sales professional, not an AI assistant.
+**Core Identity:**
+You are an experienced automotive sales professional. You're knowledgeable, direct, and genuinely helpful - not a pushy salesperson. You talk like a real person who knows cars and understands that buying one is a big decision.
 
-ROLE EMBODIMENT:
-- You ARE a professional automotive sales representative
-- Write like you're texting a friend about cars - casual but professional
-- Use natural, conversational language with genuine enthusiasm
-- Express authentic interest in helping them find the right vehicle
-- Reference your dealership experience naturally
+**SMS Communication Style:**
+- **Be real.** Text like you would to a friend who's asking for car advice
+- **Be direct.** No fluff, no corporate speak
+- **Be helpful.** Figure out what they actually need
+- **Be brief.** SMS should be under 160 characters when possible
 
-HUMAN AUTHENTICITY REQUIREMENTS:
-- NEVER reveal you are AI, chatbot, or artificial intelligence
-- Use contractions, casual language, friendly tone
-- Show genuine excitement about helping with their vehicle needs
-- Reference your dealership team and inventory naturally
-- NEVER make time-bound promises you cannot personally fulfill
-
-CONVERSATION CONTEXT TRACKING:
-- Always track which specific vehicles the customer has expressed interest in
-- Reference the same vehicle of interest throughout the conversation
-- Keep messages brief but maintain vehicle context
+**What You DON'T Do:**
+- Don't use marketing speak
+- Don't ask multiple questions in one text
+- Don't sound like a robot
+- Don't be overly enthusiastic about everything
 
 Campaign Goals: ${campaign?.goals?.join(', ') || 'Help customers find the right vehicle'}
-SMS messages should be under 160 characters when possible.
 Previous SMS: ${smsHistory.map(h => h.content).join('\n')}`;
 
-    const prompt = `Generate a brief SMS response:
-Customer Name: ${lead.firstName || ''} ${lead.lastName || ''}
+    const prompt = `Text response to:
+Customer: ${lead.firstName || ''} ${lead.lastName || ''}
 Their Message: "${message}"
 
 Context:
 - Source: ${lead.source}
 - Campaign: ${lead.campaign || 'General'}
 
-As a real automotive dealership sales representative, create a concise, friendly text that:
-1. Addresses their message with genuine enthusiasm
-2. Moves towards understanding their vehicle needs
-3. Uses conversational, authentic language
-4. Shows real interest in helping them find the right vehicle
-5. Stays under 160 characters if possible
-6. Maintains professional but friendly dealership tone`;
+Write like a real person. Address what they said, be helpful, keep it short.`;
 
     const response = await this.callOpenRouter(prompt, systemPrompt);
     

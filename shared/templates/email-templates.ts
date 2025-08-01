@@ -15,69 +15,48 @@ export const defaultEmailTemplates: EmailTemplate[] = [
   {
     id: 'welcome-001',
     name: 'Welcome Email',
-    subject: 'Welcome to {{companyName}}, {{firstName}}!',
-    content: `Hi {{firstName}},
+    subject: 'Quick question about your car search',
+    content: `Hey {{firstName}},
 
-Welcome to {{companyName}}! We're excited to have you on board.
+Saw you're looking at vehicles. What's driving the search? New job, family changes, or just ready for something different?
 
-Here's what you can expect:
-- Personalized service from our team
-- Regular updates on your {{vehicleInterest}} search
-- Exclusive deals and financing options
+I can help you figure out what makes sense for your situation.
 
-If you have any questions, feel free to reach out to us at any time.
-
-Best regards,
-The {{companyName}} Team`,
+{{agentName}}`,
     category: 'welcome',
-    variables: ['firstName', 'companyName', 'vehicleInterest'],
+    variables: ['firstName', 'agentName'],
     isActive: true,
     createdAt: '2024-01-01T00:00:00.000Z'
   },
   {
     id: 'followup-001',
     name: 'Follow-up Email',
-    subject: 'Still looking for your {{vehicleInterest}}, {{firstName}}?',
-    content: `Hi {{firstName}},
+    subject: 'Found a few options for you',
+    content: `{{firstName}},
 
-I wanted to follow up on your interest in {{vehicleInterest}}.
+Based on what you're looking for, I've got some vehicles that might work.
 
-We have some great new options that might be perfect for you:
-- Competitive financing rates starting at {{interestRate}}%
-- Extended warranty options
-- Trade-in evaluations
+The financing is solid right now. Want to take a look?
 
-Would you like to schedule a quick call to discuss your options?
-
-Best regards,
-{{agentName}}
-{{companyName}}`,
+{{agentName}}`,
     category: 'followup',
-    variables: ['firstName', 'vehicleInterest', 'interestRate', 'agentName', 'companyName'],
+    variables: ['firstName', 'agentName'],
     isActive: true,
     createdAt: '2024-01-05T00:00:00.000Z'
   },
   {
     id: 'promotion-001',
     name: 'Special Offer',
-    subject: 'Exclusive offer for {{firstName}} - Limited time!',
-    content: `Hi {{firstName}},
+    subject: 'This might interest you',
+    content: `{{firstName}},
 
-We have an exclusive offer just for you on {{vehicleInterest}}:
+Got something that might work for you. {{specialRate}}% financing and no payments for 90 days.
 
-🎉 Special Financing: {{specialRate}}% APR
-🎉 No payments for 90 days
-🎉 Extended warranty included
+Worth a conversation? {{offerLink}}
 
-This offer expires on {{expirationDate}}, so don't wait!
-
-Click here to claim your offer: {{offerLink}}
-
-Best regards,
-{{agentName}}
-{{companyName}}`,
+{{agentName}}`,
     category: 'promotion',
-    variables: ['firstName', 'vehicleInterest', 'specialRate', 'expirationDate', 'offerLink', 'agentName', 'companyName'],
+    variables: ['firstName', 'specialRate', 'offerLink', 'agentName'],
     isActive: true,
     createdAt: '2024-01-10T00:00:00.000Z'
   }
