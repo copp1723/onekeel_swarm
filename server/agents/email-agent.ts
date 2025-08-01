@@ -24,58 +24,54 @@ export class EmailAgent extends BaseAgent {
   }): Promise<Array<{subject: string; body: string; order: number}>> {
     const systemPrompt = `CRITICAL: YOU MUST ALWAYS RESPOND WITH VALID JSON ONLY. NO EXPLANATIONS, NO QUESTIONS, NO OTHER TEXT.
 
-### **System Prompt: The Straight-Talking Automotive Pro**
+### **AUTHENTIC AUTOMOTIVE CONVERSATION GENERATOR**
 
-**Core Identity:**
-You are an experienced automotive sales professional. You're knowledgeable, direct, and genuinely helpful - not a pushy salesperson. You talk like a real person who knows cars and understands that buying one is a big decision.
+**MISSION: You are a TRANSLATOR, not a template filler. Your job is to convert marketing speak into genuine human conversation.**
 
-**Communication Style:**
-- **Be real.** Talk like you would to a friend who's asking for car advice
-- **Be direct.** No fluff, no corporate speak, no "I hope this email finds you well"
-- **Be helpful.** Your job is to figure out what they actually need and point them in the right direction
-- **Be conversational.** Short sentences. Natural flow. Like you're texting a friend
+**STEP 1: MARKETING SPEAK FILTER**
+When you receive raw offer details, you MUST filter them through authenticity:
 
-**How You Engage:**
+❌ **NEVER copy-paste raw marketing data**
+❌ **NEVER use**: "biggest sale of the year, weekend only, 0% interest, 0 down for all new cars, free car giveaway for all test drives"
+✅ **INSTEAD translate to**: "We've got a big sale this weekend. The 0% financing is solid, but most of the other stuff is just marketing noise."
 
-*Initial Contact:*
-"Hey {firstName} - saw you're looking at [vehicle type]. What's driving the search? New job, family changes, or just ready for something different?"
+❌ **NEVER use corporate speak**: "We're excited to help you find the perfect vehicle solution"
+✅ **INSTEAD use real talk**: "What's driving the search right now?"
 
-*Follow-up Style:*
-- Ask one simple question at a time
-- Actually listen to their answers
-- Build on what they tell you
-- Don't jump straight to selling
+**STEP 2: AUTHENTICITY RULES**
+- **Filter out hype**: "Free car giveaway" = marketing noise, don't mention it
+- **Focus on value**: "0% interest" = real money savings, worth mentioning
+- **Add context**: "Most sales events are just noise, but..."
+- **Build trust**: "No pressure either way"
 
-*Examples of Real Talk:*
-- "Most people in your situation go with X, but honestly Y might be better for you because..."
-- "That's a solid choice. Have you thought about..."
-- "Quick question - what's your current car doing that's bugging you?"
-- "Makes sense. Let me ask you this..."
+**STEP 3: CONVERSATION FLOW**
+Email 1: Build rapport, ask genuine questions, filter the offer
+Email 2: Address their specific needs based on their response
+Email 3: Make it easy to move forward without pressure
 
-**What You DON'T Do:**
-- Don't use marketing speak
-- Don't ask 5 questions in one message
-- Don't ignore what they just told you
-- Don't sound like a robot
-- Don't be overly enthusiastic about everything
+**EXAMPLES OF AUTHENTIC TRANSLATION:**
 
-**Your Goal:**
-Have a normal conversation that helps them figure out what they actually want. If they're ready to move forward, make it easy. If they're not, give them something useful and stay in touch.
+❌ **ROBOTIC**: "Saw you're looking at biggest sale of the year, weekend only, 0% interest, 0 down for all new cars, free car giveaway for all test drives"
+✅ **AUTHENTIC**: "Saw you were looking for a new car. Just a heads-up, we've got a big sale event this weekend. Honestly, most of the noise is just marketing, but the 0% interest offer is the real deal."
 
-**Background Intelligence (Silent):**
-While talking naturally, note:
-- What they actually care about (not what they say they should care about)
-- How they communicate (formal, casual, detailed, brief)
-- What's motivating this purchase
-- Any personal details that matter
+❌ **ROBOTIC**: "I can help you figure out what makes sense for your situation"
+✅ **AUTHENTIC**: "What's driving the search right now? Just curious if you're looking for something specific."
+
+❌ **ROBOTIC**: "Based on what you're looking for, I've got some vehicles that might work"
+✅ **AUTHENTIC**: "Quick question - what's your current car doing that's bugging you? Knowing that helps me narrow down which ones are actually an upgrade."
+
+**QUALITY VALIDATION:**
+Before generating, ask yourself:
+1. Does this sound like a real person talking to a friend?
+2. Did I filter out marketing hype?
+3. Am I building rapport before selling?
+4. Would I trust this person if I received this email?
 
 **Technical Requirements:**
 - 75-150 words per email for optimal engagement
 - MUST include placeholders {firstName} and {agentName}
 - Use [CTA text](URL) format for links
 - NO asterisks (*) - use dashes (-) for bullet points, CAPS or "quotes" for emphasis
-
-Keep it simple. Keep it real. Help them out.
 - NEVER use asterisks (*) for formatting - use dashes (-) for bullet points`;
 
     const userPrompt = `TASK: Create a sophisticated 5-email automotive dealership sales sequence that demonstrates expert-level understanding of automotive sales psychology and customer journey.
@@ -160,12 +156,15 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : cleanJson;
       
       const sequence = JSON.parse(jsonStr);
-      
+
       if (!Array.isArray(sequence) || sequence.length !== 5) {
         throw new Error('Invalid sequence structure');
       }
-      
-      return sequence.map((email: any, i: number) => ({
+
+      // QUALITY VALIDATION: Check and fix authenticity issues
+      const validatedSequence = this.validateAndFixSequence(sequence, details);
+
+      return validatedSequence.map((email: any, i: number) => ({
         subject: email.subject || `Email ${i + 1}`,
         body: email.body || 'Template content',
         order: i + 1
@@ -178,30 +177,39 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
   }
 
   private generateFallbackSequence(details: any): Array<{subject: string; body: string; order: number}> {
-    const product = details.product || 'vehicle financing';
+    // AUTHENTIC FILTERING: Convert marketing speak to real conversation
+    const rawProduct = details.product || 'vehicle financing';
     const cta = details.primaryCTA || 'Schedule Test Drive';
     const url = details.CTAurl || '#';
 
-    // Straight-talking automotive sales approach
+    // FILTER: Extract genuine value from marketing speak
+    const hasZeroPercent = rawProduct.includes('0%') || details.benefits?.includes('0% interest');
+    const hasZeroDown = rawProduct.includes('0 down') || details.benefits?.includes('0 down payment');
+    const isWeekendSale = rawProduct.includes('weekend') || details.urgency?.includes('weekend');
+
+    // TRANSLATE: Convert to authentic language
+    const genuineOffer = hasZeroPercent ? '0% financing' : 'financing';
+    const timeframe = isWeekendSale ? 'this weekend' : 'right now';
+
     return [
       {
-        subject: `Quick question about your car search`,
-        body: `Hey {firstName},\n\nSaw you're looking at ${product}. What's driving the search? New job, family changes, or just ready for something different?\n\nI can help you figure out what makes sense for your situation.\n\n{agentName}`,
+        subject: `Quick heads-up about ${timeframe}`,
+        body: `Hey {firstName},\n\nSaw you were looking for a new car. Just a heads-up, we've got a big sale event ${timeframe}.\n\nHonestly, most of the noise is just marketing, but the ${genuineOffer} offer is the real deal and could save you a lot.\n\nWhat's driving the search right now? Just curious if you're looking for something specific.\n\n{agentName}`,
         order: 1
       },
       {
-        subject: `Found a few options for you`,
-        body: `{firstName},\n\nBased on what you're looking for, I've got some vehicles that might work.\n\nThe ${details.benefits?.[0] || 'financing'} is solid right now. Want to take a look?\n\n{agentName}`,
+        subject: `Re: What you're looking for`,
+        body: `{firstName},\n\nGot it. Good choice, there are a ton of great options out there right now.\n\nQuick question - what's your current car doing that's bugging you? Knowing that helps me narrow down which ones are actually an upgrade for you vs. just more of the same.\n\n{agentName}`,
         order: 2
       },
       {
-        subject: `This might interest you`,
-        body: `{firstName},\n\nJust helped someone in a similar situation. They weren't sure about ${product} at first, but found exactly what they needed.\n\nWorth a conversation? [${cta}](${url})\n\n{agentName}`,
+        subject: `Re: Better options`,
+        body: `{firstName},\n\nMakes sense. A lot of people are in the same boat.\n\nBased on that, you should probably look at a couple specific models. Since the ${genuineOffer} is on ${timeframe}, it's a good time to look.\n\nI can pull a few for you if you wanted to swing by to see which one feels right. No pressure either way.\n\nLet me know what you think.\n\n{agentName}`,
         order: 3
       },
       {
-        subject: `Still looking?`,
-        body: `{firstName},\n\nStill thinking about that vehicle? No pressure, but I've got some good options on the lot right now.\n\nQuick question - what's your timeline looking like?\n\n{agentName}`,
+        subject: `Still thinking it over?`,
+        body: `{firstName},\n\nNo worries if you're still thinking it over. These decisions take time.\n\nJust wanted to check - any other questions come up that I can help with?\n\n{agentName}`,
         order: 4
       },
       {
@@ -210,6 +218,80 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
         order: 5
       }
     ];
+  }
+
+  /**
+   * QUALITY VALIDATION: Check and fix authenticity issues in generated sequences
+   */
+  private validateAndFixSequence(sequence: any[], details: any): any[] {
+    return sequence.map((email, index) => {
+      let subject = email.subject || '';
+      let body = email.body || '';
+
+      // DETECT AND FIX: Copy-pasted marketing speak
+      const rawProduct = details.product || '';
+      if (body.includes(rawProduct) && rawProduct.length > 50) {
+        // This is likely copy-pasted marketing speak - fix it
+        body = this.translateMarketingSpeak(body, details);
+        logger.warn('Fixed copy-pasted marketing speak in email', { emailIndex: index });
+      }
+
+      // DETECT AND FIX: Corporate template language
+      const corporatePatterns = [
+        'I hope this email finds you well',
+        'We\'re excited to help you find the perfect vehicle solution',
+        'Please don\'t hesitate to contact us',
+        'Thank you for your interest in our services'
+      ];
+
+      corporatePatterns.forEach(pattern => {
+        if (body.includes(pattern)) {
+          body = body.replace(pattern, this.getAuthenticAlternative(pattern));
+          logger.warn('Fixed corporate speak in email', { emailIndex: index, pattern });
+        }
+      });
+
+      // DETECT AND FIX: Missing conversation flow
+      if (index === 0 && !body.includes('What\'s driving') && !body.includes('what\'s your')) {
+        // First email should ask a genuine question
+        body = body.replace(/\n\n{agentName}$/, '\n\nWhat\'s driving the search right now?\n\n{agentName}');
+        logger.warn('Added genuine question to first email', { emailIndex: index });
+      }
+
+      return { ...email, subject, body };
+    });
+  }
+
+  /**
+   * Translate marketing speak into authentic language
+   */
+  private translateMarketingSpeak(text: string, details: any): string {
+    const rawProduct = details.product || '';
+
+    // Extract genuine value
+    const hasZeroPercent = rawProduct.includes('0%');
+    const isWeekendSale = rawProduct.includes('weekend');
+
+    // Replace with authentic language
+    let translated = text.replace(rawProduct,
+      `a big sale event ${isWeekendSale ? 'this weekend' : 'right now'}. Honestly, most of the noise is just marketing, but the ${hasZeroPercent ? '0% financing' : 'financing'} offer is the real deal`
+    );
+
+    return translated;
+  }
+
+  /**
+   * Get authentic alternatives to corporate speak
+   */
+  private getAuthenticAlternative(corporatePhrase: string): string {
+    const alternatives: Record<string, string> = {
+      'I hope this email finds you well': 'Hey',
+      'We\'re excited to help you find the perfect vehicle solution': 'What\'s driving the search right now?',
+      'Please don\'t hesitate to contact us': 'Let me know what you think',
+      'Thank you for your interest in our services': 'Thanks for reaching out'
+    };
+
+    return alternatives[corporatePhrase] || corporatePhrase;
   }
 
   /**
