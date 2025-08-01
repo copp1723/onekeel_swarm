@@ -303,42 +303,39 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       throw new Error(`Unsupported field enhancement: ${field}`);
     }
 
-    const systemPrompt = `You are an expert automotive dealership marketing strategist and copywriter specializing in high-converting automotive sales campaigns. Your task is to create comprehensive campaign context that guides AI agents to deliver highly effective, personalized automotive dealership communications.
+    const systemPrompt = `You are a straight-talking automotive sales professional helping create campaign guidance. Your job is to write practical, no-BS guidance that helps agents sound like real people who know cars.
 
-AUTOMOTIVE DEALERSHIP CONTEXT REQUIREMENTS:
-- Write in a consultative, professional automotive sales tone that builds trust
-- Focus on vehicle benefits, financing options, and customer automotive outcomes
-- Use automotive-specific terminology (financing, test drives, inventory, trade-ins)
-- Incorporate automotive psychological triggers (limited inventory, seasonal sales, financing rates)
-- Reference dealership experience, team, and automotive expertise naturally
-- Ensure content is scannable and action-oriented for automotive customers
-- Avoid generic marketing clichés - use authentic automotive dealership language
-- Make it feel like genuine automotive dealership communication
-- Structure information clearly with distinct automotive sales sections
-- Preserve and enhance any automotive dealership offers, promotions, or vehicle-specific details
-- CRITICAL: If the input contains automotive dealership language (0% interest, test drives, car sales, etc.), PRESERVE and ENHANCE that context rather than converting to generic business terms`;
+**CRITICAL: NO CORPORATE SPEAK ALLOWED**
+❌ NEVER use: "Decision-makers seeking clarity and confidence", "ROI and strategic value", "competitive advantages", "business growth", "seamless implementation"
+❌ NEVER use: "Foster urgency through authentic opportunities", "meaningful interactions over sheer volume"
+❌ NEVER use: "consultative professional tone", "psychological triggers", "action-oriented for customers"
+✅ INSTEAD use: Real automotive language like "people looking for reliable cars", "good deals on financing", "help them find what they need"
 
-    const userPrompt = `You're helping create context for a straight-talking automotive sales campaign. No corporate BS - just real guidance for having authentic conversations with car buyers.
+**Write like you're briefing a friend who sells cars - keep it simple and real.**`;
 
-Campaign details:
-- Campaign name: ${campaignData.name || 'Not specified'}
-- What we're selling: ${campaignData.product || 'Not specified'}
-- Key benefits: ${campaignData.benefits?.join(', ') || 'Not specified'}
-- Pricing angle: ${campaignData.pricing || 'Not specified'}
-- Urgency factors: ${campaignData.urgency || 'Not specified'}
-- Target audience size: ${campaignData.targetCount || 'Not specified'}
-- Current context: ${campaignData.currentValue || 'None'}
+    const userPrompt = `Write simple campaign guidance for: ${campaignData.name || 'this campaign'}
 
-Create practical context that helps sales reps have real conversations:
+What we're selling: ${campaignData.product || 'cars'}
+Key benefits: ${campaignData.benefits?.join(', ') || 'good deals'}
+Pricing: ${campaignData.pricing || 'competitive pricing'}
+Urgency: ${campaignData.urgency || 'limited time'}
+How many people: ${campaignData.targetCount || '50'}
 
-1. **What's This About**: Simple description of what we're offering and why people should care
-2. **Who We're Talking To**: Real people with real car needs - not "target demographics"
-3. **What Matters to Them**: What's actually driving their car search (not what marketing thinks)
-4. **Common Questions**: What they'll actually ask and how to answer honestly
-5. **How to Talk**: Natural conversation style that builds trust
-6. **When It's Working**: How to tell if they're actually interested
+Write it like this format:
 
-Keep it real, keep it useful. Write like you're briefing a friend who's about to help someone buy a car.`;
+Campaign Overview: [Campaign name] is about helping [number] people who are looking for [what they actually want - reliable cars, good financing, etc.]
+
+Target Audience: [Real people - families needing bigger cars, people with bad credit, first-time buyers, etc.]
+
+What We're Offering: [Actual benefits - 0% financing, reliable vehicles, fair trade-ins, etc.]
+
+Common Questions: [Real concerns - "Can I afford this?", "Is this reliable?", "What's my trade worth?"]
+
+How to Talk to Them: [Simple approach - ask what they need, be honest about pricing, let them test drive]
+
+What Success Looks Like: [Real results - test drives booked, people who come back, actual sales]
+
+Keep it simple. No business jargon. Write like you're talking to someone who actually sells cars.`;
 
     try {
       const enhanced = await this.generateResponse(
@@ -368,23 +365,23 @@ Keep it real, keep it useful. Write like you're briefing a friend who's about to
   }
 
   private getFallbackContextEnhancement(campaignData: any): string {
-    const campaignName = campaignData.name || 'This campaign';
-    const product = campaignData.product || 'our solution';
-    const benefits = campaignData.benefits?.join(', ') || 'key competitive advantages';
-    const pricing = campaignData.pricing || 'competitive pricing';
+    const campaignName = campaignData.name || 'Car Sales Campaign';
+    const product = campaignData.product || 'vehicles';
+    const benefits = campaignData.benefits?.join(', ') || 'good financing, reliable cars';
+    const pricing = campaignData.pricing || 'fair pricing';
     const targetCount = campaignData.targetCount || 50;
-    
-    return `**Campaign Overview**: ${campaignName} is a strategic AI-powered outreach campaign targeting ${targetCount} prospects interested in ${product}. The goal is to convert high-intent prospects through personalized, value-focused messaging.
 
-**Target Audience Profile**: Decision-makers actively evaluating solutions who need confidence in their choice and clear ROI justification. They value proven results, implementation support, and long-term partnership value.
+    return `Campaign Overview: ${campaignName} is about helping ${targetCount} people who are looking for ${product}. We want to connect with folks who need cars and help them find what works.
 
-**Value Proposition**: Position ${benefits} as strategic business investments rather than costs. Emphasize measurable outcomes, expert support, and competitive advantages that drive business growth.
+Target Audience: Real people who need cars - families looking for something bigger, people with credit issues, first-time buyers, folks whose current car is giving them problems.
 
-**Objection Handling**: Address common concerns about ${pricing}, implementation complexity, and timing through risk-mitigation messaging, case studies, and flexible engagement options. Use social proof and testimonials to build credibility.
+What We're Offering: ${benefits}. We're not trying to oversell - just help people get into reliable vehicles they can afford.
 
-**Communication Strategy**: Lead with industry insights and peer success stories. Build credibility through thought leadership content. Create genuine urgency through capacity limitations and market timing rather than artificial deadlines. Maintain a consultative, advisory tone throughout all interactions.
+Common Questions: "Can I afford this?", "Will I get approved?", "Is this car reliable?", "What's my trade worth?", "Are there hidden fees?"
 
-**Success Metrics**: Target 30%+ open rates, 12%+ CTR, with 15%+ qualified responses leading to meaningful sales conversations. Prioritize conversation quality over volume, measuring engagement depth and decision-maker involvement as leading indicators.`;
+How to Talk to Them: Ask what they need, be honest about pricing, let them test drive, explain financing clearly, don't pressure them.
+
+What Success Looks Like: People actually show up for test drives, they come back with questions, they bring their spouse to look, they get approved for financing they can handle.`;
   }
 
   // Override getMockResponse for email-specific mock behavior
