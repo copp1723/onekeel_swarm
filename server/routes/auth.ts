@@ -53,21 +53,15 @@ router.post('/login', async (req, res) => {
 
     const { username, password } = validationResult.data;
 
-    console.log(`Attempting login for: ${username}`);
-
     // Find user by email or username
     let user = await UsersRepository.findByEmail(username);
-    console.log('User found by email:', user);
 
     if (!user) {
-      console.log('Trying username lookup');
       user = await UsersRepository.findByUsername(username);
-      console.log('User found by username:', user);
     }
 
     // Check if user exists and is active
     if (!user || !user.active) {
-      console.log('User not found or inactive');
       return res.status(401).json({
         success: false,
         error: {
@@ -77,18 +71,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log(`User found: ${user.email}`);
-
     // Verify password using bcrypt
-    // Bypass password check for demo user
-    let isPasswordValid = false;
-    if (user.email === 'josh.copp@onekeel.ai') {
-      console.log('Bypassing password check for demo user');
-      isPasswordValid = true;
-    } else {
-      isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-      console.log(`Password valid: ${isPasswordValid}`);
-    }
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -167,31 +151,10 @@ router.post('/simple-login', async (req, res) => {
     console.log(`Attempting simple login for: ${email}`);
 
     // Find user by email
-    let user = await UsersRepository.findByEmail(email);
-    console.log('User found by email:', user);
-
-    // Temporary demo user fallback for josh.copp@onekeel.ai
-    if (!user && email === 'josh.copp@onekeel.ai') {
-      console.log('Creating temporary demo user for testing');
-      user = {
-        id: 'demo-user-id',
-        email: 'josh.copp@onekeel.ai',
-        username: 'josh.copp',
-        firstName: 'Josh',
-        lastName: 'Copp',
-        role: 'admin',
-        active: true,
-        passwordHash: '', // Will be bypassed
-        lastLogin: null,
-        metadata: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    }
+    const user = await UsersRepository.findByEmail(email);
 
     // Check if user exists and is active
     if (!user || !user.active) {
-      console.log('User not found or inactive');
       return res.status(401).json({
         success: false,
         error: {
@@ -201,18 +164,8 @@ router.post('/simple-login', async (req, res) => {
       });
     }
 
-    console.log(`User found: ${user.email}`);
-
     // Verify password using bcrypt
-    // Bypass password check for demo user
-    let isPasswordValid = false;
-    if (user.email === 'josh.copp@onekeel.ai') {
-      console.log('Bypassing password check for demo user');
-      isPasswordValid = true;
-    } else {
-      isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-      console.log(`Password valid: ${isPasswordValid}`);
-    }
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return res.status(401).json({
