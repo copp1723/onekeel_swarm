@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
 import { CampaignWizard } from '@/components/campaign-wizard';

@@ -19,7 +19,7 @@ import {
   Check,
   Eye,
   Sparkles,
-  Filter,
+
 } from 'lucide-react';
 
 interface Template {
