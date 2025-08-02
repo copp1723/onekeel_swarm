@@ -21,7 +21,7 @@ async function createSecureAdmin() {
   console.log('🔐 Creating secure admin user...');
   
   // Get admin credentials from environment or prompt
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@completecarloans.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@OneKeelSwarm.com';
   const adminUsername = process.env.ADMIN_USERNAME || 'admin';
   
   // Generate a secure password

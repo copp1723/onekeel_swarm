@@ -22,7 +22,7 @@ async function createAdminUsers() {
     // Admin user credentials
     const adminUsers = [
       {
-        email: 'admin@completecarloans.com',
+        email: 'admin@OneKeelSwarm.com',
         username: 'admin',
         password: 'password123',
         firstName: 'Admin',
@@ -113,7 +113,7 @@ async function createAdminUsers() {
 
     console.log('\n🎉 Admin users setup completed successfully!');
     console.log('\n📧 Login Credentials:');
-    console.log('  Email: admin@completecarloans.com');
+    console.log('  Email: admin@OneKeelSwarm.com');
     console.log('  Password: password123');
     console.log('  OR');
     console.log('  Email: josh.copp@onekeel.ai');

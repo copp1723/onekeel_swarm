@@ -104,7 +104,7 @@ CREATE INDEX IF NOT EXISTS users_username_idx ON users(username);
 -- Using proper bcrypt hash for password 'password123'
 INSERT INTO users (email, username, password_hash, first_name, last_name, role, active, created_at, updated_at)
 VALUES 
-    ('admin@completecarloans.com', 'admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('admin@OneKeelSwarm.com', 'admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('josh.copp@onekeel.ai', 'josh.copp', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Josh', 'Copp', 'admin', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (email) DO UPDATE SET
     username = EXCLUDED.username,
@@ -129,7 +129,7 @@ EOF
 echo "✅ Database schema fix completed!"
 echo ""
 echo "🔐 Login credentials:"
-echo "  Email: admin@completecarloans.com"
+echo "  Email: admin@OneKeelSwarm.com"
 echo "  Password: password123"
 echo "  OR"
 echo "  Email: josh.copp@onekeel.ai"

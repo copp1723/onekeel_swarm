@@ -59,7 +59,7 @@ async function testAuthSystem() {
     // Test 3: Valid login with real credentials
     console.log('\\n3️⃣ Testing valid login...');
     const validCredentials = {
-      username: 'admin@completecarloans.com',
+      username: 'admin@OneKeelSwarm.com',
       password: process.argv[2] || 'q1YXk*Y!-LrA&Mam' // Pass password as argument
     };
     
@@ -115,7 +115,7 @@ async function testAuthSystem() {
     console.log('\\n6️⃣ Testing invalid login...');
     try {
       await axios.post(`${API_URL}/api/auth/login`, {
-        username: 'admin@completecarloans.com',
+        username: 'admin@OneKeelSwarm.com',
         password: 'wrongpassword'
       });
       console.log('❌ FAIL: Invalid login was accepted!');

@@ -39,17 +39,17 @@ class EnhancedEmailMonitor {
     this.triggers = [
       {
         subject: 'START CAMPAIGN',
-        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@completecarloans.com',
+        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
         action: 'start_campaign'
       },
       {
         subject: 'STOP CAMPAIGN',
-        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@completecarloans.com',
+        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
         action: 'stop_campaign'
       },
       {
         subject: 'NEW LEAD',
-        from: process.env.LEAD_TRIGGER_EMAIL || 'leads@completecarloans.com',
+        from: process.env.LEAD_TRIGGER_EMAIL || 'leads@OneKeelSwarm.com',
         action: 'create_lead'
       }
     ];
@@ -246,7 +246,7 @@ class EnhancedEmailMonitor {
 
     // Skip emails from known system addresses
     const systemDomains = [
-      'completecarloans.com',
+      'OneKeelSwarm.com',
       'noreply',
       'no-reply',
       'mailer-daemon',

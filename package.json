@@ -16,6 +16,7 @@
     "start": "NODE_ENV=production node dist/index.js",
     "start:dev": "NODE_ENV=production tsx server/index.ts",
     "setup:quick": "cp .env.example .env 2>/dev/null || true",
+    "setup:dev": "./scripts/setup-dev.sh",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
@@ -34,7 +35,11 @@
     "test:with-db": "npm run test:db:setup && npm test",
     "lint": "eslint . --ext .ts,.tsx --config build-config/eslint.config.js",
     "lint:fix": "eslint . --ext .ts,.tsx --fix --config build-config/eslint.config.js",
-    "validate": "npm run lint && npm run check && npm run test:unit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "rm -rf dist/ client/dist/ coverage/ .eslintcache",
+    "clean:deps": "rm -rf node_modules/ client/node_modules/ package-lock.json client/package-lock.json",
+    "validate": "npm run lint && npm run format:check && npm run check && npm run test:unit",
     "pre-deploy": "./scripts/pre-deploy-check.sh",
     "check:env": "node scripts/validate-env.js",
     "verify-security": "tsx scripts/verify-security-implementation.ts",
@@ -43,7 +48,17 @@
     "type-check:server": "cd server && tsc --noEmit --skipLibCheck",
     "db:verify": "tsx scripts/verify-schema.ts",
     "db:fix": "tsx scripts/fix-database-schema.ts",
-    "test:db": "tsx scripts/test-db-connection.ts"
+    "test:db": "tsx scripts/test-db-connection.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -152,9 +167,12 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "glob": "^11.0.3",
+    "husky": "^9.1.6",
     "jsdom": "^26.1.0",
+    "lint-staged": "^15.2.10",
     "node-fetch": "^3.3.2",
     "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
     "supertest": "^7.1.4",
     "tailwindcss": "^3.4.17",
     "typescript": "5.6.3",

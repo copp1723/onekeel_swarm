@@ -26,7 +26,7 @@ export class CampaignOrchestrator {
         type: 'email',
         conditions: {
           emailSubject: 'START CAMPAIGN',
-          emailFrom: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@completecarloans.com'
+          emailFrom: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com'
         }
       },
       {

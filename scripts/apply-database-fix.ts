@@ -71,7 +71,7 @@ async function applyDatabaseFix() {
 
     console.log('\n🎉 Database fix completed successfully!');
     console.log('\n📧 You can now login with:');
-    console.log('  Email: admin@completecarloans.com');
+    console.log('  Email: admin@OneKeelSwarm.com');
     console.log('  Password: password123');
     console.log('  OR');
     console.log('  Email: josh.copp@onekeel.ai');

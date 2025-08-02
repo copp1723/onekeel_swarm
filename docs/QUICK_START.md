@@ -19,17 +19,20 @@ npm run setup:quick
 
 Open two terminal windows:
 
-**Terminal 1 - Backend:**
+**Option 1 - Both servers (recommended):**
 ```bash
-npm run dev:quick
+npm run dev:full
 ```
-This starts the backend server on http://localhost:5000
+This starts both backend (http://localhost:5001) and frontend (http://localhost:5173)
 
-**Terminal 2 - Frontend:**
+**Option 2 - Separate terminals:**
 ```bash
-npm run dev
+# Terminal 1 - Backend
+npm run dev:server
+
+# Terminal 2 - Frontend
+npm run dev:client
 ```
-This starts the React frontend on http://localhost:5173
 
 ### 3. Open Your Browser
 Go to http://localhost:5173 and you should see your dashboard!

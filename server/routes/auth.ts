@@ -525,10 +525,9 @@ router.post('/register', async (req, res) => {
         }
       });
     }
-    
-    const inviteData = inviteRecord.metadata as any;
+    // Parse invite data from changes column
+    const inviteData = typeof inviteRecord.changes === 'string' ? JSON.parse(inviteRecord.changes) : inviteRecord.changes;
     const expiresAt = new Date(inviteData.expiresAt);
-    
     if (expiresAt < new Date()) {
       return res.status(410).json({
         success: false,
@@ -538,7 +537,15 @@ router.post('/register', async (req, res) => {
         }
       });
     }
-    
+    if (inviteData.used) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'INVITE_ALREADY_USED',
+          message: 'This invitation has already been used.'
+        }
+      });
+    }
     // Verify email matches invite
     if (inviteData.email !== email) {
       return res.status(400).json({
@@ -549,7 +556,6 @@ router.post('/register', async (req, res) => {
         }
       });
     }
-    
     // Check if user already exists
     const existingUser = await UsersRepository.findByEmail(email);
     if (existingUser) {
@@ -561,7 +567,6 @@ router.post('/register', async (req, res) => {
         }
       });
     }
-    
     // Check if username is taken
     const existingUsername = await UsersRepository.findByUsername(username);
     if (existingUsername) {
@@ -573,10 +578,8 @@ router.post('/register', async (req, res) => {
         }
       });
     }
-    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
     // Create user
     const newUser = await UsersRepository.create({
       email,
@@ -587,21 +590,21 @@ router.post('/register', async (req, res) => {
       role,
       active: true
     });
-    
-    // Mark invite as used by deleting it
-    await db.delete(auditLogs)
+    // Mark invite as used (update audit log)
+    await db.update(auditLogs)
+      .set({ changes: JSON.stringify({ ...inviteData, used: true, usedAt: new Date().toISOString(), registeredUserId: newUser.id }) })
       .where(and(
         eq(auditLogs.action, 'user_invite'),
         eq(auditLogs.resourceId, token)
       ));
-    
     // Log registration
     await AuditLogRepository.create({
       userId: newUser.id,
       action: 'user_registered',
       resource: 'users',
       resourceId: newUser.id,
-      metadata: { invitedBy: inviteData.invitedBy }
+      changes: JSON.stringify({ inviteToken: token }),
+      createdAt: new Date()
     });
     
     res.status(201).json({

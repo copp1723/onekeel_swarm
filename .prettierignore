@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env*
+
+# Generated files
+*.d.ts
+migrations/
+drizzle/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.backup
+*.old
+cleanup-backup-*
+node_modules_backup_*

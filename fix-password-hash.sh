@@ -10,7 +10,7 @@ psql $DATABASE_URL << 'EOF'
 
 UPDATE users
 SET "passwordHash" = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
-WHERE email IN ('admin@completecarloans.com', 'josh.copp@onekeel.ai');
+WHERE email IN ('admin@OneKeelSwarm.com', 'josh.copp@onekeel.ai');
 
 -- Also create the second admin user if missing
 INSERT INTO users (email, username, "passwordHash", first_name, last_name, role, active, created_at, updated_at)
@@ -32,7 +32,7 @@ EOF
 
 echo "✅ Password hash fix completed!"
 echo "🔐 You can now login with:"
-echo "  Email: admin@completecarloans.com"
+echo "  Email: admin@OneKeelSwarm.com"
 echo "  Password: password123"
 echo "  OR"
 echo "  Email: josh.copp@onekeel.ai"

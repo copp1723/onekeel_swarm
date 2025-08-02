@@ -608,8 +608,19 @@ router.get('/:id/stats', async (req, res) => {
 });
 
 // Invite user endpoint
+const INVITE_EXPIRY_DAYS = parseInt(process.env.INVITE_EXPIRY_DAYS || '7', 10);
+
 const inviteUserSchema = z.object({
-  email: z.string().email(),
+  email: z.string()
+    .email('Please enter a valid email address')
+    .toLowerCase()
+    .refine(email => !email.includes('+'), 'Email aliases with + are not allowed')
+    .refine(email => {
+      // Block common disposable email domains
+      const disposableDomains = ['tempmail.org', '10minutemail.com', 'guerrillamail.com'];
+      const domain = email.split('@')[1];
+      return !disposableDomains.includes(domain);
+    }, 'Disposable email addresses are not allowed'),
   role: z.enum(['admin', 'manager', 'agent', 'viewer']).default('viewer')
 });
 
@@ -618,13 +629,31 @@ router.post('/invite', validateRequest({ body: inviteUserSchema }), async (req, 
     const { email, role } = req.body;
     const invitedBy = (req as any).userId; // From auth middleware
     
+    // Rate limiting: Check if user has sent too many invites recently
+    const recentInvites = await db.select()
+      .from(auditLogs)
+      .where(and(
+        eq(auditLogs.action, 'user_invite'),
+        eq(auditLogs.userId, invitedBy),
+        sql`created_at >= NOW() - INTERVAL '1 hour'`
+      ));
+    
+    if (recentInvites.length >= 5) { // Max 5 invites per hour
+      return res.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many invitations sent. Please wait before sending more.'
+        }
+      });
+    }
+    
     // Check if user already exists
     const [existingUser] = await db
       .select()
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
-    
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -634,58 +663,71 @@ router.post('/invite', validateRequest({ body: inviteUserSchema }), async (req, 
         }
       });
     }
-    
+    // Check for existing active invite
+    const invites = await db.select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'user_invite'))
+      .orderBy(auditLogs.createdAt);
+    const activeInvite = invites.find(invite => {
+      try {
+        const changes = typeof invite.changes === 'string' ? JSON.parse(invite.changes) : invite.changes;
+        return changes && changes.email === email && changes.expiresAt && new Date(changes.expiresAt) > new Date() && !changes.used;
+      } catch {
+        return false;
+      }
+    });
+    if (activeInvite) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'INVITE_EXISTS',
+          message: 'An active invitation already exists for this email.'
+        }
+      });
+    }
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString('hex');
     const inviteExpiry = new Date();
-    inviteExpiry.setDate(inviteExpiry.getDate() + 7); // 7 days expiry
-    
-    // Store invite token in metadata (temporary solution until we create invite_tokens table)
+    inviteExpiry.setDate(inviteExpiry.getDate() + INVITE_EXPIRY_DAYS);
+    // Store invite token in changes
     const inviteData = {
       token: inviteToken,
       email,
       role,
       invitedBy,
       expiresAt: inviteExpiry.toISOString(),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      used: false
     };
-    
-    // For now, we'll store the invite in audit logs as a temporary solution
     await db.insert(auditLogs).values({
-      userId: invitedBy,
       action: 'user_invite',
       resource: 'users',
       resourceId: inviteToken,
-      metadata: inviteData,
+      changes: JSON.stringify(inviteData),
       createdAt: new Date()
     });
-    
     // Generate invite link
     const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.APP_URL || 'http://localhost:5173';
     const inviteLink = `${baseUrl}/register?token=${inviteToken}`;
-    
     // Send invitation email
     await mailgunService.sendEmail({
       from: process.env.MAILGUN_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@onekeel.com',
       to: email,
-      subject: 'You\'ve been invited to OneKeel',
+      subject: `You're invited to OneKeel as a ${role}`,
       html: `
         <h2>Welcome to OneKeel!</h2>
-        <p>You've been invited to join OneKeel as a ${role}.</p>
-        <p>Click the link below to set up your account:</p>
+        <p>Hi,</p>
+        <p>You've been invited to join OneKeel as a <strong>${role}</strong> by our team.</p>
+        <p>To get started, click the link below to set up your account. If you have any questions, just reply to this email.</p>
         <p><a href="${inviteLink}" style="display: inline-block; padding: 10px 20px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 5px;">Accept Invitation</a></p>
-        <p>This invitation will expire in 7 days.</p>
-        <p>If you did not expect this invitation, please ignore this email.</p>
+        <p>This invitation will expire in ${INVITE_EXPIRY_DAYS} days.</p>
+        <p>If you did not expect this invitation, you can safely ignore this email.</p>
       `,
-      text: `Welcome to OneKeel! You've been invited to join as a ${role}. 
-      
+      text: `Welcome to OneKeel! You've been invited to join as a ${role}.
 Click this link to set up your account: ${inviteLink}
-
-This invitation will expire in 7 days.
-
-If you did not expect this invitation, please ignore this email.`
+This invitation will expire in ${INVITE_EXPIRY_DAYS} days.
+If you did not expect this invitation, you can safely ignore this email.`
     });
-    
     res.status(200).json({
       success: true,
       message: 'Invitation sent successfully'
@@ -698,6 +740,123 @@ If you did not expect this invitation, please ignore this email.`
         code: 'INVITE_ERROR',
         message: 'Failed to send invitation',
         category: 'email'
+      }
+    });
+  }
+});
+
+// Get pending invitations
+router.get('/invites/pending', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const invites = await db.select()
+      .from(auditLogs)
+      .where(eq(auditLogs.action, 'user_invite'))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(Number(limit))
+      .offset(Number(offset));
+    
+    const pendingInvites = invites
+      .map(invite => {
+        try {
+          const changes = typeof invite.changes === 'string' ? JSON.parse(invite.changes) : invite.changes;
+          return {
+            token: invite.resourceId,
+            email: changes.email,
+            role: changes.role,
+            invitedBy: changes.invitedBy,
+            createdAt: changes.createdAt,
+            expiresAt: changes.expiresAt,
+            used: changes.used || false,
+            expired: new Date(changes.expiresAt) < new Date()
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(invite => invite && !invite.used);
+    
+    res.json({
+      success: true,
+      invites: pendingInvites,
+      total: pendingInvites.length
+    });
+  } catch (error) {
+    console.error('Error fetching pending invites:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INVITES_FETCH_ERROR',
+        message: 'Failed to fetch pending invitations'
+      }
+    });
+  }
+});
+
+// Cancel/revoke an invitation
+router.delete('/invites/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const userId = (req as any).userId;
+    
+    const [invite] = await db.select()
+      .from(auditLogs)
+      .where(and(
+        eq(auditLogs.action, 'user_invite'),
+        eq(auditLogs.resourceId, token)
+      ))
+      .limit(1);
+    
+    if (!invite) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'INVITE_NOT_FOUND',
+          message: 'Invitation not found'
+        }
+      });
+    }
+    
+    const changes = typeof invite.changes === 'string' ? JSON.parse(invite.changes) : invite.changes;
+    
+    // Only allow admin or the person who sent the invite to revoke
+    if ((req as any).userRole !== 'admin' && changes.invitedBy !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You can only revoke invitations you sent'
+        }
+      });
+    }
+    
+    // Mark as revoked
+    await db.update(auditLogs)
+      .set({ 
+        changes: JSON.stringify({ 
+          ...changes, 
+          revoked: true, 
+          revokedAt: new Date().toISOString(),
+          revokedBy: userId
+        })
+      })
+      .where(and(
+        eq(auditLogs.action, 'user_invite'),
+        eq(auditLogs.resourceId, token)
+      ));
+    
+    res.json({
+      success: true,
+      message: 'Invitation revoked successfully'
+    });
+  } catch (error) {
+    console.error('Error revoking invite:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INVITE_REVOKE_ERROR',
+        message: 'Failed to revoke invitation'
       }
     });
   }
