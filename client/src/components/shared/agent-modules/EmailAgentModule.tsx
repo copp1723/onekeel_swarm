@@ -172,7 +172,7 @@ export function EmailAgentModule({ agent, onUpdate }: EmailAgentModuleProps) {
               <p className='font-medium capitalize'>
                 {typeof agent.personality === 'object' && agent.personality
                   ? agent.personality.style
-                  : agent.personality || 'Not set'}
+                  : (agent.personality as string) || 'Not set'}
               </p>
             </div>
             <div>
