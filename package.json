@@ -11,7 +11,7 @@
     "install:all": "npm ci && cd client && npm ci",
     "build": "npm ci && npm run build:client && npm run build:server",
     "build:render": "npm ci --production=false && npm run build:client && npm run build:server",
-    "build:client": "cd client && npm ci && npm run build && mkdir -p ../dist/client && cp -r dist/* ../dist/client/",
+    "build:client": "cd client && rm -rf node_modules && npm install && ./node_modules/.bin/vite build && mkdir -p ../dist/client && cp -r dist/* ../dist/client/",
     "build:server": "esbuild server/index.ts --platform=node --bundle --format=esm --outfile=dist/index.js --external:bcryptjs --external:postgres --external:drizzle-orm --external:ioredis --external:express --external:multer --external:ws --external:jsonwebtoken --external:isomorphic-dompurify --external:chalk --external:date-fns --external:form-data --external:mailgun.js --external:twilio --external:nanoid --external:crypto --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
     "start": "NODE_ENV=production node dist/index.js",
     "start:dev": "NODE_ENV=production tsx server/index.ts",

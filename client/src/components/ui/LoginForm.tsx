@@ -39,8 +39,8 @@ export const LoginForm: React.FC = () => {
     setIsSubmitting(true);
     try {
       // Use environment variables for demo credentials
-      const demoEmail = process.env.REACT_APP_DEMO_EMAIL || 'demo@example.com';
-      const demoPassword = process.env.REACT_APP_DEMO_PASSWORD || 'demo123';
+      const demoEmail = import.meta.env.VITE_DEMO_EMAIL || 'demo@example.com';
+      const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || 'demo123';
       const success = await login(demoEmail, demoPassword);
       if (!success) {
         setIsSubmitting(false);
