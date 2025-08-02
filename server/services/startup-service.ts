@@ -8,7 +8,7 @@ export class StartupService {
    * Initialize all services required for deployment
    */
   static async initialize(): Promise<void> {
-    logger.info('Starting CCL-3 SWARM services initialization...');
+    logger.info('Starting OneKeel Swarm services initialization...');
 
     const serviceResults = {
       campaignEngine: false,
@@ -44,14 +44,14 @@ export class StartupService {
     const successfulServices = Object.values(serviceResults).filter(Boolean).length;
     const totalServices = Object.keys(serviceResults).length;
     
-    logger.info(`🚀 CCL-3 SWARM services initialization completed: ${successfulServices}/${totalServices} services started`, serviceResults);
+    logger.info(`🚀 OneKeel Swarm services initialization completed: ${successfulServices}/${totalServices} services started`, serviceResults);
   }
 
   /**
    * Graceful shutdown of all services
    */
   static async shutdown(): Promise<void> {
-    logger.info('Shutting down CCL-3 SWARM services...');
+    logger.info('Shutting down OneKeel Swarm services...');
 
     try {
       // Stop campaign execution engine
@@ -66,7 +66,7 @@ export class StartupService {
       await queueManager.shutdown();
       logger.info('✅ Queue manager stopped');
 
-      logger.info('🛑 All CCL-3 SWARM services shut down successfully');
+      logger.info('🛑 All OneKeel Swarm services shut down successfully');
 
     } catch (error) {
       logger.error('❌ Error during service shutdown', {

@@ -98,7 +98,7 @@ if (config.serverMode in serverModes) {
 
 // Initialize app asynchronously
 async function initializeApp() {
-  logger.info('Starting CCL-3 Server', {
+  logger.info('Starting OneKeel Swarm Server', {
     mode: config.serverMode,
     features: config.features,
     memoryLimit: config.memoryLimit
@@ -259,7 +259,7 @@ async function initializeApp() {
       res.send(`
         <html>
           <head>
-            <title>CCL-3 Backend Server</title>
+            <title>OneKeel Swarm Backend Server</title>
             <style>
               body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
               .error { background: #fee; border: 1px solid #fcc; padding: 20px; border-radius: 5px; }
@@ -295,7 +295,7 @@ async function initializeApp() {
   // Start server
   server.listen(config.port, async () => {
     const mem = process.memoryUsage();
-    logger.info(`CCL-3 Server started on port ${config.port}`, {
+    logger.info(`OneKeel Swarm Server started on port ${config.port}`, {
       environment: config.nodeEnv,
       memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
       features: config.features

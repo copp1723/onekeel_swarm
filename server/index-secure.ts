@@ -88,7 +88,7 @@ if (config.serverMode === 'minimal') {
   };
 }
 
-logger.info('Starting Secure CCL-3 Server', {
+logger.info('Starting Secure OneKeel Swarm Server', {
   mode: config.serverMode,
   features: config.features,
   memoryLimit: config.memoryLimit,
@@ -200,7 +200,7 @@ if (config.nodeEnv === 'production') {
     res.send(`
       <html>
         <head>
-          <title>CCL-3 Backend Server</title>
+          <title>OneKeel Swarm Backend Server</title>
           <style>
             body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
             .error { background: #fee; border: 1px solid #fcc; padding: 20px; border-radius: 5px; }
@@ -245,7 +245,7 @@ applyErrorHandlers(app);
 // Start server
 server.listen(config.port, async () => {
   const mem = process.memoryUsage();
-  logger.info(`Secure CCL-3 Server started on port ${config.port}`, {
+  logger.info(`Secure OneKeel Swarm Server started on port ${config.port}`, {
     environment: config.nodeEnv,
     memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
     features: config.features,

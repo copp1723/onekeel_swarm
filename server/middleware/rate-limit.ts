@@ -1,4 +1,4 @@
-// Mean & Lean Rate Limiting Middleware for CCL-3
+// Mean & Lean Rate Limiting Middleware for OneKeel Swarm
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 
