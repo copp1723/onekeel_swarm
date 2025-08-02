@@ -9,7 +9,7 @@
     "dev:server": "NODE_ENV=development tsx server/index.ts",
     "dev:client": "cd client && npm run dev",
     "install:all": "npm ci && cd client && npm ci",
-    "build": "./build.sh",
+    "build": "./deploy-build.sh",
     "build:render": "./deploy-build.sh",
     "build:client": "cd client && npm run build",
     "build:server": "esbuild server/index.ts --platform=node --bundle --format=esm --outfile=dist/index.js --external:bcryptjs --external:postgres --external:drizzle-orm --external:ioredis --external:express --external:multer --external:ws --external:jsonwebtoken --external:isomorphic-dompurify --external:chalk --external:date-fns --external:form-data --external:mailgun.js --external:twilio --external:nanoid --external:crypto --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\"",
