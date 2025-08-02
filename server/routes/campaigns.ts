@@ -113,9 +113,12 @@ router.get('/', async (req, res) => {
       );
     }
 
-    // Execute query
+    // Execute query - select only the most basic columns
     const query = db
-      .select()
+      .select({
+        id: campaigns.id,
+        name: campaigns.name
+      })
       .from(campaigns)
       .limit(Number(limit))
       .offset(Number(offset));
@@ -157,7 +160,7 @@ router.get('/', async (req, res) => {
           completedLeads: sql<number>`count(*) filter (where completed = true)::int`
         })
         .from(leadCampaignEnrollments)
-        .where(sql`campaign_id = ANY(${sql.raw(`ARRAY[${campaignIds.map(id => `'${id}'`).join(',')}]::uuid[]`)})`)
+        .where(sql`campaign_id = ANY(${sql.raw(`ARRAY[${campaignIds.map(id => `'${id}'`).join(',')}]::text[]`)})`)
         .groupBy(leadCampaignEnrollments.campaignId);
     }
 
@@ -208,7 +211,10 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     
     const [campaign] = await db
-      .select()
+      .select({
+        id: campaigns.id,
+        name: campaigns.name
+      })
       .from(campaigns)
       .where(eq(campaigns.id, id))
       .limit(1);
@@ -274,7 +280,12 @@ router.post('/', validateRequest({ body: createCampaignSchema }), async (req, re
     const [newCampaign] = await db
       .insert(campaigns)
       .values({
-        ...campaignDataWithoutDesc,
+        name: campaignData.name,
+        type: campaignData.type || 'drip',
+        targetCriteria: campaignData.targetCriteria || {},
+        settings: campaignData.settings || {},
+        startDate: campaignData.startDate ? new Date(campaignData.startDate) : null,
+        endDate: campaignData.endDate ? new Date(campaignData.endDate) : null,
         active: true,
         createdAt: new Date(),
         updatedAt: new Date()

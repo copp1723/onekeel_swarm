@@ -66,7 +66,7 @@ export class ExecutionProcessor {
     // Get lead email from rendered content or fetch from database
     const leadData = await this.getLeadEmail(execution.leadId);
     
-    await queueManager.addJob('email', 'email_send', {
+    await queueManager.addJob('email', {
       to: leadData.email,
       subject: renderedContent.subject,
       html: renderedContent.html,
@@ -74,7 +74,7 @@ export class ExecutionProcessor {
       leadId: execution.leadId,
       campaignId: execution.campaignId,
       templateId: execution.templateId
-    }, 1);
+    }, { priority: 1 });
 
     logger.debug('Email queued for sending', {
       executionId: execution.id,

@@ -1,5 +1,4 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import { MailgunService } from '../services/email/providers/mailgun';
 import { logger } from '../utils/logger';
 
 export class EmailAgent extends BaseAgent {
@@ -158,7 +157,6 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
 
     // FILTER: Extract genuine value from marketing speak
     const hasZeroPercent = rawProduct.includes('0%') || details.benefits?.includes('0% interest');
-    const hasZeroDown = rawProduct.includes('0 down') || details.benefits?.includes('0 down payment');
     const isWeekendSale = rawProduct.includes('weekend') || details.urgency?.includes('weekend');
 
     // TRANSLATE: Convert to authentic language
@@ -272,44 +270,46 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
    * Enhance campaign context with sophisticated AI-generated content
    */
   async enhanceCampaignField(field: string, campaignData: any): Promise<string> {
-    // Only handle context field now since we simplified the UI
     if (field !== 'context') {
       throw new Error(`Unsupported field enhancement: ${field}`);
     }
 
-    const systemPrompt = `You are a straight-talking automotive sales professional helping create campaign guidance. Your job is to write practical, no-BS guidance that helps agents sound like real people who know cars.
+    const systemPrompt = `You are a friendly, professional, empathetic automotive sales expert. Your job is to enhance campaign context with clear, actionable guidance that helps agents create authentic, engaging email templates.
 
-**CRITICAL: NO CORPORATE SPEAK ALLOWED**
-❌ NEVER use: "Decision-makers seeking clarity and confidence", "ROI and strategic value", "competitive advantages", "business growth", "seamless implementation"
-❌ NEVER use: "Foster urgency through authentic opportunities", "meaningful interactions over sheer volume"
-❌ NEVER use: "consultative professional tone", "psychological triggers", "action-oriented for customers"
-✅ INSTEAD use: Real automotive language like "people looking for reliable cars", "good deals on financing", "help them find what they need"
+**Tone and Style:**
+- Friendly and professional
+- Empathetic but goal-oriented
+- Conversational and authentic
 
-**Write like you're briefing a friend who sells cars - keep it simple and real.**`;
+**Enhancement Rules:**
+1. Avoid corporate speak (e.g., "strategic value" or "ROI").
+2. Use simple, direct language that resonates with real people.
+3. Focus on building rapport and reducing buyer hesitation.
+4. Highlight urgency, accessibility, and exclusivity in messaging.
 
-    const userPrompt = `Write simple campaign guidance for: ${campaignData.name || 'this campaign'}
+**Output Format:**
+- Campaign Overview: [Brief summary of the campaign goals and audience]
+- Target Audience: [Who the campaign is for, e.g., first-time buyers, deal-motivated customers]
+- Key Offers: [Promotions, benefits, and pricing details]
+- Messaging Focus: [Urgency, accessibility, exclusivity]
+- Tone: [Energetic, action-oriented, conversational]
 
-What we're selling: ${campaignData.product || 'cars'}
+Write like you’re briefing a friend who sells cars. Keep it simple and real.`;
+
+    const userPrompt = `Enhance the campaign context for: ${campaignData.name || 'this campaign'}
+
+What we’re selling: ${campaignData.product || 'cars'}
 Key benefits: ${campaignData.benefits?.join(', ') || 'good deals'}
 Pricing: ${campaignData.pricing || 'competitive pricing'}
 Urgency: ${campaignData.urgency || 'limited time'}
-How many people: ${campaignData.targetCount || '50'}
+Target audience: ${campaignData.targetAudience || 'deal-motivated buyers'}
 
 Write it like this format:
-
-Campaign Overview: [Campaign name] is about helping [number] people who are looking for [what they actually want - reliable cars, good financing, etc.]
-
-Target Audience: [Real people - families needing bigger cars, people with bad credit, first-time buyers, etc.]
-
-What We're Offering: [Actual benefits - 0% financing, reliable vehicles, fair trade-ins, etc.]
-
-Common Questions: [Real concerns - "Can I afford this?", "Is this reliable?", "What's my trade worth?"]
-
-How to Talk to Them: [Simple approach - ask what they need, be honest about pricing, let them test drive]
-
-What Success Looks Like: [Real results - test drives booked, people who come back, actual sales]
-
-Keep it simple. No business jargon. Write like you're talking to someone who actually sells cars.`;
+- Campaign Overview: [Brief summary]
+- Target Audience: [Who it’s for]
+- Key Offers: [Promotions and benefits]
+- Messaging Focus: [Urgency, accessibility, exclusivity]
+- Tone: [Energetic, action-oriented, conversational]`;
 
     try {
       const enhanced = await this.generateResponse(
@@ -321,7 +321,6 @@ Keep it simple. No business jargon. Write like you're talking to someone who act
           metadata: { campaignName: campaignData.name }
         },
         {
-          // Force GPT-4o for sophisticated context enhancement
           model: 'openai/gpt-4o',
           requiresReasoning: true,
           businessCritical: true,
@@ -333,7 +332,6 @@ Keep it simple. No business jargon. Write like you're talking to someone who act
       return enhanced.trim();
     } catch (error) {
       console.error('Failed to enhance campaign context with AI', error);
-      // Return fallback enhancement
       return this.getFallbackContextEnhancement(campaignData);
     }
   }
@@ -342,7 +340,6 @@ Keep it simple. No business jargon. Write like you're talking to someone who act
     const campaignName = campaignData.name || 'Car Sales Campaign';
     const product = campaignData.product || 'vehicles';
     const benefits = campaignData.benefits?.join(', ') || 'good financing, reliable cars';
-    const pricing = campaignData.pricing || 'fair pricing';
     const targetCount = campaignData.targetCount || 50;
 
     return `Campaign Overview: ${campaignName} is about helping ${targetCount} people who are looking for ${product}. We want to connect with folks who need cars and help them find what works.
@@ -480,7 +477,7 @@ Response Format: Return ONLY valid JSON with "type": "sales_response" and your e
     };
   }
 
-  async sendEmail(to: string, subject: string, text: string, html?: string): Promise<any> {
+  async sendEmail(to: string, subject: string): Promise<any> {
     try {
       // For now, always use mock response since MailgunService implementation is incomplete
       logger.info('Email agent simulated send - using mock implementation', { to, subject });

@@ -75,9 +75,8 @@ export class ExecutionScheduler {
       // Add to queue for processing
       await queueManager.addJob(
         'campaign-execution',
-        'execute_campaign_step',
         { executionId },
-        1 // Normal priority
+        { priority: 1 }
       );
 
       // Increment delay for next template (24 hours default)

@@ -125,14 +125,46 @@ export class QueueManager {
       case 'campaign':
         await this.processCampaignJob(job.data);
         break;
+      case 'campaign-execution':
+        await this.processCampaignExecutionJob(job.data);
+        break;
       default:
         logger.warn('Unknown job type', { jobId: job.id, type: job.type });
     }
   }
 
   private async processEmailJob(data: any): Promise<void> {
-    // Email processing logic would go here
     logger.info('Processing email job', { data });
+
+    try {
+      // Import mailgun service
+      const { mailgunService } = await import('../services/email/mailgun');
+
+      // Send email using mailgun service
+      const result = await mailgunService.sendEmail({
+        to: data.to,
+        subject: data.subject,
+        html: data.html,
+        text: data.text,
+        from: data.from
+      });
+
+      if (result.success) {
+        logger.info('Email sent successfully', {
+          to: data.to,
+          subject: data.subject,
+          messageId: result.messageId
+        });
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
+    } catch (error) {
+      logger.error('Failed to process email job', {
+        error: (error as Error).message,
+        data
+      });
+      throw error;
+    }
   }
 
   private async processLeadJob(data: any): Promise<void> {
@@ -143,6 +175,33 @@ export class QueueManager {
   private async processCampaignJob(data: any): Promise<void> {
     // Campaign processing logic would go here
     logger.info('Processing campaign job', { data });
+  }
+
+  private async processCampaignExecutionJob(data: any): Promise<void> {
+    logger.info('Processing campaign execution job', { data });
+
+    try {
+      // Import execution processor and storage
+      const { executionProcessor } = await import('../services/campaign-execution/ExecutionProcessor');
+      const { executionStorage } = await import('../services/campaign-execution/ExecutionStorage');
+
+      // Get the execution from storage
+      const execution = executionStorage.get(data.executionId);
+      if (!execution) {
+        throw new Error(`Execution not found: ${data.executionId}`);
+      }
+
+      // Process the execution
+      await executionProcessor.processExecution(execution);
+
+      logger.info('Campaign execution processed successfully', { executionId: data.executionId });
+    } catch (error) {
+      logger.error('Failed to process campaign execution job', {
+        error: (error as Error).message,
+        data
+      });
+      throw error;
+    }
   }
 
   async shutdown(): Promise<void> {

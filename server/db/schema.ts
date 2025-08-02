@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, uuid, varchar, serial, pgEnum, index, primaryKey } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ============================================
 // ENUMS
@@ -150,22 +150,22 @@ export const agentTemplates = pgTable('agent_templates', {
 
 // Leads table - core business entity
 export const leads = pgTable('leads', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
   // Basic Info
   firstName: varchar('first_name', { length: 255 }),
   lastName: varchar('last_name', { length: 255 }),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 20 }),
-  
+
   // Lead Details
   source: varchar('source', { length: 100 }).notNull().default('website'),
   status: leadStatusEnum('status').default('new').notNull(),
   qualificationScore: integer('qualification_score').default(0),
   assignedChannel: channelEnum('assigned_channel'),
-  
+
   // External integrations
   boberdooId: varchar('boberdoo_id', { length: 255 }),
-  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  campaignId: text('campaign_id').references(() => campaigns.id),
   
   // Financial Info
   creditScore: integer('credit_score'),
@@ -196,19 +196,19 @@ export const leads = pgTable('leads', {
 
 // Campaigns table
 export const campaigns = pgTable('campaigns', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   type: campaignTypeEnum('type').default('drip').notNull(),
   status: campaignStatusEnum('status').default('draft').notNull(),
   active: boolean('active').default(true).notNull(), // Keep for backward compatibility
-  
+
   // Targeting
   targetCriteria: jsonb('target_criteria').default({}),
-  
+
   // Configuration
   settings: jsonb('settings').default({}),
-  
+
   // Timestamps
   startDate: timestamp('start_date'),
   endDate: timestamp('end_date'),
@@ -224,9 +224,9 @@ export const campaigns = pgTable('campaigns', {
 
 // Communications table - all interactions with leads
 export const communications = pgTable('communications', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  leadId: uuid('lead_id').notNull().references(() => leads.id),
-  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+  leadId: text('lead_id').notNull().references(() => leads.id),
+  campaignId: text('campaign_id').references(() => campaigns.id),
   
   // Communication Details
   channel: channelEnum('channel').notNull(),
@@ -292,8 +292,8 @@ export const templates = pgTable('templates', {
 
 // Campaign Steps - for multi-step campaigns
 export const campaignSteps = pgTable('campaign_steps', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+  campaignId: text('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
   templateId: uuid('template_id').notNull().references(() => templates.id),
   
   // Step Configuration
@@ -315,17 +315,17 @@ export const campaignSteps = pgTable('campaign_steps', {
 
 // Lead Campaign Enrollments
 export const leadCampaignEnrollments = pgTable('lead_campaign_enrollments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  leadId: uuid('lead_id').notNull().references(() => leads.id),
-  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id),
-  
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+  leadId: text('lead_id').notNull().references(() => leads.id),
+  campaignId: text('campaign_id').notNull().references(() => campaigns.id),
+
   // Progress
   currentStep: integer('current_step').default(0),
   completed: boolean('completed').default(false).notNull(),
-  
+
   // Status
   status: varchar('status', { length: 50 }).default('active').notNull(), // active, paused, completed, stopped
-  
+
   // Timestamps
   enrolledAt: timestamp('enrolled_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
