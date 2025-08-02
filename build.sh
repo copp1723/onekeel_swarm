@@ -5,6 +5,9 @@ set -e
 
 echo "🚀 Starting build process..."
 
+# Set production environment to skip dev tools
+export NODE_ENV=production
+
 # Install dependencies
 echo "📦 Installing dependencies..."
 npm ci

@@ -48,17 +48,7 @@
     "type-check:server": "cd server && tsc --noEmit --skipLibCheck",
     "db:verify": "tsx scripts/verify-schema.ts",
     "db:fix": "tsx scripts/fix-database-schema.ts",
-    "test:db": "tsx scripts/test-db-connection.ts",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
+    "test:db": "tsx scripts/test-db-connection.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -167,9 +157,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "glob": "^11.0.3",
-    "husky": "^9.1.6",
     "jsdom": "^26.1.0",
-    "lint-staged": "^15.2.10",
     "node-fetch": "^3.3.2",
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
