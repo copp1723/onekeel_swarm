@@ -29,8 +29,8 @@ export function WorkflowBuilder() {
         type === 'delay'
           ? { days: 1 }
           : type === 'if_condition'
-          ? { condition: 'opened_email', value: '' }
-          : { templateId: '' },
+            ? { condition: 'opened_email', value: '' }
+            : { templateId: '' },
     };
     setNodes(currentNodes => [...currentNodes, newNode]);
   };
@@ -41,34 +41,35 @@ export function WorkflowBuilder() {
         <CardTitle>Visual Workflow Builder</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className='space-y-4'>
           {nodes.map((node, index) => (
             <React.Fragment key={node.id}>
-              <Card className="p-4">
+              <Card className='p-4'>
                 {/* Node-specific configuration would go here */}
                 <p>
-                  {node.type.replace('_', ' ')}: {JSON.stringify(node.properties)}
+                  {node.type.replace('_', ' ')}:{' '}
+                  {JSON.stringify(node.properties)}
                 </p>
               </Card>
               {index < nodes.length && (
-                <div className="flex justify-center">
-                  <ArrowDown className="h-6 w-6 text-gray-400" />
+                <div className='flex justify-center'>
+                  <ArrowDown className='h-6 w-6 text-gray-400' />
                 </div>
               )}
             </React.Fragment>
           ))}
           <Select onValueChange={addNode}>
             <SelectTrigger>
-              <SelectValue placeholder="Add new step..." />
+              <SelectValue placeholder='Add new step...' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="send_email">Send Email</SelectItem>
-              <SelectItem value="delay">Delay</SelectItem>
-              <SelectItem value="if_condition">If/Else Condition</SelectItem>
+              <SelectItem value='send_email'>Send Email</SelectItem>
+              <SelectItem value='delay'>Delay</SelectItem>
+              <SelectItem value='if_condition'>If/Else Condition</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button className="mt-6">Save Workflow</Button>
+        <Button className='mt-6'>Save Workflow</Button>
       </CardContent>
     </Card>
   );

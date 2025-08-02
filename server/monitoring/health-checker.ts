@@ -1,6 +1,6 @@
 /**
  * Health Checker Component
- * 
+ *
  * Provides comprehensive health checking capabilities that integrate with
  * existing health infrastructure and schema validation systems.
  */
@@ -55,7 +55,9 @@ export class HealthChecker {
   /**
    * Perform comprehensive system health check
    */
-  async checkSystemHealth(options: HealthCheckOptions = {}): Promise<SystemHealthStatus> {
+  async checkSystemHealth(
+    options: HealthCheckOptions = {}
+  ): Promise<SystemHealthStatus> {
     const startTime = Date.now();
     const recommendations: string[] = [];
 
@@ -68,26 +70,35 @@ export class HealthChecker {
       this.checkSchemaValidation(options),
       this.checkExternalServices(options),
       this.checkMemory(options),
-      this.checkWebSocket(options)
+      this.checkWebSocket(options),
     ]);
 
     // Process results
-    const [database, redis, schema, services, memory, websocket] = healthChecks.map(
-      (result, index) => {
+    const [database, redis, schema, services, memory, websocket] =
+      healthChecks.map((result, index) => {
         if (result.status === 'fulfilled') {
           return result.value;
         } else {
-          const checkNames = ['database', 'redis', 'schema', 'services', 'memory', 'websocket'];
-          logger.error(`Health check failed for ${checkNames[index]}:`, result.reason);
+          const checkNames = [
+            'database',
+            'redis',
+            'schema',
+            'services',
+            'memory',
+            'websocket',
+          ];
+          logger.error(
+            `Health check failed for ${checkNames[index]}:`,
+            result.reason
+          );
           return {
             status: 'unhealthy' as const,
             timestamp: new Date().toISOString(),
             responseTime: 0,
-            error: result.reason?.message || 'Health check failed'
+            error: result.reason?.message || 'Health check failed',
           };
         }
-      }
-    );
+      });
 
     // Calculate summary
     const checks = { database, redis, schema, services, memory, websocket };
@@ -95,13 +106,17 @@ export class HealthChecker {
 
     // Generate recommendations
     if (summary.unhealthy > 0) {
-      recommendations.push('Critical systems are unhealthy - immediate attention required');
+      recommendations.push(
+        'Critical systems are unhealthy - immediate attention required'
+      );
     }
     if (summary.degraded > 0) {
       recommendations.push('Some systems are degraded - monitor closely');
     }
     if (memory.status !== 'healthy') {
-      recommendations.push('Memory usage is high - consider scaling or optimization');
+      recommendations.push(
+        'Memory usage is high - consider scaling or optimization'
+      );
     }
 
     // Determine overall status
@@ -115,13 +130,13 @@ export class HealthChecker {
       environment: process.env.NODE_ENV || 'development',
       checks,
       summary,
-      recommendations
+      recommendations,
     };
 
     logger.info('Health check completed', {
       status: overallStatus,
       duration: Date.now() - startTime,
-      summary
+      summary,
     });
 
     return healthStatus;
@@ -130,14 +145,16 @@ export class HealthChecker {
   /**
    * Check database health and connectivity
    */
-  async checkDatabase(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkDatabase(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // Basic connectivity test
       await Promise.race([
         db.execute(sql`SELECT 1 as health_check`),
-        this.createTimeout(options.timeout || this.defaultTimeout)
+        this.createTimeout(options.timeout || this.defaultTimeout),
       ]);
 
       // Additional checks if details requested
@@ -156,14 +173,15 @@ export class HealthChecker {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details
+        details,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Database connection failed'
+        error:
+          error instanceof Error ? error.message : 'Database connection failed',
       };
     }
   }
@@ -171,14 +189,16 @@ export class HealthChecker {
   /**
    * Check Redis health and connectivity
    */
-  async checkRedis(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkRedis(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // Test Redis connectivity
       await Promise.race([
         redis.ping(),
-        this.createTimeout(options.timeout || this.defaultTimeout)
+        this.createTimeout(options.timeout || this.defaultTimeout),
       ]);
 
       let details = {};
@@ -191,14 +211,15 @@ export class HealthChecker {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details
+        details,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Redis connection failed'
+        error:
+          error instanceof Error ? error.message : 'Redis connection failed',
       };
     }
   }
@@ -206,30 +227,33 @@ export class HealthChecker {
   /**
    * Check schema validation status
    */
-  async checkSchemaValidation(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkSchemaValidation(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // Run schema validation
       const validationResult = await Promise.race([
         schemaValidator.validateAll(),
-        this.createTimeout(options.timeout || this.defaultTimeout)
+        this.createTimeout(options.timeout || this.defaultTimeout),
       ]);
 
       const status = validationResult.isValid ? 'healthy' : 'degraded';
-      
+
       return {
         status,
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details: options.includeDetails ? validationResult : undefined
+        details: options.includeDetails ? validationResult : undefined,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Schema validation failed'
+        error:
+          error instanceof Error ? error.message : 'Schema validation failed',
       };
     }
   }
@@ -237,29 +261,36 @@ export class HealthChecker {
   /**
    * Check external services health
    */
-  async checkExternalServices(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkExternalServices(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       const serviceHealth = await Promise.race([
         serviceMonitor.checkAllServices(),
-        this.createTimeout(options.timeout || this.defaultTimeout)
+        this.createTimeout(options.timeout || this.defaultTimeout),
       ]);
 
       const status = serviceHealth.status;
-      
+
       return {
         status,
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details: options.includeDetails ? serviceHealth : { summary: serviceHealth.summary }
+        details: options.includeDetails
+          ? serviceHealth
+          : { summary: serviceHealth.summary },
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'External services check failed'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'External services check failed',
       };
     }
   }
@@ -267,14 +298,18 @@ export class HealthChecker {
   /**
    * Check memory usage and system resources
    */
-  async checkMemory(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkMemory(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       const memoryUsage = process.memoryUsage();
       const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
       const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
-      const heapUsagePercent = Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100);
+      const heapUsagePercent = Math.round(
+        (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100
+      );
 
       let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
       if (heapUsagePercent > 90) {
@@ -287,20 +322,22 @@ export class HealthChecker {
         status,
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details: options.includeDetails ? {
-          heapUsed: heapUsedMB,
-          heapTotal: heapTotalMB,
-          heapUsagePercent,
-          rss: Math.round(memoryUsage.rss / 1024 / 1024),
-          external: Math.round(memoryUsage.external / 1024 / 1024)
-        } : { heapUsagePercent }
+        details: options.includeDetails
+          ? {
+              heapUsed: heapUsedMB,
+              heapTotal: heapTotalMB,
+              heapUsagePercent,
+              rss: Math.round(memoryUsage.rss / 1024 / 1024),
+              external: Math.round(memoryUsage.external / 1024 / 1024),
+            }
+          : { heapUsagePercent },
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Memory check failed'
+        error: error instanceof Error ? error.message : 'Memory check failed',
       };
     }
   }
@@ -308,26 +345,29 @@ export class HealthChecker {
   /**
    * Check WebSocket server health
    */
-  async checkWebSocket(options: HealthCheckOptions = {}): Promise<HealthCheckResult> {
+  async checkWebSocket(
+    options: HealthCheckOptions = {}
+  ): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // For now, we'll check if WebSocket is enabled and return basic status
       // In a real implementation, this would check active connections, etc.
       const isEnabled = process.env.ENABLE_WEBSOCKET !== 'false';
-      
+
       return {
         status: isEnabled ? 'healthy' : 'degraded',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        details: options.includeDetails ? { enabled: isEnabled } : undefined
+        details: options.includeDetails ? { enabled: isEnabled } : undefined,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'WebSocket check failed'
+        error:
+          error instanceof Error ? error.message : 'WebSocket check failed',
       };
     }
   }
@@ -338,11 +378,16 @@ export class HealthChecker {
       total: values.length,
       healthy: values.filter(c => c.status === 'healthy').length,
       degraded: values.filter(c => c.status === 'degraded').length,
-      unhealthy: values.filter(c => c.status === 'unhealthy').length
+      unhealthy: values.filter(c => c.status === 'unhealthy').length,
     };
   }
 
-  private determineOverallStatus(summary: { healthy: number; degraded: number; unhealthy: number; total: number }): 'healthy' | 'degraded' | 'unhealthy' {
+  private determineOverallStatus(summary: {
+    healthy: number;
+    degraded: number;
+    unhealthy: number;
+    total: number;
+  }): 'healthy' | 'degraded' | 'unhealthy' {
     if (summary.unhealthy > 0) return 'unhealthy';
     if (summary.degraded > 0) return 'degraded';
     return 'healthy';
@@ -350,7 +395,10 @@ export class HealthChecker {
 
   private createTimeout(ms: number): Promise<never> {
     return new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(`Health check timeout after ${ms}ms`)), ms);
+      setTimeout(
+        () => reject(new Error(`Health check timeout after ${ms}ms`)),
+        ms
+      );
     });
   }
 }

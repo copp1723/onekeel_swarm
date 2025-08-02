@@ -14,9 +14,9 @@ interface FeatureGateProps {
 
 // Loading skeleton component
 const LoadingSkeleton: React.FC = () => (
-  <div className="animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+  <div className='animate-pulse'>
+    <div className='h-4 bg-gray-200 rounded w-3/4 mb-2'></div>
+    <div className='h-4 bg-gray-200 rounded w-1/2'></div>
   </div>
 );
 
@@ -26,31 +26,31 @@ interface UpgradePromptProps {
   onUpgrade?: () => void;
 }
 
-const UpgradePrompt: React.FC<UpgradePromptProps> = ({ 
-  text = "This feature requires an upgrade", 
-  onUpgrade 
+const UpgradePrompt: React.FC<UpgradePromptProps> = ({
+  text = 'This feature requires an upgrade',
+  onUpgrade,
 }) => (
-  <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50">
-    <div className="text-gray-600 mb-2">
-      <svg 
-        className="mx-auto h-8 w-8 text-gray-400 mb-2" 
-        fill="none" 
-        viewBox="0 0 24 24" 
-        stroke="currentColor"
+  <div className='border border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50'>
+    <div className='text-gray-600 mb-2'>
+      <svg
+        className='mx-auto h-8 w-8 text-gray-400 mb-2'
+        fill='none'
+        viewBox='0 0 24 24'
+        stroke='currentColor'
       >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" 
+        <path
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth={2}
+          d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
         />
       </svg>
-      <p className="text-sm font-medium text-gray-900">{text}</p>
+      <p className='text-sm font-medium text-gray-900'>{text}</p>
     </div>
     {onUpgrade && (
       <button
         onClick={onUpgrade}
-        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
       >
         Upgrade Now
       </button>
@@ -66,7 +66,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
   loading = <LoadingSkeleton />,
   showUpgrade = false,
   upgradeText,
-  upgradeCallback
+  upgradeCallback,
 }) => {
   const { enabled, loading: isLoading, error } = useFeatureFlag(flagKey);
 
@@ -88,12 +88,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
 
   // Show upgrade prompt if requested
   if (showUpgrade) {
-    return (
-      <UpgradePrompt 
-        text={upgradeText} 
-        onUpgrade={upgradeCallback}
-      />
-    );
+    return <UpgradePrompt text={upgradeText} onUpgrade={upgradeCallback} />;
   }
 
   // Show fallback content
@@ -112,13 +107,19 @@ export const AdminGate: React.FC<AdminGateProps> = ({
   children,
   fallback = null,
   showMessage = true,
-  message = "This feature is only available to administrators"
+  message = 'This feature is only available to administrators',
 }) => {
   return (
     <FeatureGate
-      flagKey="admin.access"
-      fallback={showMessage ? <div className="text-sm text-gray-500 italic">{message}</div> : (fallback as any)}
-      upgradeText="Admin Access Required"
+      flagKey='admin.access'
+      fallback={
+        showMessage ? (
+          <div className='text-sm text-gray-500 italic'>{message}</div>
+        ) : (
+          (fallback as any)
+        )
+      }
+      upgradeText='Admin Access Required'
       upgradeCallback={() => {}}
     >
       {children}
@@ -138,17 +139,17 @@ export const RoleBasedGate: React.FC<RoleBasedGateProps> = ({
   roles,
   children,
   fallback = null,
-  showUpgrade = false
+  showUpgrade = false,
 }) => {
   // Create a flag key based on roles
   const flagKey = `role.${roles.join('_or_')}`;
-  
+
   return (
     <FeatureGate
       flagKey={flagKey}
       fallback={fallback}
       showUpgrade={showUpgrade}
-      upgradeText="Upgrade Required"
+      upgradeText='Upgrade Required'
       upgradeCallback={() => {}}
     >
       {children}
@@ -166,11 +167,12 @@ interface EnvironmentGateProps {
 export const EnvironmentGate: React.FC<EnvironmentGateProps> = ({
   environments,
   children,
-  fallback = null
+  fallback = null,
 }) => {
-  const currentEnv = (import.meta as any).env?.VITE_ENVIRONMENT || 'development';
+  const currentEnv =
+    (import.meta as any).env?.VITE_ENVIRONMENT || 'development';
   const shouldShow = environments.includes(currentEnv as any);
-  
+
   return shouldShow ? <>{children}</> : <>{fallback}</>;
 };
 
@@ -184,13 +186,15 @@ export function withFeatureFlag<P extends object>(
     upgradeText?: string;
   } = {}
 ) {
-  const WrappedComponent: React.FC<P> = (props) => {
+  const WrappedComponent: React.FC<P> = props => {
     return (
       <FeatureGate
         flagKey={flagKey}
-        fallback={options.fallback ? <options.fallback {...props} /> : (null as any)}
+        fallback={
+          options.fallback ? <options.fallback {...props} /> : (null as any)
+        }
         showUpgrade={options.showUpgrade}
-        upgradeText={options.upgradeText || "Upgrade Required"}
+        upgradeText={options.upgradeText || 'Upgrade Required'}
         upgradeCallback={() => {}}
       >
         <Component {...props} />
@@ -214,7 +218,7 @@ export const ABTest: React.FC<ABTestProps> = ({
   flagKey,
   variantA,
   variantB,
-  fallback = null
+  fallback = null,
 }) => {
   const { enabled, loading } = useFeatureFlag(flagKey);
 
@@ -240,7 +244,7 @@ export const MultiGate: React.FC<MultiGateProps> = ({
   conditions,
   children,
   fallback = null,
-  operator = 'AND'
+  operator = 'AND',
 }) => {
   const [shouldShow, setShouldShow] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -248,11 +252,11 @@ export const MultiGate: React.FC<MultiGateProps> = ({
   React.useEffect(() => {
     const checkConditions = async () => {
       setIsLoading(true);
-      
+
       // This is a simplified implementation
       // In a real scenario, you'd want to batch these API calls
       const results = await Promise.all(
-        conditions.map(async (condition) => {
+        conditions.map(async condition => {
           // For now, just return the required value
           // This would need to be implemented with actual flag checking
           return condition.required;

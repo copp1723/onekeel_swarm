@@ -26,7 +26,7 @@ I can help you figure out what makes sense for your situation.
     category: 'welcome',
     variables: ['firstName', 'agentName'],
     isActive: true,
-    createdAt: '2024-01-01T00:00:00.000Z'
+    createdAt: '2024-01-01T00:00:00.000Z',
   },
   {
     id: 'followup-001',
@@ -42,7 +42,7 @@ The financing is solid right now. Want to take a look?
     category: 'followup',
     variables: ['firstName', 'agentName'],
     isActive: true,
-    createdAt: '2024-01-05T00:00:00.000Z'
+    createdAt: '2024-01-05T00:00:00.000Z',
   },
   {
     id: 'promotion-001',
@@ -58,12 +58,15 @@ Worth a conversation? {{offerLink}}
     category: 'promotion',
     variables: ['firstName', 'specialRate', 'offerLink', 'agentName'],
     isActive: true,
-    createdAt: '2024-01-10T00:00:00.000Z'
-  }
+    createdAt: '2024-01-10T00:00:00.000Z',
+  },
 ];
 
 // Template variable replacement utility
-export const replaceTemplateVariables = (template: string, variables: Record<string, string>): string => {
+export const replaceTemplateVariables = (
+  template: string,
+  variables: Record<string, string>
+): string => {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return variables[key] || match;
   });
@@ -73,32 +76,36 @@ export const replaceTemplateVariables = (template: string, variables: Record<str
 export const extractTemplateVariables = (content: string): string[] => {
   const matches = content.match(/\{\{(\w+)\}\}/g);
   if (!matches) return [];
-  
+
   return [...new Set(matches.map(match => match.replace(/[{}]/g, '')))];
 };
 
 // Validate template
-export const validateTemplate = (template: Partial<EmailTemplate>): { valid: boolean; errors: string[] } => {
+export const validateTemplate = (
+  template: Partial<EmailTemplate>
+): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!template.name?.trim()) errors.push('Template name is required');
   if (!template.subject?.trim()) errors.push('Template subject is required');
   if (!template.content?.trim()) errors.push('Template content is required');
-  
+
   // Check for consistent variables
   if (template.subject && template.content) {
     const subjectVars = extractTemplateVariables(template.subject);
     const contentVars = extractTemplateVariables(template.content);
     const allVars = [...new Set([...subjectVars, ...contentVars])];
-    
+
     if (template.variables && template.variables.length > 0) {
       const missingVars = allVars.filter(v => !template.variables!.includes(v));
       if (missingVars.length > 0) {
-        errors.push(`Missing variables in template definition: ${missingVars.join(', ')}`);
+        errors.push(
+          `Missing variables in template definition: ${missingVars.join(', ')}`
+        );
       }
     }
   }
-  
+
   return { valid: errors.length === 0, errors };
 };
 
@@ -106,5 +113,5 @@ export default {
   defaultEmailTemplates,
   replaceTemplateVariables,
   extractTemplateVariables,
-  validateTemplate
+  validateTemplate,
 };

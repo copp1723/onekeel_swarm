@@ -27,12 +27,11 @@ export class TwilioHealthChecker {
 
   constructor() {
     this.isConfigured = !!(
-      process.env.TWILIO_ACCOUNT_SID && 
-      process.env.TWILIO_AUTH_TOKEN
+      process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
     );
 
-    this.accountSid = process.env.TWILIO_ACCOUNT_SID || "";
-    this.phoneNumber = process.env.TWILIO_PHONE_NUMBER || "";
+    this.accountSid = process.env.TWILIO_ACCOUNT_SID || '';
+    this.phoneNumber = process.env.TWILIO_PHONE_NUMBER || '';
 
     if (this.isConfigured) {
       this.client = twilio(
@@ -52,11 +51,12 @@ export class TwilioHealthChecker {
         accountSidPresent: !!process.env.TWILIO_ACCOUNT_SID,
         authTokenPresent: !!process.env.TWILIO_AUTH_TOKEN,
         phoneNumberPresent: !!process.env.TWILIO_PHONE_NUMBER,
-      }
+      },
     };
 
     if (!this.isConfigured) {
-      status.error = "Twilio not configured - missing Account SID or Auth Token";
+      status.error =
+        'Twilio not configured - missing Account SID or Auth Token';
       return status;
     }
 
@@ -68,14 +68,14 @@ export class TwilioHealthChecker {
       const account = await twilioCircuitBreaker.execute(async () => {
         return await this.client.api.accounts(this.accountSid).fetch();
       });
-      
+
       status.connected = true;
       status.responseTime = Date.now() - startTime;
       status.details!.accountInfo = {
         friendlyName: account.friendlyName,
         status: account.status,
         type: account.type,
-        dateCreated: account.dateCreated
+        dateCreated: account.dateCreated,
       };
 
       // If phone number is configured, validate it
@@ -83,25 +83,28 @@ export class TwilioHealthChecker {
         try {
           const phoneNumberInfo = await this.client.incomingPhoneNumbers.list({
             phoneNumber: this.phoneNumber,
-            limit: 1
+            limit: 1,
           });
 
           if (phoneNumberInfo.length > 0) {
             status.details!.phoneNumberInfo = {
               friendlyName: phoneNumberInfo[0].friendlyName,
               capabilities: phoneNumberInfo[0].capabilities,
-              status: 'valid'
+              status: 'valid',
             };
           } else {
             status.details!.phoneNumberInfo = {
               status: 'not_found',
-              message: 'Phone number not found in account'
+              message: 'Phone number not found in account',
             };
           }
         } catch (phoneError) {
           status.details!.phoneNumberInfo = {
             status: 'error',
-            error: phoneError instanceof Error ? phoneError.message : 'Unknown error'
+            error:
+              phoneError instanceof Error
+                ? phoneError.message
+                : 'Unknown error',
           };
         }
       }
@@ -109,18 +112,17 @@ export class TwilioHealthChecker {
       logger.info('Twilio health check passed', {
         accountSid: this.accountSid,
         responseTime: status.responseTime,
-        accountStatus: account.status
+        accountStatus: account.status,
       });
-
     } catch (error) {
       status.connected = false;
       status.responseTime = Date.now() - startTime;
       status.error = error instanceof Error ? error.message : 'Unknown error';
-      
+
       logger.error('Twilio health check failed', {
         accountSid: this.accountSid,
         error: status.error,
-        responseTime: status.responseTime
+        responseTime: status.responseTime,
       });
     }
 
@@ -135,14 +137,14 @@ export class TwilioHealthChecker {
     if (!this.isConfigured) {
       return {
         canSend: false,
-        error: "Twilio not configured"
+        error: 'Twilio not configured',
       };
     }
 
     if (!this.phoneNumber) {
       return {
         canSend: false,
-        error: "No phone number configured"
+        error: 'No phone number configured',
       };
     }
 
@@ -152,18 +154,17 @@ export class TwilioHealthChecker {
       const testMessage = await this.client.messages.create({
         body: 'Twilio Health Check Test - Please ignore',
         from: this.phoneNumber,
-        to: '+15005550006' // Twilio's magic test number that always succeeds
+        to: '+15005550006', // Twilio's magic test number that always succeeds
       });
 
       return {
         canSend: true,
-        testMessageSid: testMessage.sid
+        testMessageSid: testMessage.sid,
       };
-
     } catch (error) {
       return {
         canSend: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -177,27 +178,33 @@ export class TwilioHealthChecker {
     const recommendations: string[] = [];
 
     if (!process.env.TWILIO_ACCOUNT_SID) {
-      issues.push("TWILIO_ACCOUNT_SID environment variable not set");
+      issues.push('TWILIO_ACCOUNT_SID environment variable not set');
     } else if (!process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
-      issues.push("TWILIO_ACCOUNT_SID appears to be invalid format (should start with 'AC')");
+      issues.push(
+        "TWILIO_ACCOUNT_SID appears to be invalid format (should start with 'AC')"
+      );
     }
 
     if (!process.env.TWILIO_AUTH_TOKEN) {
-      issues.push("TWILIO_AUTH_TOKEN environment variable not set");
+      issues.push('TWILIO_AUTH_TOKEN environment variable not set');
     } else if (process.env.TWILIO_AUTH_TOKEN.length < 32) {
-      issues.push("TWILIO_AUTH_TOKEN appears to be too short");
+      issues.push('TWILIO_AUTH_TOKEN appears to be too short');
     }
 
     if (!process.env.TWILIO_PHONE_NUMBER) {
-      recommendations.push("Consider setting TWILIO_PHONE_NUMBER for SMS sending");
+      recommendations.push(
+        'Consider setting TWILIO_PHONE_NUMBER for SMS sending'
+      );
     } else if (!process.env.TWILIO_PHONE_NUMBER.startsWith('+')) {
-      issues.push("TWILIO_PHONE_NUMBER should be in E.164 format (start with +)");
+      issues.push(
+        'TWILIO_PHONE_NUMBER should be in E.164 format (start with +)'
+      );
     }
 
     return {
       valid: issues.length === 0,
       issues,
-      recommendations
+      recommendations,
     };
   }
 
@@ -213,7 +220,7 @@ export class TwilioHealthChecker {
       configured: this.isConfigured,
       accountSid: process.env.TWILIO_ACCOUNT_SID,
       phoneNumber: process.env.TWILIO_PHONE_NUMBER,
-      hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN
+      hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
     };
   }
 }

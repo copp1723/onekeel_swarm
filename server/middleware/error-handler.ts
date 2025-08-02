@@ -9,13 +9,18 @@ export class AppError extends Error {
   code?: string;
   details?: any;
 
-  constructor(message: string, statusCode: number, code?: string, details?: any) {
+  constructor(
+    message: string,
+    statusCode: number,
+    code?: string,
+    details?: any
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
     this.code = code;
     this.details = details;
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -88,20 +93,16 @@ const logError = (error: Error, req: Request) => {
       ...(error instanceof AppError && {
         code: error.code,
         statusCode: error.statusCode,
-        details: error.details
-      })
-    }
+        details: error.details,
+      }),
+    },
   });
 };
 
 // Development error handler
-const developmentErrorHandler = (
-  error: Error,
-  req: Request,
-  res: Response
-) => {
+const developmentErrorHandler = (error: Error, req: Request, res: Response) => {
   logError(error, req);
-  
+
   if (error instanceof ZodError) {
     const validationError = fromZodError(error);
     return res.status(400).json({
@@ -110,24 +111,24 @@ const developmentErrorHandler = (
         code: 'VALIDATION_ERROR',
         message: 'Validation failed',
         details: validationError.toString(),
-        errors: error.errors
+        errors: error.errors,
       },
-      stack: error.stack
+      stack: error.stack,
     });
   }
-  
+
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({
       success: false,
       error: {
         code: error.code,
         message: error.message,
-        details: error.details
+        details: error.details,
       },
-      stack: error.stack
+      stack: error.stack,
     });
   }
-  
+
   // Database errors
   if (error.message.includes('duplicate key')) {
     return res.status(409).json({
@@ -135,44 +136,40 @@ const developmentErrorHandler = (
       error: {
         code: 'DUPLICATE_ENTRY',
         message: 'Resource already exists',
-        details: error.message
+        details: error.message,
       },
-      stack: error.stack
+      stack: error.stack,
     });
   }
-  
+
   if (error.message.includes('foreign key constraint')) {
     return res.status(409).json({
       success: false,
       error: {
         code: 'FOREIGN_KEY_VIOLATION',
         message: 'Cannot perform operation due to related data',
-        details: error.message
+        details: error.message,
       },
-      stack: error.stack
+      stack: error.stack,
     });
   }
-  
+
   // Default error
   return res.status(500).json({
     success: false,
     error: {
       code: 'INTERNAL_SERVER_ERROR',
       message: error.message || 'An unexpected error occurred',
-      name: error.name
+      name: error.name,
     },
-    stack: error.stack
+    stack: error.stack,
   });
 };
 
 // Production error handler
-const productionErrorHandler = (
-  error: Error,
-  req: Request,
-  res: Response
-) => {
+const productionErrorHandler = (error: Error, req: Request, res: Response) => {
   logError(error, req);
-  
+
   if (error instanceof ZodError) {
     const validationError = fromZodError(error);
     return res.status(400).json({
@@ -180,50 +177,50 @@ const productionErrorHandler = (
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Validation failed',
-        details: validationError.toString()
-      }
+        details: validationError.toString(),
+      },
     });
   }
-  
+
   if (error instanceof AppError && error.isOperational) {
     return res.status(error.statusCode).json({
       success: false,
       error: {
         code: error.code,
         message: error.message,
-        details: error.details
-      }
+        details: error.details,
+      },
     });
   }
-  
+
   // Database errors (sanitized for production)
   if (error.message.includes('duplicate key')) {
     return res.status(409).json({
       success: false,
       error: {
         code: 'DUPLICATE_ENTRY',
-        message: 'Resource already exists'
-      }
+        message: 'Resource already exists',
+      },
     });
   }
-  
+
   if (error.message.includes('foreign key constraint')) {
     return res.status(409).json({
       success: false,
       error: {
         code: 'FOREIGN_KEY_VIOLATION',
-        message: 'Cannot perform operation due to related data'
-      }
+        message: 'Cannot perform operation due to related data',
+      },
     });
   }
-  
+
   // Generic error for production
   return res.status(500).json({
     success: false,
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred'
-    }
+      message: 'An unexpected error occurred',
+    },
   });
 };
 
@@ -238,9 +235,9 @@ export const errorHandler = (
   if (res.headersSent) {
     return next(error);
   }
-  
+
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   if (isDevelopment) {
     developmentErrorHandler(error, req, res);
   } else {
@@ -261,8 +258,8 @@ export const notFoundHandler = (req: Request, res: Response) => {
     success: false,
     error: {
       code: 'NOT_FOUND',
-      message: `Route ${req.originalUrl} not found`
-    }
+      message: `Route ${req.originalUrl} not found`,
+    },
   });
 };
 
@@ -273,10 +270,10 @@ export const requestTimeout = (timeout: number = 30000) => {
       const error = new AppError('Request timeout', 408, 'REQUEST_TIMEOUT');
       next(error);
     }, timeout);
-    
+
     res.on('finish', () => clearTimeout(timer));
     res.on('close', () => clearTimeout(timer));
-    
+
     next();
   };
 };

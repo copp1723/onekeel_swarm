@@ -6,7 +6,7 @@ const DEFAULT_BRANDING = {
   primaryColor: '#2563eb',
   secondaryColor: '#1d4ed8',
   emailFromName: 'OneKeel Swarm',
-  supportEmail: 'support@oneswarm.ai'
+  supportEmail: 'support@oneswarm.ai',
 };
 
 interface BrandConfig {
@@ -51,7 +51,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({ children }) => {
     id: 'default',
     name: 'OneKeel Swarm',
     brand_config: DEFAULT_BRANDING,
-    active: true
+    active: true,
   });
 
   const [clients] = useState<Client[]>([
@@ -59,20 +59,18 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({ children }) => {
       id: 'default',
       name: 'OneKeel Swarm',
       brand_config: DEFAULT_BRANDING,
-      active: true
-    }
+      active: true,
+    },
   ]);
 
   const value: ClientContextType = {
     activeClient,
     clients,
     setActiveClient,
-    isLoading: false
+    isLoading: false,
   };
 
   return (
-    <ClientContext.Provider value={value}>
-      {children}
-    </ClientContext.Provider>
+    <ClientContext.Provider value={value}>{children}</ClientContext.Provider>
   );
-}; 
+};

@@ -3,7 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Brain, Lock, Mail } from 'lucide-react';
 
@@ -46,24 +52,24 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-            <Brain className="h-8 w-8 text-blue-600" />
+    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-md w-full space-y-8'>
+        <div className='text-center'>
+          <div className='mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100'>
+            <Brain className='h-8 w-8 text-blue-600' />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>
             OneKeel Swarm
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className='mt-2 text-sm text-gray-600'>
             AI Marketing Automation Platform
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Lock className="h-5 w-5" />
+            <CardTitle className='flex items-center space-x-2'>
+              <Lock className='h-5 w-5' />
               <span>Sign in to your account</span>
             </CardTitle>
             <CardDescription>
@@ -71,60 +77,64 @@ export const LoginForm: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className='space-y-4'>
               {error && (
-                <Alert variant="destructive">
+                <Alert variant='destructive'>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="username">Email or Username</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <div className='space-y-2'>
+                <Label htmlFor='username'>Email or Username</Label>
+                <div className='relative'>
+                  <Mail className='absolute left-3 top-3 h-4 w-4 text-gray-400' />
                   <Input
-                    id="username"
-                    type="text"
+                    id='username'
+                    type='text'
                     value={username}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-                    placeholder="Enter your email"
-                    className="pl-10"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setUsername(e.target.value)
+                    }
+                    placeholder='Enter your email'
+                    className='pl-10'
                     required
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <div className='space-y-2'>
+                <Label htmlFor='password'>Password</Label>
+                <div className='relative'>
+                  <Lock className='absolute left-3 top-3 h-4 w-4 text-gray-400' />
                   <Input
-                    id="password"
-                    type="password"
+                    id='password'
+                    type='password'
                     value={password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="pl-10"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setPassword(e.target.value)
+                    }
+                    placeholder='Enter your password'
+                    className='pl-10'
                     required
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className='space-y-3'>
                 <Button
-                  type="submit"
-                  className="w-full"
+                  type='submit'
+                  className='w-full'
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Signing in...' : 'Sign in'}
                 </Button>
 
                 <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
+                  type='button'
+                  variant='outline'
+                  className='w-full'
                   onClick={handleDemoLogin}
                   disabled={isSubmitting}
                 >
@@ -133,9 +143,11 @@ export const LoginForm: React.FC = () => {
               </div>
             </form>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Demo Access:</h4>
-              <div className="text-xs text-blue-700 space-y-1">
+            <div className='mt-6 p-4 bg-blue-50 rounded-lg'>
+              <h4 className='text-sm font-medium text-blue-900 mb-2'>
+                Demo Access:
+              </h4>
+              <div className='text-xs text-blue-700 space-y-1'>
                 <p>Click "Demo Login" button to access the demo environment</p>
                 <p>Demo credentials are configured by the administrator</p>
               </div>
@@ -143,12 +155,12 @@ export const LoginForm: React.FC = () => {
           </CardContent>
         </Card>
 
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
+        <div className='text-center'>
+          <p className='text-xs text-gray-500'>
             OneKeel Swarm AI Marketing Platform
           </p>
         </div>
       </div>
     </div>
   );
-}; 
+};

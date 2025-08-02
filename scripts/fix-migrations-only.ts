@@ -8,21 +8,22 @@ const __dirname = path.dirname(__filename);
 
 function fixMigrationNumbering() {
   console.log('🔧 Fixing migration numbering conflicts...\n');
-  
+
   const migrationsDir = path.join(__dirname, '../migrations');
   const journalPath = path.join(migrationsDir, 'meta/_journal.json');
-  
+
   // Read current journal
   const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8'));
-  
+
   // Check for conflicts
-  const migrations = fs.readdirSync(migrationsDir)
+  const migrations = fs
+    .readdirSync(migrationsDir)
     .filter(f => f.endsWith('.sql'))
     .sort();
-  
+
   console.log('Current migrations:');
   migrations.forEach(m => console.log(`  - ${m}`));
-  
+
   // Update journal to include all migrations in correct order
   const migrationEntries = [
     { tag: '0000_large_carnage', idx: 0 },
@@ -35,22 +36,22 @@ function fixMigrationNumbering() {
     { tag: '0007_add_job_metadata', idx: 7 },
     { tag: '0008_update_campaign_stats', idx: 8 },
     { tag: '0009_fix_schema_mismatches', idx: 9 },
-    { tag: '0010_fix_deployment_schema', idx: 10 }
+    { tag: '0010_fix_deployment_schema', idx: 10 },
   ];
-  
+
   // Update journal entries
   journal.entries = migrationEntries.map((entry, idx) => ({
     idx: entry.idx,
-    version: "7",
+    version: '7',
     when: Date.now() + idx * 1000,
     tag: entry.tag,
-    breakpoints: true
+    breakpoints: true,
   }));
-  
+
   // Write updated journal
   fs.writeFileSync(journalPath, JSON.stringify(journal, null, 2));
   console.log('\n✅ Updated migration journal');
-  
+
   // Create a comprehensive migration status file
   const statusReport = `# Migration Status Report
 Generated: ${new Date().toISOString()}
@@ -66,14 +67,17 @@ ${journal.entries.map(e => `- ${e.idx}: ${e.tag}`).join('\n')}
 2. Run 'npm run db:migrate' to apply migrations
 3. Use 'npm run db:verify' to check schema integrity
 `;
-  
-  fs.writeFileSync(path.join(migrationsDir, 'MIGRATION_STATUS.md'), statusReport);
+
+  fs.writeFileSync(
+    path.join(migrationsDir, 'MIGRATION_STATUS.md'),
+    statusReport
+  );
   console.log('✅ Created migration status report');
 }
 
 function createVerificationScript() {
   console.log('\n📝 Creating schema verification script...');
-  
+
   const verifyScript = `#!/usr/bin/env tsx
 import { db } from '../server/db/index.js';
 import { sql } from 'drizzle-orm';
@@ -164,17 +168,20 @@ verifySchema();
   const scriptPath = path.join(__dirname, 'verify-schema.ts');
   fs.writeFileSync(scriptPath, verifyScript);
   console.log(`✅ Created schema verification script at: ${scriptPath}`);
-  
+
   // Make it executable
   fs.chmodSync(scriptPath, '755');
-  
+
   // Update package.json with db:verify script
   const packageJsonPath = path.join(__dirname, '../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  
+
   if (!packageJson.scripts['db:verify']) {
     packageJson.scripts['db:verify'] = 'tsx scripts/verify-schema.ts';
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    fs.writeFileSync(
+      packageJsonPath,
+      JSON.stringify(packageJson, null, 2) + '\n'
+    );
     console.log('✅ Added "db:verify" npm script');
   }
 }

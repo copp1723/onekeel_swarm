@@ -12,24 +12,29 @@ interface ChatMessage {
 
 interface ChatWidgetProps {
   // Positioning props
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'custom';
+  position?:
+    | 'bottom-right'
+    | 'bottom-left'
+    | 'top-right'
+    | 'top-left'
+    | 'custom';
   customPosition?: {
     top?: string;
     bottom?: string;
     left?: string;
     right?: string;
   };
-  
+
   // Appearance props
   primaryColor?: string;
   headerText?: string;
   placeholderText?: string;
   welcomeMessage?: string;
-  
+
   // Behavior props
   startMinimized?: boolean;
   soundEnabled?: boolean;
-  
+
   // Integration props
   apiEndpoint?: string;
   leadId?: string;
@@ -47,7 +52,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   soundEnabled = true,
   apiEndpoint = window.location.origin,
   leadId,
-  metadata = {}
+  metadata = {},
 }) => {
   const [isOpen, setIsOpen] = useState(!startMinimized);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -66,20 +71,20 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       query: {
         type: 'chat',
         leadId: leadId || 'anonymous',
-        ...metadata
-      }
+        ...metadata,
+      },
     });
 
     newSocket.on('connect', () => {
       console.log('Chat connected');
       const sid = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setSessionId(sid);
-      
+
       // Send initial connection
       newSocket.emit('chat:init', {
         sessionId: sid,
         leadId,
-        metadata
+        metadata,
       });
     });
 
@@ -109,12 +114,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
   // Add welcome message
   useEffect(() => {
     if (welcomeMessage && messages.length === 0) {
-      setMessages([{
-        id: 'welcome',
-        content: welcomeMessage,
-        sender: 'agent',
-        timestamp: new Date()
-      }]);
+      setMessages([
+        {
+          id: 'welcome',
+          content: welcomeMessage,
+          sender: 'agent',
+          timestamp: new Date(),
+        },
+      ]);
     }
   }, [welcomeMessage]);
 
@@ -130,50 +137,80 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     const handleToggle = () => setIsOpen(prev => !prev);
     const handleMinimize = () => setIsMinimized(true);
     const handleMaximize = () => setIsMinimized(false);
-    
+
     const handleSendMessage = (e: CustomEvent) => {
       if (e.detail?.message) {
         setInputValue(e.detail.message);
         sendMessage();
       }
     };
-    
+
     const handleMetadata = (e: CustomEvent) => {
       if (e.detail?.metadata && socket) {
         socket.emit('chat:metadata', {
           sessionId,
-          metadata: e.detail.metadata
+          metadata: e.detail.metadata,
         });
       }
     };
-    
+
     const handleLeadId = (e: CustomEvent) => {
       if (e.detail?.leadId && socket) {
         socket.emit('chat:updateLead', {
           sessionId,
-          leadId: e.detail.leadId
+          leadId: e.detail.leadId,
         });
       }
     };
-    
+
     window.addEventListener('ccl-chat-show', handleShow as EventListener);
     window.addEventListener('ccl-chat-hide', handleHide as EventListener);
     window.addEventListener('ccl-chat-toggle', handleToggle as EventListener);
-    window.addEventListener('ccl-chat-minimize', handleMinimize as EventListener);
-    window.addEventListener('ccl-chat-maximize', handleMaximize as EventListener);
-    window.addEventListener('ccl-chat-send', handleSendMessage as EventListener);
-    window.addEventListener('ccl-chat-metadata', handleMetadata as EventListener);
+    window.addEventListener(
+      'ccl-chat-minimize',
+      handleMinimize as EventListener
+    );
+    window.addEventListener(
+      'ccl-chat-maximize',
+      handleMaximize as EventListener
+    );
+    window.addEventListener(
+      'ccl-chat-send',
+      handleSendMessage as EventListener
+    );
+    window.addEventListener(
+      'ccl-chat-metadata',
+      handleMetadata as EventListener
+    );
     window.addEventListener('ccl-chat-leadid', handleLeadId as EventListener);
-    
+
     return () => {
       window.removeEventListener('ccl-chat-show', handleShow as EventListener);
       window.removeEventListener('ccl-chat-hide', handleHide as EventListener);
-      window.removeEventListener('ccl-chat-toggle', handleToggle as EventListener);
-      window.removeEventListener('ccl-chat-minimize', handleMinimize as EventListener);
-      window.removeEventListener('ccl-chat-maximize', handleMaximize as EventListener);
-      window.removeEventListener('ccl-chat-send', handleSendMessage as EventListener);
-      window.removeEventListener('ccl-chat-metadata', handleMetadata as EventListener);
-      window.removeEventListener('ccl-chat-leadid', handleLeadId as EventListener);
+      window.removeEventListener(
+        'ccl-chat-toggle',
+        handleToggle as EventListener
+      );
+      window.removeEventListener(
+        'ccl-chat-minimize',
+        handleMinimize as EventListener
+      );
+      window.removeEventListener(
+        'ccl-chat-maximize',
+        handleMaximize as EventListener
+      );
+      window.removeEventListener(
+        'ccl-chat-send',
+        handleSendMessage as EventListener
+      );
+      window.removeEventListener(
+        'ccl-chat-metadata',
+        handleMetadata as EventListener
+      );
+      window.removeEventListener(
+        'ccl-chat-leadid',
+        handleLeadId as EventListener
+      );
     };
   }, [socket, sessionId]);
 
@@ -190,7 +227,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       id: Date.now().toString(),
       content: inputValue,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, message]);
@@ -198,7 +235,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       sessionId,
       content: inputValue,
       leadId,
-      metadata
+      metadata,
     });
 
     setInputValue('');
@@ -220,7 +257,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       'bottom-right': { bottom: '20px', right: '20px' },
       'bottom-left': { bottom: '20px', left: '20px' },
       'top-right': { top: '20px', right: '20px' },
-      'top-left': { top: '20px', left: '20px' }
+      'top-left': { top: '20px', left: '20px' },
     };
 
     return positions[position] || positions['bottom-right'];
@@ -230,20 +267,23 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
     return new Date(date).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
   };
 
   if (!isOpen) {
     return (
       <button
-        className="ccl-chat-bubble"
+        className='ccl-chat-bubble'
         style={{ ...getPositionStyles(), backgroundColor: primaryColor }}
         onClick={() => setIsOpen(true)}
-        aria-label="Open chat"
+        aria-label='Open chat'
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="white"/>
+        <svg width='24' height='24' viewBox='0 0 24 24' fill='none'>
+          <path
+            d='M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z'
+            fill='white'
+          />
         </svg>
       </button>
     );
@@ -251,24 +291,30 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   return (
     <>
-      <audio ref={audioRef} preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCuBzvLZiTYIG2m98OScTgwOUarm7blmFgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav" />
+      <audio ref={audioRef} preload='auto'>
+        <source
+          src='data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCuBzvLZiTYIG2m98OScTgwOUarm7blmFgU7k9n1unEiBC13yO/eizEIHWq+8+OWT'
+          type='audio/wav'
+        />
       </audio>
-      
-      <div 
+
+      <div
         className={`ccl-chat-widget ${isMinimized ? 'minimized' : ''}`}
         style={getPositionStyles()}
       >
-        <div 
-          className="ccl-chat-header"
+        <div
+          className='ccl-chat-header'
           style={{ backgroundColor: primaryColor }}
         >
           <h3>{headerText}</h3>
-          <div className="ccl-chat-header-actions">
-            <button onClick={() => setIsMinimized(!isMinimized)} aria-label="Minimize">
+          <div className='ccl-chat-header-actions'>
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              aria-label='Minimize'
+            >
               {isMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
             </button>
-            <button onClick={() => setIsOpen(false)} aria-label="Close">
+            <button onClick={() => setIsOpen(false)} aria-label='Close'>
               <X size={18} />
             </button>
           </div>
@@ -276,22 +322,22 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
 
         {!isMinimized && (
           <>
-            <div className="ccl-chat-messages">
-              {messages.map((message) => (
-                <div 
-                  key={message.id} 
+            <div className='ccl-chat-messages'>
+              {messages.map(message => (
+                <div
+                  key={message.id}
                   className={`ccl-chat-message ${message.sender}`}
                 >
-                  <div className="ccl-chat-message-bubble">
+                  <div className='ccl-chat-message-bubble'>
                     {message.content}
                   </div>
-                  <div className="ccl-chat-message-time">
+                  <div className='ccl-chat-message-time'>
                     {formatTime(message.timestamp)}
                   </div>
                 </div>
               ))}
               {isTyping && (
-                <div className="ccl-chat-typing">
+                <div className='ccl-chat-typing'>
                   <span></span>
                   <span></span>
                   <span></span>
@@ -300,19 +346,19 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="ccl-chat-input">
+            <div className='ccl-chat-input'>
               <input
-                type="text"
+                type='text'
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={e => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={placeholderText}
               />
-              <button 
+              <button
                 onClick={sendMessage}
                 disabled={!inputValue.trim()}
                 style={{ backgroundColor: primaryColor }}
-                aria-label="Send message"
+                aria-label='Send message'
               >
                 <Send size={18} />
               </button>

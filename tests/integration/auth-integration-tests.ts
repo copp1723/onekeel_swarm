@@ -1,6 +1,6 @@
 /**
  * Authentication Integration Tests
- * 
+ *
  * These tests verify that the entire authentication system works together
  * as an integrated secure system.
  */
@@ -19,7 +19,7 @@ describe('Authentication System Integration', () => {
     password: 'TestPassword123!',
     firstName: 'Integration',
     lastName: 'Test',
-    role: 'agent' as const
+    role: 'agent' as const,
   };
 
   beforeAll(async () => {
@@ -33,11 +33,14 @@ describe('Authentication System Integration', () => {
         firstName: testUser.firstName,
         lastName: testUser.lastName,
         role: testUser.role,
-        active: true
+        active: true,
       });
       testUserId = user.id;
     } catch (error) {
-      console.warn('Could not create test user - database may not be available:', error);
+      console.warn(
+        'Could not create test user - database may not be available:',
+        error
+      );
       testUserId = 'test-user-id';
     }
   });
@@ -53,7 +56,7 @@ describe('Authentication System Integration', () => {
       const tokens = await tokenService.generateTokens({
         id: testUserId,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       expect(tokens.accessToken).toBeDefined();
@@ -78,7 +81,9 @@ describe('Authentication System Integration', () => {
 
       // Step 4: Validate session
       if (session) {
-        const sessionValidation = await sessionService.validateSession(session.token);
+        const sessionValidation = await sessionService.validateSession(
+          session.token
+        );
         expect(sessionValidation).toBeTruthy();
         expect(sessionValidation?.user?.id).toBe(testUserId);
       }
@@ -89,19 +94,23 @@ describe('Authentication System Integration', () => {
       const initialTokens = await tokenService.generateTokens({
         id: testUserId,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       // Refresh tokens
-      const refreshedTokens = await tokenService.refreshTokens(initialTokens.refreshToken);
-      
+      const refreshedTokens = await tokenService.refreshTokens(
+        initialTokens.refreshToken
+      );
+
       expect(refreshedTokens).toBeTruthy();
       expect(refreshedTokens?.accessToken).toBeDefined();
       expect(refreshedTokens?.refreshToken).toBeDefined();
-      
+
       // New tokens should be different from original
       expect(refreshedTokens?.accessToken).not.toBe(initialTokens.accessToken);
-      expect(refreshedTokens?.refreshToken).not.toBe(initialTokens.refreshToken);
+      expect(refreshedTokens?.refreshToken).not.toBe(
+        initialTokens.refreshToken
+      );
     });
 
     it('should handle logout flow with token revocation', async () => {
@@ -109,7 +118,7 @@ describe('Authentication System Integration', () => {
       const tokens = await tokenService.generateTokens({
         id: testUserId,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       // Verify token is valid
@@ -127,8 +136,9 @@ describe('Authentication System Integration', () => {
 
   describe('Security Validation', () => {
     it('should reject tampered tokens', () => {
-      const validToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0IiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIn0.invalidSignature';
-      
+      const validToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0IiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIn0.invalidSignature';
+
       const decoded = tokenService.verifyAccessToken(validToken);
       expect(decoded).toBeNull();
     });
@@ -137,7 +147,7 @@ describe('Authentication System Integration', () => {
       // This test would require mocking time or using very short expiration
       // For now, we verify the concept with an obviously invalid token
       const expiredToken = 'expired.token.here';
-      
+
       const decoded = tokenService.verifyAccessToken(expiredToken);
       expect(decoded).toBeNull();
     });
@@ -183,7 +193,7 @@ describe('Authentication System Integration', () => {
         tokenService.generateTokens({
           id: 'test',
           email: 'test@test.com',
-          role: 'agent'
+          role: 'agent',
         });
       }).not.toThrow();
     });
@@ -199,7 +209,7 @@ describe('Authentication System Integration', () => {
 
 /**
  * Security Regression Tests
- * 
+ *
  * These tests ensure that previously fixed vulnerabilities don't reappear
  */
 describe('Security Regression Prevention', () => {
@@ -209,7 +219,10 @@ describe('Security Regression Prevention', () => {
       const user = await UsersRepository.findByEmail('admin@onekeel.com');
       if (user) {
         // If user exists, password should NOT be the old hardcoded one
-        const isOldPassword = await bcrypt.compare('password123', user.passwordHash);
+        const isOldPassword = await bcrypt.compare(
+          'password123',
+          user.passwordHash
+        );
         expect(isOldPassword).toBe(false);
       }
     } catch (error) {
@@ -236,7 +249,7 @@ describe('Security Regression Prevention', () => {
     const tokens = await tokenService.generateTokens({
       id: 'test-user',
       email: 'test@example.com',
-      role: 'agent'
+      role: 'agent',
     });
 
     // Tokens should be proper JWTs, not hardcoded strings
@@ -261,7 +274,7 @@ describe('User Invitation Flow', () => {
     const res = await fetch('http://localhost:3000/api/users/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: inviteEmail, role: inviteRole })
+      body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
     });
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -276,7 +289,9 @@ describe('User Invitation Flow', () => {
     // inviteToken = ...
     // Simulate validation API
     if (!inviteToken) return;
-    const res = await fetch(`http://localhost:3000/api/auth/validate-invite?token=${inviteToken}`);
+    const res = await fetch(
+      `http://localhost:3000/api/auth/validate-invite?token=${inviteToken}`
+    );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
@@ -296,8 +311,8 @@ describe('User Invitation Flow', () => {
         firstName: 'Invite',
         lastName: 'Test',
         email: inviteEmail,
-        role: inviteRole
-      })
+        role: inviteRole,
+      }),
     });
     expect(res.status).toBe(200);
     const data = await res.json();

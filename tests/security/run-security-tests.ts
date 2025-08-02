@@ -50,7 +50,7 @@ class SecurityTestRunner {
       console.log('\n1. Running Authentication Flow Tests...');
       await this.runAuthTests();
 
-      // Run vulnerability tests  
+      // Run vulnerability tests
       console.log('\n2. Running Security Vulnerability Tests...');
       await this.runVulnerabilityTests();
 
@@ -61,7 +61,6 @@ class SecurityTestRunner {
       // Manual security checks
       console.log('\n4. Running Manual Security Audit...');
       await this.runManualSecurityChecks();
-
     } catch (error) {
       console.error('Error running tests:', error);
     }
@@ -75,21 +74,26 @@ class SecurityTestRunner {
         id: 'AUTH-001',
         title: 'Hardcoded Admin Credentials',
         severity: 'CRITICAL',
-        description: 'Admin login uses hardcoded credentials (admin@onekeel.com / password123)',
+        description:
+          'Admin login uses hardcoded credentials (admin@onekeel.com / password123)',
         location: 'server/routes/auth.ts:58-82',
         impact: 'Complete system compromise possible with known credentials',
-        recommendation: 'Remove hardcoded credentials, implement database authentication with bcrypt',
-        status: 'VULNERABLE'
+        recommendation:
+          'Remove hardcoded credentials, implement database authentication with bcrypt',
+        status: 'VULNERABLE',
       },
       {
-        id: 'AUTH-002', 
+        id: 'AUTH-002',
         title: 'Authentication Bypass Flag',
         severity: 'CRITICAL',
-        description: 'SKIP_AUTH environment variable completely bypasses all authentication',
-        location: 'server/routes/auth.ts:7,18-42 and server/middleware/auth.ts:24-31',
+        description:
+          'SKIP_AUTH environment variable completely bypasses all authentication',
+        location:
+          'server/routes/auth.ts:7,18-42 and server/middleware/auth.ts:24-31',
         impact: 'Complete authentication bypass when SKIP_AUTH=true',
-        recommendation: 'Remove SKIP_AUTH mechanism completely from production code',
-        status: 'VULNERABLE'
+        recommendation:
+          'Remove SKIP_AUTH mechanism completely from production code',
+        status: 'VULNERABLE',
       },
       {
         id: 'AUTH-003',
@@ -99,17 +103,18 @@ class SecurityTestRunner {
         location: 'server/middleware/auth.ts:5',
         impact: 'JWT tokens can be forged if default secret is used',
         recommendation: 'Generate strong, unique JWT secret and store securely',
-        status: 'VULNERABLE'
+        status: 'VULNERABLE',
       },
       {
         id: 'AUTH-004',
         title: 'No Database Authentication',
         severity: 'HIGH',
-        description: 'Authentication system does not validate against database users',
+        description:
+          'Authentication system does not validate against database users',
         location: 'server/routes/auth.ts',
         impact: 'Cannot manage real users, relies on hardcoded data',
         recommendation: 'Implement proper database user authentication',
-        status: 'VULNERABLE'
+        status: 'VULNERABLE',
       },
       {
         id: 'AUTH-005',
@@ -119,7 +124,7 @@ class SecurityTestRunner {
         location: 'server/routes/auth.ts',
         impact: 'Cannot revoke tokens, no session tracking',
         recommendation: 'Implement session storage and token blacklisting',
-        status: 'VULNERABLE'
+        status: 'VULNERABLE',
       },
       {
         id: 'AUTH-006',
@@ -129,7 +134,7 @@ class SecurityTestRunner {
         location: 'server/routes/auth.ts',
         impact: 'Vulnerable to brute force attacks',
         recommendation: 'Implement rate limiting on login attempts',
-        status: 'VULNERABLE'
+        status: 'VULNERABLE',
       },
       {
         id: 'AUTH-007',
@@ -139,7 +144,7 @@ class SecurityTestRunner {
         location: 'server/routes/auth.ts:59',
         impact: 'Passwords stored/compared insecurely',
         recommendation: 'Implement bcrypt password hashing',
-        status: 'VULNERABLE'
+        status: 'VULNERABLE',
       }
     );
   }
@@ -147,23 +152,79 @@ class SecurityTestRunner {
   private async runAuthTests() {
     // Simulate test results - in real implementation would run vitest
     this.results.push(
-      { suite: 'Authentication', test: 'Login with valid credentials', status: 'FAIL', vulnerability: 'AUTH-001' },
-      { suite: 'Authentication', test: 'Login with invalid credentials', status: 'PASS' },
-      { suite: 'Authentication', test: 'JWT token validation', status: 'FAIL', vulnerability: 'AUTH-003' },
-      { suite: 'Authentication', test: 'Missing authorization header', status: 'PASS' },
-      { suite: 'Authentication', test: 'Expired token handling', status: 'PASS' },
-      { suite: 'Authentication', test: 'Role-based authorization', status: 'PASS' }
+      {
+        suite: 'Authentication',
+        test: 'Login with valid credentials',
+        status: 'FAIL',
+        vulnerability: 'AUTH-001',
+      },
+      {
+        suite: 'Authentication',
+        test: 'Login with invalid credentials',
+        status: 'PASS',
+      },
+      {
+        suite: 'Authentication',
+        test: 'JWT token validation',
+        status: 'FAIL',
+        vulnerability: 'AUTH-003',
+      },
+      {
+        suite: 'Authentication',
+        test: 'Missing authorization header',
+        status: 'PASS',
+      },
+      {
+        suite: 'Authentication',
+        test: 'Expired token handling',
+        status: 'PASS',
+      },
+      {
+        suite: 'Authentication',
+        test: 'Role-based authorization',
+        status: 'PASS',
+      }
     );
   }
 
   private async runVulnerabilityTests() {
     this.results.push(
-      { suite: 'Vulnerability', test: 'Hardcoded credentials detection', status: 'FAIL', vulnerability: 'AUTH-001' },
-      { suite: 'Vulnerability', test: 'SKIP_AUTH bypass detection', status: 'FAIL', vulnerability: 'AUTH-002' },
-      { suite: 'Vulnerability', test: 'Weak JWT secret detection', status: 'FAIL', vulnerability: 'AUTH-003' },
-      { suite: 'Vulnerability', test: 'Database integration check', status: 'FAIL', vulnerability: 'AUTH-004' },
-      { suite: 'Vulnerability', test: 'Session storage check', status: 'FAIL', vulnerability: 'AUTH-005' },
-      { suite: 'Vulnerability', test: 'Rate limiting check', status: 'FAIL', vulnerability: 'AUTH-006' }
+      {
+        suite: 'Vulnerability',
+        test: 'Hardcoded credentials detection',
+        status: 'FAIL',
+        vulnerability: 'AUTH-001',
+      },
+      {
+        suite: 'Vulnerability',
+        test: 'SKIP_AUTH bypass detection',
+        status: 'FAIL',
+        vulnerability: 'AUTH-002',
+      },
+      {
+        suite: 'Vulnerability',
+        test: 'Weak JWT secret detection',
+        status: 'FAIL',
+        vulnerability: 'AUTH-003',
+      },
+      {
+        suite: 'Vulnerability',
+        test: 'Database integration check',
+        status: 'FAIL',
+        vulnerability: 'AUTH-004',
+      },
+      {
+        suite: 'Vulnerability',
+        test: 'Session storage check',
+        status: 'FAIL',
+        vulnerability: 'AUTH-005',
+      },
+      {
+        suite: 'Vulnerability',
+        test: 'Rate limiting check',
+        status: 'FAIL',
+        vulnerability: 'AUTH-006',
+      }
     );
   }
 
@@ -173,7 +234,11 @@ class SecurityTestRunner {
       { suite: 'Integration', test: 'Protected route access', status: 'PASS' },
       { suite: 'Integration', test: 'Login flow integration', status: 'PASS' },
       { suite: 'Integration', test: 'Logout flow integration', status: 'PASS' },
-      { suite: 'Integration', test: 'Token validation integration', status: 'PASS' }
+      {
+        suite: 'Integration',
+        test: 'Token validation integration',
+        status: 'PASS',
+      }
     );
   }
 
@@ -182,24 +247,27 @@ class SecurityTestRunner {
     const envPath = path.join(process.cwd(), '.env');
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf-8');
-      
+
       if (envContent.includes('SKIP_AUTH=true')) {
         this.results.push({
-          suite: 'Manual', 
-          test: 'Environment SKIP_AUTH check', 
-          status: 'FAIL', 
+          suite: 'Manual',
+          test: 'Environment SKIP_AUTH check',
+          status: 'FAIL',
           vulnerability: 'AUTH-002',
-          message: 'SKIP_AUTH=true found in .env file'
+          message: 'SKIP_AUTH=true found in .env file',
         });
       }
-      
-      if (envContent.includes('JWT_SECRET=test') || envContent.includes('JWT_SECRET=ccl3')) {
+
+      if (
+        envContent.includes('JWT_SECRET=test') ||
+        envContent.includes('JWT_SECRET=ccl3')
+      ) {
         this.results.push({
-          suite: 'Manual', 
-          test: 'Environment JWT_SECRET check', 
-          status: 'FAIL', 
+          suite: 'Manual',
+          test: 'Environment JWT_SECRET check',
+          status: 'FAIL',
           vulnerability: 'AUTH-003',
-          message: 'Weak JWT secret found in .env file'
+          message: 'Weak JWT secret found in .env file',
         });
       }
     }
@@ -208,14 +276,14 @@ class SecurityTestRunner {
     const authFile = path.join(process.cwd(), 'server/routes/auth.ts');
     if (fs.existsSync(authFile)) {
       const authContent = fs.readFileSync(authFile, 'utf-8');
-      
+
       if (authContent.includes('password123')) {
         this.results.push({
-          suite: 'Manual', 
-          test: 'Source code credential scan', 
-          status: 'FAIL', 
+          suite: 'Manual',
+          test: 'Source code credential scan',
+          status: 'FAIL',
           vulnerability: 'AUTH-001',
-          message: 'Hardcoded password found in source code'
+          message: 'Hardcoded password found in source code',
         });
       }
     }
@@ -226,7 +294,9 @@ class SecurityTestRunner {
     const passed = this.results.filter(r => r.status === 'PASS').length;
     const failed = this.results.filter(r => r.status === 'FAIL').length;
     const vulnerabilities = this.vulnerabilities.length;
-    const criticalVulnerabilities = this.vulnerabilities.filter(v => v.severity === 'CRITICAL').length;
+    const criticalVulnerabilities = this.vulnerabilities.filter(
+      v => v.severity === 'CRITICAL'
+    ).length;
 
     const recommendations = [
       '🚨 IMMEDIATE ACTIONS REQUIRED:',
@@ -249,7 +319,7 @@ class SecurityTestRunner {
       '4. Set up security alerts for failed authentication attempts',
       '5. Regular security audits and penetration testing',
       '',
-      '⚠️ CRITICAL: System is NOT READY for production use!'
+      '⚠️ CRITICAL: System is NOT READY for production use!',
     ];
 
     return {
@@ -259,11 +329,11 @@ class SecurityTestRunner {
         passed,
         failed,
         vulnerabilities,
-        criticalVulnerabilities
+        criticalVulnerabilities,
       },
       vulnerabilities: this.vulnerabilities,
       testResults: this.results,
-      recommendations
+      recommendations,
     };
   }
 }
@@ -275,22 +345,22 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('\n' + '='.repeat(80));
     console.log('🔒 SECURITY AUDIT REPORT');
     console.log('='.repeat(80));
-    
+
     console.log(`\n📊 SUMMARY:`);
     console.log(`   Total Tests: ${report.summary.totalTests}`);
     console.log(`   Passed: ${report.summary.passed}`);
     console.log(`   Failed: ${report.summary.failed}`);
     console.log(`   Vulnerabilities: ${report.summary.vulnerabilities}`);
     console.log(`   Critical: ${report.summary.criticalVulnerabilities}`);
-    
+
     if (report.summary.criticalVulnerabilities > 0) {
       console.log('\n🚨 CRITICAL VULNERABILITIES DETECTED!');
       console.log('   System is NOT SECURE for production use!');
     }
-    
+
     console.log('\n📋 RECOMMENDATIONS:');
     report.recommendations.forEach(rec => console.log(`   ${rec}`));
-    
+
     // Save detailed report
     const reportPath = path.join(process.cwd(), 'security-audit-report.json');
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));

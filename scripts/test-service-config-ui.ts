@@ -14,9 +14,9 @@ async function testServiceConfigUI() {
   const endpoints = [
     '/api/services/config',
     '/api/services/health/mailgun',
-    '/api/services/health/twilio', 
+    '/api/services/health/twilio',
     '/api/services/health/openrouter',
-    '/api/services/metrics'
+    '/api/services/metrics',
   ];
 
   let allPassed = true;
@@ -24,17 +24,19 @@ async function testServiceConfigUI() {
   for (const endpoint of endpoints) {
     try {
       console.log(`📡 Testing ${endpoint}...`);
-      
+
       const response = await fetch(`${baseUrl}${endpoint}`);
-      
+
       if (!response.ok) {
-        console.log(`❌ ${endpoint}: HTTP ${response.status} ${response.statusText}`);
+        console.log(
+          `❌ ${endpoint}: HTTP ${response.status} ${response.statusText}`
+        );
         allPassed = false;
         continue;
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         console.log(`❌ ${endpoint}: API returned success: false`);
         console.log(`   Error: ${data.error?.message || 'Unknown error'}`);
@@ -47,17 +49,27 @@ async function testServiceConfigUI() {
         const required = ['mailgun', 'twilio', 'openrouter'];
         const missing = required.filter(key => !data.data.hasOwnProperty(key));
         if (missing.length > 0) {
-          console.log(`❌ ${endpoint}: Missing service configs: ${missing.join(', ')}`);
+          console.log(
+            `❌ ${endpoint}: Missing service configs: ${missing.join(', ')}`
+          );
           allPassed = false;
           continue;
         }
       }
 
       if (endpoint.includes('/health/')) {
-        const required = ['status', 'message', 'lastChecked', 'configured', 'connected'];
+        const required = [
+          'status',
+          'message',
+          'lastChecked',
+          'configured',
+          'connected',
+        ];
         const missing = required.filter(key => !data.data.hasOwnProperty(key));
         if (missing.length > 0) {
-          console.log(`❌ ${endpoint}: Missing health fields: ${missing.join(', ')}`);
+          console.log(
+            `❌ ${endpoint}: Missing health fields: ${missing.join(', ')}`
+          );
           allPassed = false;
           continue;
         }
@@ -66,7 +78,9 @@ async function testServiceConfigUI() {
       if (endpoint.includes('/metrics')) {
         // Check if metrics data exists (may be empty for new installations)
         if (data.data && typeof data.data === 'object') {
-          console.log(`✅ ${endpoint}: OK (${Object.keys(data.data).length} services)`);
+          console.log(
+            `✅ ${endpoint}: OK (${Object.keys(data.data).length} services)`
+          );
         } else {
           console.log(`✅ ${endpoint}: OK (no metrics data yet)`);
         }
@@ -74,9 +88,10 @@ async function testServiceConfigUI() {
       }
 
       console.log(`✅ ${endpoint}: OK`);
-      
     } catch (error) {
-      console.log(`❌ ${endpoint}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(
+        `❌ ${endpoint}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       allPassed = false;
     }
   }
@@ -88,13 +103,13 @@ async function testServiceConfigUI() {
       apiKey: 'test-key-12345',
       domain: 'test.example.com',
       region: 'us',
-      enabled: false
+      enabled: false,
     };
 
     const response = await fetch(`${baseUrl}/api/services/config/mailgun`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(testConfig)
+      body: JSON.stringify(testConfig),
     });
 
     if (response.ok) {
@@ -104,7 +119,9 @@ async function testServiceConfigUI() {
       allPassed = false;
     }
   } catch (error) {
-    console.log(`❌ Service configuration update: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log(
+      `❌ Service configuration update: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     allPassed = false;
   }
 
@@ -115,37 +132,47 @@ async function testServiceConfigUI() {
       apiKey: 'invalid-key',
       domain: 'test.example.com',
       region: 'us',
-      enabled: false
+      enabled: false,
     };
 
     const response = await fetch(`${baseUrl}/api/services/test/mailgun`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(testConfig)
+      body: JSON.stringify(testConfig),
     });
 
     if (response.ok) {
       const result = await response.json();
-      console.log(`✅ Service connection test: OK (expected failure: ${!result.success})`);
+      console.log(
+        `✅ Service connection test: OK (expected failure: ${!result.success})`
+      );
     } else {
       console.log(`❌ Service connection test: HTTP ${response.status}`);
       allPassed = false;
     }
   } catch (error) {
-    console.log(`❌ Service connection test: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log(
+      `❌ Service connection test: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
     allPassed = false;
   }
 
   console.log('\n📊 Test Results:');
   if (allPassed) {
-    console.log('✅ All Service Configuration UI endpoints are working correctly!');
+    console.log(
+      '✅ All Service Configuration UI endpoints are working correctly!'
+    );
     console.log('🎉 ServiceConfigView should display data properly');
     console.log('\n🚀 Production Ready Features:');
     console.log('   ✅ Service Configuration - Working with real APIs');
     console.log('   ✅ Connection Testing - Working with real APIs');
     console.log('   ✅ Health Monitoring - Working with real APIs');
-    console.log('   ✅ Email Template Saving - Working with real API (/api/email/templates)');
-    console.log('   ✅ Email Campaign Creation - Working with local generation');
+    console.log(
+      '   ✅ Email Template Saving - Working with real API (/api/email/templates)'
+    );
+    console.log(
+      '   ✅ Email Campaign Creation - Working with local generation'
+    );
     console.log('   🔄 AI Email Generation - Stubbed (API endpoint needed)');
     console.log('   🔄 SMS Campaigns - Stubbed (Coming Soon)');
     console.log('   🔄 Template Library - Stubbed (Coming Soon)');
@@ -155,13 +182,19 @@ async function testServiceConfigUI() {
     console.log('   2. Login as admin user');
     console.log('   3. Navigate to Settings > Service Configuration');
     console.log('   4. Test service configuration and connection testing');
-    console.log('   5. Try Campaign Wizard (email campaigns work, SMS shows "Coming Soon")');
+    console.log(
+      '   5. Try Campaign Wizard (email campaigns work, SMS shows "Coming Soon")'
+    );
   } else {
-    console.log('❌ Some endpoints failed - ServiceConfigView may not display correctly');
+    console.log(
+      '❌ Some endpoints failed - ServiceConfigView may not display correctly'
+    );
     console.log('\n🔧 Troubleshooting:');
     console.log('   1. Ensure the server is running: npm run dev');
     console.log('   2. Check server logs for errors');
-    console.log('   3. Verify C3 Service Integration Manager is properly initialized');
+    console.log(
+      '   3. Verify C3 Service Integration Manager is properly initialized'
+    );
     console.log('   4. Check that service configuration routes are registered');
   }
 

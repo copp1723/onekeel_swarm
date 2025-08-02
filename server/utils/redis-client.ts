@@ -2,18 +2,18 @@ import Redis from 'ioredis';
 import { logger } from './logger';
 
 // Create Redis client with fallback for development
-export const redis = process.env.REDIS_URL 
+export const redis = process.env.REDIS_URL
   ? new Redis(process.env.REDIS_URL)
   : new Redis({
       host: 'localhost',
       port: 6379,
       lazyConnect: true,
       enableOfflineQueue: false,
-      retryStrategy: () => null // Don't retry in development
+      retryStrategy: () => null, // Don't retry in development
     });
 
 // Handle connection errors gracefully
-redis.on('error', (error) => {
+redis.on('error', error => {
   if (error.code === 'ECONNREFUSED') {
     logger.warn('Redis connection refused - running without Redis cache');
   } else {
@@ -36,7 +36,7 @@ export const redisMock = {
   sadd: async () => 1,
   srem: async () => 1,
   smembers: async () => [],
-  sismember: async () => 0
+  sismember: async () => 0,
 };
 
 // Use mock if Redis is not connected

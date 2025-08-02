@@ -30,9 +30,9 @@ The {{companyName}} Team`,
     variables: ['companyName', 'firstName', 'productName'],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  
+
   // Follow-up Templates
   {
     id: uuidv4(),
@@ -57,12 +57,21 @@ Looking forward to connecting with you!
 Best regards,
 {{senderName}}
 {{companyName}}`,
-    variables: ['firstName', 'productName', 'painPoint', 'timeSlot1', 'timeSlot2', 'timeSlot3', 'senderName', 'companyName'],
+    variables: [
+      'firstName',
+      'productName',
+      'painPoint',
+      'timeSlot1',
+      'timeSlot2',
+      'timeSlot3',
+      'senderName',
+      'companyName',
+    ],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  
+
   // Promotion Templates
   {
     id: uuidv4(),
@@ -70,7 +79,8 @@ Best regards,
     description: 'Promotional email for limited time offers',
     channel: 'email' as const,
     category: 'promotion',
-    subject: '{{firstName}}, Save {{discountPercent}}% on {{productName}} - This Week Only!',
+    subject:
+      '{{firstName}}, Save {{discountPercent}}% on {{productName}} - This Week Only!',
     content: `Hi {{firstName}},
 
 Great news! For this week only, we're offering an exclusive {{discountPercent}}% discount on {{productName}}.
@@ -90,12 +100,20 @@ Best regards,
 The {{companyName}} Team
 
 P.S. This offer is exclusive to our valued customers like you. Act fast before it's gone!`,
-    variables: ['firstName', 'discountPercent', 'productName', 'expiryDate', 'promoCode', 'daysRemaining', 'companyName'],
+    variables: [
+      'firstName',
+      'discountPercent',
+      'productName',
+      'expiryDate',
+      'promoCode',
+      'daysRemaining',
+      'companyName',
+    ],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  
+
   // SMS Templates
   {
     id: uuidv4(),
@@ -105,12 +123,17 @@ P.S. This offer is exclusive to our valued customers like you. Act fast before i
     category: 'reminder',
     subject: '',
     content: `Hi {{firstName}}, this is a reminder about your appointment on {{appointmentDate}} at {{appointmentTime}}. Reply YES to confirm or call {{phoneNumber}} to reschedule.`,
-    variables: ['firstName', 'appointmentDate', 'appointmentTime', 'phoneNumber'],
+    variables: [
+      'firstName',
+      'appointmentDate',
+      'appointmentTime',
+      'phoneNumber',
+    ],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  
+
   {
     id: uuidv4(),
     name: 'Quick Follow-up SMS',
@@ -122,9 +145,9 @@ P.S. This offer is exclusive to our valued customers like you. Act fast before i
     variables: ['firstName', 'topic', 'phoneNumber'],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
-  
+
   // Custom Templates
   {
     id: uuidv4(),
@@ -132,7 +155,7 @@ P.S. This offer is exclusive to our valued customers like you. Act fast before i
     description: 'Win back inactive customers',
     channel: 'email' as const,
     category: 'custom',
-    subject: 'We miss you, {{firstName}}! Here\'s something special for you',
+    subject: "We miss you, {{firstName}}! Here's something special for you",
     content: `Hi {{firstName}},
 
 It's been a while since we last connected, and we wanted to reach out to see how you're doing.
@@ -157,28 +180,37 @@ Looking forward to seeing you again!
 
 Warm regards,
 The {{companyName}} Team`,
-    variables: ['firstName', 'productName', 'improvement1', 'improvement2', 'improvement3', 'specialOffer', 'validityDays', 'companyName'],
+    variables: [
+      'firstName',
+      'productName',
+      'improvement1',
+      'improvement2',
+      'improvement3',
+      'specialOffer',
+      'validityDays',
+      'companyName',
+    ],
     active: true,
     createdAt: new Date(),
-    updatedAt: new Date()
-  }
+    updatedAt: new Date(),
+  },
 ];
 
 async function seed() {
   try {
     console.log('Seeding templates...');
-    
+
     // Insert templates
     for (const template of seedTemplates) {
       await db.insert(templates).values(template).onConflictDoNothing();
     }
-    
+
     console.log('Templates seeded successfully!');
   } catch (error) {
     console.error('Error seeding templates:', error);
     process.exit(1);
   }
-  
+
   process.exit(0);
 }
 

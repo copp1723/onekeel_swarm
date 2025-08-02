@@ -18,30 +18,39 @@ export interface AgentDecision {
 
 export abstract class BaseAgent {
   protected agentType: string;
-  
+
   constructor(agentType: string) {
     this.agentType = agentType;
   }
 
-  protected async storeMemory(content: string, metadata?: Record<string, any>): Promise<void> {
+  protected async storeMemory(
+    content: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
     const memory = superMemory || mockSuperMemory;
     await memory.addMemory({
       content,
       metadata: {
         agentType: this.agentType,
         timestamp: new Date().toISOString(),
-        ...metadata
+        ...metadata,
       },
-      spaces: [this.agentType]
+      spaces: [this.agentType],
     });
   }
 
-  protected async searchMemory(query: string, limit: number = 5): Promise<any[]> {
+  protected async searchMemory(
+    query: string,
+    limit: number = 5
+  ): Promise<any[]> {
     const memory = superMemory || mockSuperMemory;
     return await memory.searchMemories(query, limit);
   }
 
-  abstract processMessage(message: string, context: AgentContext): Promise<string>;
+  abstract processMessage(
+    message: string,
+    context: AgentContext
+  ): Promise<string>;
   abstract makeDecision(context: AgentContext): Promise<AgentDecision>;
 
   /**
@@ -61,14 +70,14 @@ export abstract class BaseAgent {
   ): Promise<string> {
     // Call OpenRouter with the provided prompts
     const response = await this.callOpenRouter(prompt, systemPrompt, options);
-    
+
     // Store the response in supermemory
     await this.storeMemory(
       `${this.agentType} response to ${context.leadName || 'user'}: ${response}`,
       {
         leadId: context.leadId,
         type: context.type,
-        ...context.metadata
+        ...context.metadata,
       }
     );
 
@@ -82,8 +91,13 @@ export abstract class BaseAgent {
   ): Promise<string> {
     try {
       // Check if API key is available
-      if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === '') {
-        logger.info(`No OpenRouter API key found for ${this.agentType}, using mock responses`);
+      if (
+        !process.env.OPENROUTER_API_KEY ||
+        process.env.OPENROUTER_API_KEY === ''
+      ) {
+        logger.info(
+          `No OpenRouter API key found for ${this.agentType}, using mock responses`
+        );
         return this.getMockResponse(prompt);
       }
 
@@ -98,24 +112,24 @@ export abstract class BaseAgent {
         businessCritical: options.businessCritical || false,
         temperature: options.temperature || 0.7,
         maxTokens: options.maxTokens || 500,
-        responseFormat: options.responseFormat
+        responseFormat: options.responseFormat,
       };
 
       // Use model router for intelligent model selection
       const response = await ModelRouter.routeRequest(requestOptions);
-      
+
       logger.info(`OpenRouter call successful for ${this.agentType}`, {
         model: response.model,
         complexity: response.complexity.score,
         tier: response.complexity.tier,
-        executionTime: response.executionTime
+        executionTime: response.executionTime,
       });
 
       return response.content;
     } catch (error) {
       logger.error(`OpenRouter call failed for ${this.agentType}`, {
         error: error as Error,
-        prompt: prompt.substring(0, 100)
+        prompt: prompt.substring(0, 100),
       });
       // Fallback to mock response if API fails
       return this.getMockResponse(prompt);

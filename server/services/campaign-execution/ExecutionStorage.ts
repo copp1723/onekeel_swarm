@@ -34,24 +34,27 @@ export class ExecutionStorage {
    * Get executions by campaign ID
    */
   getByCampaign(campaignId: string): CampaignExecution[] {
-    return Array.from(this.executions.values())
-      .filter(exec => exec.campaignId === campaignId);
+    return Array.from(this.executions.values()).filter(
+      exec => exec.campaignId === campaignId
+    );
   }
 
   /**
    * Get executions by lead ID
    */
   getByLead(leadId: string): CampaignExecution[] {
-    return Array.from(this.executions.values())
-      .filter(exec => exec.leadId === leadId);
+    return Array.from(this.executions.values()).filter(
+      exec => exec.leadId === leadId
+    );
   }
 
   /**
    * Get executions by status
    */
   getByStatus(status: CampaignExecution['status']): CampaignExecution[] {
-    return Array.from(this.executions.values())
-      .filter(exec => exec.status === status);
+    return Array.from(this.executions.values()).filter(
+      exec => exec.status === status
+    );
   }
 
   /**
@@ -67,7 +70,11 @@ export class ExecutionStorage {
   /**
    * Update execution status
    */
-  updateStatus(executionId: string, status: CampaignExecution['status'], errorMessage?: string): boolean {
+  updateStatus(
+    executionId: string,
+    status: CampaignExecution['status'],
+    errorMessage?: string
+  ): boolean {
     const execution = this.executions.get(executionId);
     if (!execution) {
       return false;
@@ -77,8 +84,12 @@ export class ExecutionStorage {
     if (errorMessage) {
       execution.errorMessage = errorMessage;
     }
-    
-    logger.debug('Execution status updated', { executionId, status, errorMessage });
+
+    logger.debug('Execution status updated', {
+      executionId,
+      status,
+      errorMessage,
+    });
     return true;
   }
 
@@ -101,7 +112,7 @@ export class ExecutionStorage {
       scheduled: 0,
       executing: 0,
       completed: 0,
-      failed: 0
+      failed: 0,
     };
 
     for (const execution of this.executions.values()) {

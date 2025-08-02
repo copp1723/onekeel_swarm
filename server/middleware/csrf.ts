@@ -15,6 +15,6 @@ export function configureCsrf() {
       // For development, just pass through
       // In production, you would verify CSRF tokens here
       next();
-    }
+    },
   };
 }

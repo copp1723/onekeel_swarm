@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  LeadTable, 
-  LeadForm, 
-  LeadDetails, 
-  LeadFilters, 
-  CampaignAssignment, 
+import {
+  LeadTable,
+  LeadForm,
+  LeadDetails,
+  LeadFilters,
+  CampaignAssignment,
   BulkActions,
-  type LeadFiltersType 
+  type LeadFiltersType,
 } from '@/components/leads';
 import { useLeads } from '@/hooks/useLeads';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Users, Plus, Upload, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -36,7 +41,12 @@ interface Lead {
   updatedAt: string;
 }
 
-type ViewMode = 'table' | 'form' | 'details' | 'campaign-assignment' | 'bulk-actions';
+type ViewMode =
+  | 'table'
+  | 'form'
+  | 'details'
+  | 'campaign-assignment'
+  | 'bulk-actions';
 
 export function EnhancedLeadsView() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
@@ -60,7 +70,7 @@ export function EnhancedLeadsView() {
     deleteLead,
     bulkUpdateLeads,
     bulkDeleteLeads,
-    assignToCampaign
+    assignToCampaign,
   } = useLeads();
 
   const handleCreateLead = () => {
@@ -80,35 +90,37 @@ export function EnhancedLeadsView() {
 
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
-    
+
     try {
       await deleteLead(leadId);
       toast({
         title: 'Success',
-        description: 'Lead deleted successfully'
+        description: 'Lead deleted successfully',
       });
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to delete lead',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
-  const handleSaveLead = async (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveLead = async (
+    leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>
+  ) => {
     try {
       if (selectedLead) {
         await updateLead(selectedLead.id, leadData);
         toast({
           title: 'Success',
-          description: 'Lead updated successfully'
+          description: 'Lead updated successfully',
         });
       } else {
         await createLead(leadData);
         toast({
           title: 'Success',
-          description: 'Lead created successfully'
+          description: 'Lead created successfully',
         });
       }
       setViewMode('table');
@@ -116,8 +128,10 @@ export function EnhancedLeadsView() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: selectedLead ? 'Failed to update lead' : 'Failed to create lead',
-        variant: 'destructive'
+        description: selectedLead
+          ? 'Failed to update lead'
+          : 'Failed to create lead',
+        variant: 'destructive',
       });
       throw error;
     }
@@ -126,7 +140,7 @@ export function EnhancedLeadsView() {
   const handleBulkAction = (action: string, leadIds: string[]) => {
     const leads = filteredLeads.filter(lead => leadIds.includes(lead.id));
     setSelectedLeads(leads);
-    
+
     if (action === 'assign_campaign') {
       setViewMode('campaign-assignment');
     } else {
@@ -140,7 +154,7 @@ export function EnhancedLeadsView() {
       await bulkUpdateLeads(leadIds, updates);
       toast({
         title: 'Success',
-        description: `${selectedLeads.length} lead(s) updated successfully`
+        description: `${selectedLeads.length} lead(s) updated successfully`,
       });
       setViewMode('table');
       setSelectedLeads([]);
@@ -148,7 +162,7 @@ export function EnhancedLeadsView() {
       toast({
         title: 'Error',
         description: 'Failed to update leads',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw error;
     }
@@ -160,7 +174,7 @@ export function EnhancedLeadsView() {
       await bulkDeleteLeads(leadIds);
       toast({
         title: 'Success',
-        description: `${selectedLeads.length} lead(s) deleted successfully`
+        description: `${selectedLeads.length} lead(s) deleted successfully`,
       });
       setViewMode('table');
       setSelectedLeads([]);
@@ -168,18 +182,22 @@ export function EnhancedLeadsView() {
       toast({
         title: 'Error',
         description: 'Failed to delete leads',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw error;
     }
   };
 
-  const handleCampaignAssignment = async (leadIds: string[], campaignId: string, options?: any) => {
+  const handleCampaignAssignment = async (
+    leadIds: string[],
+    campaignId: string,
+    options?: any
+  ) => {
     try {
       await assignToCampaign(leadIds, campaignId);
       toast({
         title: 'Success',
-        description: `${leadIds.length} lead(s) assigned to campaign successfully`
+        description: `${leadIds.length} lead(s) assigned to campaign successfully`,
       });
       setViewMode('table');
       setSelectedLeads([]);
@@ -187,7 +205,7 @@ export function EnhancedLeadsView() {
       toast({
         title: 'Error',
         description: 'Failed to assign leads to campaign',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       throw error;
     }
@@ -195,19 +213,30 @@ export function EnhancedLeadsView() {
 
   const handleExportLeads = () => {
     // Create CSV content
-    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Status', 'Source', 'Score', 'Created'];
+    const headers = [
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Status',
+      'Source',
+      'Score',
+      'Created',
+    ];
     const csvContent = [
       headers.join(','),
-      ...filteredLeads.map(lead => [
-        lead.firstName || '',
-        lead.lastName || '',
-        lead.email,
-        lead.phone || '',
-        lead.status,
-        lead.source,
-        lead.qualificationScore || '',
-        new Date(lead.createdAt).toLocaleDateString()
-      ].join(','))
+      ...filteredLeads.map(lead =>
+        [
+          lead.firstName || '',
+          lead.lastName || '',
+          lead.email,
+          lead.phone || '',
+          lead.status,
+          lead.source,
+          lead.qualificationScore || '',
+          new Date(lead.createdAt).toLocaleDateString(),
+        ].join(',')
+      ),
     ].join('\n');
 
     // Download CSV
@@ -222,13 +251,13 @@ export function EnhancedLeadsView() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className='p-6'>
         <Card>
-          <CardContent className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <p className="text-red-600 mb-2">Error loading leads</p>
-              <p className="text-gray-500 text-sm">{error}</p>
-              <Button onClick={fetchLeads} className="mt-4">
+          <CardContent className='flex items-center justify-center h-64'>
+            <div className='text-center'>
+              <p className='text-red-600 mb-2'>Error loading leads</p>
+              <p className='text-gray-500 text-sm'>{error}</p>
+              <Button onClick={fetchLeads} className='mt-4'>
                 Retry
               </Button>
             </div>
@@ -239,31 +268,36 @@ export function EnhancedLeadsView() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className='p-6 space-y-6'>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Leads Management</h1>
-          <p className="text-gray-600">Manage your lead database with advanced tools</p>
+          <h1 className='text-3xl font-bold text-gray-900'>Leads Management</h1>
+          <p className='text-gray-600'>
+            Manage your lead database with advanced tools
+          </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className='flex items-center space-x-2'>
           {viewMode !== 'table' && (
-            <Button variant="outline" onClick={() => setViewMode('table')}>
+            <Button variant='outline' onClick={() => setViewMode('table')}>
               Back to List
             </Button>
           )}
           {viewMode === 'table' && (
             <>
-              <Button variant="outline" onClick={() => setShowImportDialog(true)}>
-                <Upload className="h-4 w-4 mr-2" />
+              <Button
+                variant='outline'
+                onClick={() => setShowImportDialog(true)}
+              >
+                <Upload className='h-4 w-4 mr-2' />
                 Import
               </Button>
-              <Button variant="outline" onClick={handleExportLeads}>
-                <Download className="h-4 w-4 mr-2" />
+              <Button variant='outline' onClick={handleExportLeads}>
+                <Download className='h-4 w-4 mr-2' />
                 Export
               </Button>
               <Button onClick={handleCreateLead}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className='h-4 w-4 mr-2' />
                 Add Lead
               </Button>
             </>
@@ -310,7 +344,9 @@ export function EnhancedLeadsView() {
       {viewMode === 'details' && selectedLead && (
         <LeadDetails
           lead={selectedLead}
-          campaign={availableCampaigns.find(c => c.id === selectedLead.campaignId)}
+          campaign={availableCampaigns.find(
+            c => c.id === selectedLead.campaignId
+          )}
           onEdit={() => setViewMode('form')}
           onClose={() => setViewMode('table')}
           loading={loading}
@@ -333,7 +369,9 @@ export function EnhancedLeadsView() {
           campaigns={availableCampaigns}
           onBulkUpdate={handleBulkUpdate}
           onBulkDelete={handleBulkDelete}
-          onAssignToCampaign={(leadIds, campaignId) => assignToCampaign(leadIds, campaignId)}
+          onAssignToCampaign={(leadIds, campaignId) =>
+            assignToCampaign(leadIds, campaignId)
+          }
           onClose={() => setViewMode('table')}
           loading={loading}
         />
@@ -341,23 +379,24 @@ export function EnhancedLeadsView() {
 
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className='max-w-4xl'>
           <DialogHeader>
             <DialogTitle>Import Leads</DialogTitle>
           </DialogHeader>
-          <div className="p-4">
-            <p className="text-gray-600 mb-4">
-              Upload a CSV file to import multiple leads at once. The file should include columns for 
-              firstName, lastName, email, phone, source, and any other lead data.
+          <div className='p-4'>
+            <p className='text-gray-600 mb-4'>
+              Upload a CSV file to import multiple leads at once. The file
+              should include columns for firstName, lastName, email, phone,
+              source, and any other lead data.
             </p>
             <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
+              type='file'
+              accept='.csv'
+              onChange={e => {
                 // Handle file upload here
                 console.log('File selected:', e.target.files?.[0]);
               }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              className='block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100'
             />
           </div>
         </DialogContent>

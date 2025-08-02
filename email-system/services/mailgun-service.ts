@@ -44,7 +44,7 @@ export class MailgunService {
       this.config = {
         apiKey,
         domain,
-        baseUrl: process.env.MAILGUN_BASE_URL || 'https://api.mailgun.net/v3'
+        baseUrl: process.env.MAILGUN_BASE_URL || 'https://api.mailgun.net/v3',
       };
       this.isConfigured = true;
       logger.info('Mailgun service configured', { domain });
@@ -58,7 +58,7 @@ export class MailgunService {
       logger.warn('Mailgun service not configured, skipping email send');
       return {
         success: false,
-        error: 'Mailgun service not configured'
+        error: 'Mailgun service not configured',
       };
     }
 
@@ -66,15 +66,15 @@ export class MailgunService {
       logger.info('Sending email via Mailgun', {
         to: Array.isArray(emailData.to) ? emailData.to.length : 1,
         subject: emailData.subject,
-        domain: this.config.domain
+        domain: this.config.domain,
       });
 
       // Simulate API call - replace with actual Mailgun API implementation
       const response = await this.callMailgunAPI(emailData);
-      
+
       logger.info('Email sent successfully', {
         messageId: response.messageId,
-        to: emailData.to
+        to: emailData.to,
       });
 
       return response;
@@ -82,12 +82,12 @@ export class MailgunService {
       logger.error('Failed to send email via Mailgun', {
         error: (error as Error).message,
         to: emailData.to,
-        subject: emailData.subject
+        subject: emailData.subject,
       });
 
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
@@ -99,29 +99,29 @@ export class MailgunService {
 
     const formData = new FormData();
     formData.append('from', emailData.from);
-    
+
     // Handle multiple recipients
     if (Array.isArray(emailData.to)) {
       emailData.to.forEach(recipient => formData.append('to', recipient));
     } else {
       formData.append('to', emailData.to);
     }
-    
+
     formData.append('subject', emailData.subject);
-    
+
     if (emailData.html) {
       formData.append('html', emailData.html);
     }
-    
+
     if (emailData.text) {
       formData.append('text', emailData.text);
     }
-    
+
     // Add tags if provided
     if (emailData.tags) {
       emailData.tags.forEach(tag => formData.append('o:tag', tag));
     }
-    
+
     // Add metadata if provided
     if (emailData.metadata) {
       Object.entries(emailData.metadata).forEach(([key, value]) => {
@@ -129,24 +129,29 @@ export class MailgunService {
       });
     }
 
-    const response = await fetch(`${this.config.baseUrl}/${this.config.domain}/messages`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`
-      },
-      body: formData
-    });
+    const response = await fetch(
+      `${this.config.baseUrl}/${this.config.domain}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`,
+        },
+        body: formData,
+      }
+    );
 
     const responseData = await response.json();
 
     if (!response.ok) {
-      throw new Error(`Mailgun API error: ${responseData.message || response.statusText}`);
+      throw new Error(
+        `Mailgun API error: ${responseData.message || response.statusText}`
+      );
     }
 
     return {
       success: true,
       messageId: responseData.id,
-      status: response.status
+      status: response.status,
     };
   }
 
@@ -154,7 +159,7 @@ export class MailgunService {
     if (!this.isConfigured) {
       return emails.map(() => ({
         success: false,
-        error: 'Mailgun service not configured'
+        error: 'Mailgun service not configured',
       }));
     }
 
@@ -164,18 +169,18 @@ export class MailgunService {
       emails.map(email => this.sendEmail(email))
     );
 
-    const responses = results.map(result => 
-      result.status === 'fulfilled' 
-        ? result.value 
+    const responses = results.map(result =>
+      result.status === 'fulfilled'
+        ? result.value
         : { success: false, error: 'Promise rejected' }
     );
 
     const successCount = responses.filter(r => r.success).length;
-    
+
     logger.info('Bulk email send completed', {
       total: emails.length,
       successful: successCount,
-      failed: emails.length - successCount
+      failed: emails.length - successCount,
     });
 
     return responses;
@@ -195,7 +200,7 @@ export class MailgunService {
 
     return {
       isValid,
-      reason: isValid ? undefined : 'Invalid email format'
+      reason: isValid ? undefined : 'Invalid email format',
     };
   }
 
@@ -208,14 +213,21 @@ export class MailgunService {
     }
 
     // Simulate delivery status check
-    const statuses: Array<'delivered' | 'failed' | 'pending'> = ['delivered', 'pending', 'failed'];
+    const statuses: Array<'delivered' | 'failed' | 'pending'> = [
+      'delivered',
+      'pending',
+      'failed',
+    ];
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
 
-    logger.debug('Checking delivery status', { messageId, status: randomStatus });
+    logger.debug('Checking delivery status', {
+      messageId,
+      status: randomStatus,
+    });
 
     return {
       status: randomStatus,
-      details: `Message ${messageId} status: ${randomStatus}`
+      details: `Message ${messageId} status: ${randomStatus}`,
     };
   }
 
@@ -236,7 +248,7 @@ export class MailgunService {
       delivered: Math.floor(Math.random() * 900),
       failed: Math.floor(Math.random() * 50),
       opens: Math.floor(Math.random() * 400),
-      clicks: Math.floor(Math.random() * 100)
+      clicks: Math.floor(Math.random() * 100),
     };
   }
 
@@ -246,10 +258,10 @@ export class MailgunService {
 
   getConfig(): Partial<MailgunConfig> | null {
     if (!this.config) return null;
-    
+
     return {
       domain: this.config.domain,
-      baseUrl: this.config.baseUrl
+      baseUrl: this.config.baseUrl,
       // Don't expose API key
     };
   }
@@ -264,25 +276,30 @@ export class MailgunService {
 
     try {
       logger.info('Testing Mailgun connection');
-      
+
       // Test connection by getting domain info
-      const response = await fetch(`${this.config.baseUrl}/${this.config.domain}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`
+      const response = await fetch(
+        `${this.config.baseUrl}/${this.config.domain}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Basic ${Buffer.from(`api:${this.config.apiKey}`).toString('base64')}`,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Mailgun API error: ${errorData.message || response.statusText}`);
+        throw new Error(
+          `Mailgun API error: ${errorData.message || response.statusText}`
+        );
       }
-      
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: (error as Error).message 
+      return {
+        success: false,
+        error: (error as Error).message,
       };
     }
   }

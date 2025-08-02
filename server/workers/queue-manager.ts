@@ -17,11 +17,15 @@ export class QueueManager {
   private jobs: Map<string, QueueJob> = new Map();
   private isProcessing = false;
 
-  async addJob(type: string, data: any, options: {
-    priority?: number;
-    delay?: number;
-    maxAttempts?: number;
-  } = {}): Promise<string> {
+  async addJob(
+    type: string,
+    data: any,
+    options: {
+      priority?: number;
+      delay?: number;
+      maxAttempts?: number;
+    } = {}
+  ): Promise<string> {
     const jobId = crypto.randomUUID();
     const job: QueueJob = {
       id: jobId,
@@ -32,7 +36,7 @@ export class QueueManager {
       maxAttempts: options.maxAttempts || 3,
       delay: options.delay,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.jobs.set(jobId, job);
@@ -63,14 +67,15 @@ export class QueueManager {
     return {
       total: jobs.length,
       pending: jobs.filter(j => j.attempts === 0).length,
-      processing: jobs.filter(j => j.attempts > 0 && j.attempts < j.maxAttempts).length,
-      failed: jobs.filter(j => j.attempts >= j.maxAttempts).length
+      processing: jobs.filter(j => j.attempts > 0 && j.attempts < j.maxAttempts)
+        .length,
+      failed: jobs.filter(j => j.attempts >= j.maxAttempts).length,
     };
   }
 
   private async processJobs(): Promise<void> {
     this.isProcessing = true;
-    
+
     while (this.jobs.size > 0) {
       const jobs = Array.from(this.jobs.values())
         .filter(job => job.attempts < job.maxAttempts)
@@ -79,7 +84,7 @@ export class QueueManager {
       if (jobs.length === 0) break;
 
       const job = jobs[0];
-      
+
       try {
         await this.processJob(job);
         this.jobs.delete(job.id);
@@ -87,19 +92,19 @@ export class QueueManager {
       } catch (error) {
         job.attempts++;
         job.updatedAt = new Date();
-        
+
         if (job.attempts >= job.maxAttempts) {
-          logger.error('Job failed permanently', { 
-            jobId: job.id, 
-            type: job.type, 
-            error: (error as Error).message 
+          logger.error('Job failed permanently', {
+            jobId: job.id,
+            type: job.type,
+            error: (error as Error).message,
           });
         } else {
-          logger.warn('Job failed, will retry', { 
-            jobId: job.id, 
-            type: job.type, 
+          logger.warn('Job failed, will retry', {
+            jobId: job.id,
+            type: job.type,
             attempt: job.attempts,
-            error: (error as Error).message 
+            error: (error as Error).message,
           });
         }
       }
@@ -107,13 +112,13 @@ export class QueueManager {
       // Small delay between jobs
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     this.isProcessing = false;
   }
 
   private async processJob(job: QueueJob): Promise<void> {
     logger.info('Processing job', { jobId: job.id, type: job.type });
-    
+
     // Basic job processing - would be extended based on job type
     switch (job.type) {
       case 'email':
@@ -146,14 +151,14 @@ export class QueueManager {
         subject: data.subject,
         html: data.html,
         text: data.text,
-        from: data.from
+        from: data.from,
       });
 
       if (result.success) {
         logger.info('Email sent successfully', {
           to: data.to,
           subject: data.subject,
-          messageId: result.messageId
+          messageId: result.messageId,
         });
       } else {
         throw new Error(result.error || 'Failed to send email');
@@ -161,7 +166,7 @@ export class QueueManager {
     } catch (error) {
       logger.error('Failed to process email job', {
         error: (error as Error).message,
-        data
+        data,
       });
       throw error;
     }
@@ -182,8 +187,12 @@ export class QueueManager {
 
     try {
       // Import execution processor and storage
-      const { executionProcessor } = await import('../services/campaign-execution/ExecutionProcessor');
-      const { executionStorage } = await import('../services/campaign-execution/ExecutionStorage');
+      const { executionProcessor } = await import(
+        '../services/campaign-execution/ExecutionProcessor'
+      );
+      const { executionStorage } = await import(
+        '../services/campaign-execution/ExecutionStorage'
+      );
 
       // Get the execution from storage
       const execution = executionStorage.get(data.executionId);
@@ -194,11 +203,13 @@ export class QueueManager {
       // Process the execution
       await executionProcessor.processExecution(execution);
 
-      logger.info('Campaign execution processed successfully', { executionId: data.executionId });
+      logger.info('Campaign execution processed successfully', {
+        executionId: data.executionId,
+      });
     } catch (error) {
       logger.error('Failed to process campaign execution job', {
         error: (error as Error).message,
-        data
+        data,
       });
       throw error;
     }
@@ -214,12 +225,19 @@ export class QueueManager {
     return true;
   }
 
-  async addLeadProcessingJob(leadId: string, priority: 'low' | 'normal' | 'high' = 'normal'): Promise<string> {
+  async addLeadProcessingJob(
+    leadId: string,
+    priority: 'low' | 'normal' | 'high' = 'normal'
+  ): Promise<string> {
     const priorityMap = { low: 1, normal: 5, high: 10 };
-    return await this.addJob('lead', { leadId }, {
-      priority: priorityMap[priority],
-      maxAttempts: 3
-    });
+    return await this.addJob(
+      'lead',
+      { leadId },
+      {
+        priority: priorityMap[priority],
+        maxAttempts: 3,
+      }
+    );
   }
 }
 

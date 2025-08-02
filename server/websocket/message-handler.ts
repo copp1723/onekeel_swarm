@@ -15,7 +15,11 @@ export class WebSocketMessageHandler {
   private leadProcessor: LeadProcessor;
   private broadcastCallback: (data: any) => void;
 
-  constructor(wss: WebSocketServer, leadProcessor: LeadProcessor, broadcastCallback: (data: any) => void) {
+  constructor(
+    wss: WebSocketServer,
+    leadProcessor: LeadProcessor,
+    broadcastCallback: (data: any) => void
+  ) {
     this.wss = wss;
     this.leadProcessor = leadProcessor;
     this.broadcastCallback = broadcastCallback;
@@ -23,7 +27,7 @@ export class WebSocketMessageHandler {
 
   setupConnection(ws: any, req: any) {
     logger.info('New WebSocket connection established');
-    
+
     // Store connection metadata
     const connectionId = nanoid();
     (ws as ExtendedWebSocket).connectionId = connectionId;
@@ -41,42 +45,47 @@ export class WebSocketMessageHandler {
           case 'auth':
             await this.handleAuth(ws, data);
             break;
-            
+
           case 'mark_notification_read':
             await this.handleMarkNotificationRead(ws, data);
             break;
-            
+
           case 'mark_all_notifications_read':
             await this.handleMarkAllNotificationsRead(ws);
             break;
-            
+
           case 'delete_notification':
             await this.handleDeleteNotification(ws, data);
             break;
-            
+
           case 'agent_update':
             await this.handleAgentUpdate(data);
             break;
-        
+
           case 'lead_update':
             await this.handleLeadUpdate(data);
             break;
-            
+
           case 'process_lead':
             await this.handleProcessLead(data);
             break;
-            
+
           case 'chat:init':
             await this.handleChatInit(ws, data);
             break;
-            
+
           case 'chat:message':
             await this.handleChatMessage(ws, data);
             break;
         }
       } catch (error) {
         logger.error('Error processing WebSocket message:', error as Error);
-        ws.send(JSON.stringify({ type: 'error', message: 'Failed to process message' }));
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            message: 'Failed to process message',
+          })
+        );
       }
     });
 
@@ -96,26 +105,26 @@ export class WebSocketMessageHandler {
 
   private async handleMarkNotificationRead(ws: any, data: any) {
     if ((ws as ExtendedWebSocket).userId && data.notificationId) {
-      logger.info('Marking notification as read', { 
-        userId: (ws as ExtendedWebSocket).userId, 
-        notificationId: data.notificationId 
+      logger.info('Marking notification as read', {
+        userId: (ws as ExtendedWebSocket).userId,
+        notificationId: data.notificationId,
       });
     }
   }
 
   private async handleMarkAllNotificationsRead(ws: any) {
     if ((ws as ExtendedWebSocket).userId) {
-      logger.info('Marking all notifications as read', { 
-        userId: (ws as ExtendedWebSocket).userId 
+      logger.info('Marking all notifications as read', {
+        userId: (ws as ExtendedWebSocket).userId,
       });
     }
   }
 
   private async handleDeleteNotification(ws: any, data: any) {
     if ((ws as ExtendedWebSocket).userId && data.notificationId) {
-      logger.info('Deleting notification', { 
-        userId: (ws as ExtendedWebSocket).userId, 
-        notificationId: data.notificationId 
+      logger.info('Deleting notification', {
+        userId: (ws as ExtendedWebSocket).userId,
+        notificationId: data.notificationId,
       });
     }
   }
@@ -125,7 +134,7 @@ export class WebSocketMessageHandler {
     this.broadcastCallback({
       type: 'agent_update',
       agent: data.agent,
-      message: data.message
+      message: data.message,
     });
   }
 
@@ -134,7 +143,7 @@ export class WebSocketMessageHandler {
     this.broadcastCallback({
       type: 'lead_update',
       leadId: data.leadId,
-      status: data.status
+      status: data.status,
     });
   }
 
@@ -155,63 +164,67 @@ export class WebSocketMessageHandler {
     // Initialize chat session
     (ws as ExtendedWebSocket).sessionId = data.sessionId;
     (ws as ExtendedWebSocket).leadId = data.leadId || 'anonymous';
-    
-    logger.info('Chat session initialized', { 
-      sessionId: data.sessionId, 
-      leadId: (ws as ExtendedWebSocket).leadId 
-    });
-    
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'chat:connected',
+
+    logger.info('Chat session initialized', {
+      sessionId: data.sessionId,
       leadId: (ws as ExtendedWebSocket).leadId,
-      conversationId: nanoid(),
-      welcomeMessage: 'Hello! How can I help you today?'
-    }));
+    });
+
+    // Send welcome message
+    ws.send(
+      JSON.stringify({
+        type: 'chat:connected',
+        leadId: (ws as ExtendedWebSocket).leadId,
+        conversationId: nanoid(),
+        welcomeMessage: 'Hello! How can I help you today?',
+      })
+    );
   }
 
   private async handleChatMessage(ws: any, data: any) {
     // Show typing indicator
     ws.send(JSON.stringify({ type: 'chat:typing' }));
-    
+
     // Find lead and conversation
     const leadId = (ws as ExtendedWebSocket).leadId;
     if (!leadId) {
       ws.send(JSON.stringify({ type: 'error', message: 'No active session' }));
       return;
     }
-    
-    logger.info('Processing chat message', { 
-      leadId, 
-      content: data.content 
+
+    logger.info('Processing chat message', {
+      leadId,
+      content: data.content,
     });
-    
+
     // Simple echo response for now
     const response = `I received your message: "${data.content}". This is a basic response.`;
-    
+
     // Send response
-    ws.send(JSON.stringify({
-      type: 'chat:message',
-      id: nanoid(),
-      content: response,
-      sender: 'agent',
-      timestamp: new Date(),
-      quickReplies: []
-    }));
-    
+    ws.send(
+      JSON.stringify({
+        type: 'chat:message',
+        id: nanoid(),
+        content: response,
+        sender: 'agent',
+        timestamp: new Date(),
+        quickReplies: [],
+      })
+    );
+
     // Stop typing indicator
     ws.send(JSON.stringify({ type: 'chat:stopTyping' }));
   }
 
   private handleConnectionClose(ws: any) {
     logger.info('WebSocket connection closed');
-    
+
     // Notify if this was an active chat
     if ((ws as ExtendedWebSocket).sessionId) {
       this.broadcastCallback({
         type: 'chat:disconnected',
         sessionId: (ws as ExtendedWebSocket).sessionId,
-        leadId: (ws as ExtendedWebSocket).leadId
+        leadId: (ws as ExtendedWebSocket).leadId,
       });
     }
   }

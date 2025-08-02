@@ -1,7 +1,13 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
 import { db } from '../db/client';
-import { leads, conversations, campaigns, communications, leadCampaignEnrollments } from '../db/schema';
+import {
+  leads,
+  conversations,
+  campaigns,
+  communications,
+  leadCampaignEnrollments,
+} from '../db/schema';
 import { sql, gte, and, eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import {
@@ -9,7 +15,7 @@ import {
   healthChecker,
   metricsCollector,
   databaseMonitor,
-  enhancedServiceMonitor
+  enhancedServiceMonitor,
 } from '../monitoring';
 import { schemaValidator } from '../utils/schema-validator';
 
@@ -21,48 +27,50 @@ const getHealthData = () => ({
     status: 'healthy',
     message: 'Connected to PostgreSQL',
     responseTime: 12,
-    lastChecked: new Date().toISOString()
+    lastChecked: new Date().toISOString(),
   },
   redis: {
     status: 'healthy',
     message: 'Redis cache operational',
     responseTime: 5,
-    lastChecked: new Date().toISOString()
+    lastChecked: new Date().toISOString(),
   },
   email: {
     status: 'healthy',
     message: 'Email service operational',
     responseTime: 45,
-    lastChecked: new Date().toISOString()
+    lastChecked: new Date().toISOString(),
   },
   websocket: {
     status: 'healthy',
-    message: 'WebSocket server running', 
+    message: 'WebSocket server running',
     responseTime: 8,
-    lastChecked: new Date().toISOString()
-  }
+    lastChecked: new Date().toISOString(),
+  },
 });
 
 const getPerformanceData = () => ({
   memory: {
     usage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
     total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-    percentage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+    percentage: Math.round(
+      (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100
+    ),
   },
   cpu: {
     usage: Math.random() * 40 + 10, // Mock CPU usage between 10-50%
-    cores: require('os').cpus().length
+    cores: require('os').cpus().length,
   },
   uptime: Math.round(process.uptime()),
   responseTime: {
     avg: 145,
     p95: 280,
-    p99: 450
+    p99: 450,
   },
   throughput: {
     requestsPerMinute: Math.floor(Math.random() * 100) + 50,
-    activeConnections: Math.floor(Math.random() * 20) + 5
-  }
+    activeConnections: Math.floor(Math.random() * 20) + 5,
+  },
 });
 
 const getBusinessData = () => ({
@@ -70,27 +78,27 @@ const getBusinessData = () => ({
     total: 1247,
     today: 23,
     thisWeek: 156,
-    conversionRate: 12.5
+    conversionRate: 12.5,
   },
   campaigns: {
     active: 8,
     paused: 3,
     totalSent: 15420,
     openRate: 24.5,
-    clickRate: 3.2
+    clickRate: 3.2,
   },
   agents: {
     active: 4,
     busy: 2,
     idle: 2,
-    totalTasks: 89
+    totalTasks: 89,
   },
   conversations: {
     active: 12,
     resolved: 45,
     avgResponseTime: 1.2,
-    satisfaction: 4.6
-  }
+    satisfaction: 4.6,
+  },
 });
 
 // Enhanced health check endpoint using unified monitoring
@@ -99,16 +107,20 @@ router.get('/health', async (req: Request, res: Response) => {
     const includeDetails = req.query.details === 'true';
     const healthStatus = await healthChecker.checkSystemHealth({
       includeDetails,
-      timeout: 5000
+      timeout: 5000,
     });
 
-    const statusCode = healthStatus.status === 'healthy' ? 200 :
-                      healthStatus.status === 'degraded' ? 200 : 503;
+    const statusCode =
+      healthStatus.status === 'healthy'
+        ? 200
+        : healthStatus.status === 'degraded'
+          ? 200
+          : 503;
 
     res.status(statusCode).json({
       success: healthStatus.status !== 'unhealthy',
       data: healthStatus,
-      message: `Health check completed - ${healthStatus.status}`
+      message: `Health check completed - ${healthStatus.status}`,
     });
   } catch (error) {
     console.error('Health check error:', error);
@@ -117,8 +129,8 @@ router.get('/health', async (req: Request, res: Response) => {
       error: {
         code: 'HEALTH_CHECK_ERROR',
         message: 'Health check failed',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -128,13 +140,13 @@ router.get('/health/detailed', async (req: Request, res: Response) => {
   try {
     const healthStatus = await healthChecker.checkSystemHealth({
       includeDetails: true,
-      timeout: 10000
+      timeout: 10000,
     });
 
     res.json({
       success: true,
       data: healthStatus,
-      message: 'Detailed health check completed'
+      message: 'Detailed health check completed',
     });
   } catch (error) {
     console.error('Detailed health check error:', error);
@@ -143,8 +155,8 @@ router.get('/health/detailed', async (req: Request, res: Response) => {
       error: {
         code: 'DETAILED_HEALTH_ERROR',
         message: 'Detailed health check failed',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -152,12 +164,13 @@ router.get('/health/detailed', async (req: Request, res: Response) => {
 // Performance metrics endpoint
 router.get('/performance', async (req: Request, res: Response) => {
   try {
-    const performanceMetrics = await metricsCollector.collectPerformanceMetrics();
+    const performanceMetrics =
+      await metricsCollector.collectPerformanceMetrics();
 
     res.json({
       success: true,
       data: performanceMetrics,
-      message: 'Performance metrics collected'
+      message: 'Performance metrics collected',
     });
   } catch (error) {
     console.error('Performance metrics error:', error);
@@ -166,8 +179,8 @@ router.get('/performance', async (req: Request, res: Response) => {
       error: {
         code: 'PERFORMANCE_METRICS_ERROR',
         message: 'Failed to collect performance metrics',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -180,7 +193,7 @@ router.get('/business', async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: businessMetrics,
-      message: 'Business metrics collected'
+      message: 'Business metrics collected',
     });
   } catch (error) {
     console.error('Business metrics error:', error);
@@ -189,8 +202,8 @@ router.get('/business', async (req: Request, res: Response) => {
       error: {
         code: 'BUSINESS_METRICS_ERROR',
         message: 'Failed to collect business metrics',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -205,9 +218,9 @@ router.get('/schema-status', async (req: Request, res: Response) => {
       data: {
         isValid: validationResult.isValid,
         timestamp: new Date().toISOString(),
-        details: validationResult
+        details: validationResult,
       },
-      message: 'Schema validation completed'
+      message: 'Schema validation completed',
     });
   } catch (error) {
     console.error('Schema validation error:', error);
@@ -216,8 +229,8 @@ router.get('/schema-status', async (req: Request, res: Response) => {
       error: {
         code: 'SCHEMA_VALIDATION_ERROR',
         message: 'Failed to validate schema',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -230,8 +243,8 @@ router.get('/status', (req: Request, res: Response) => {
       status: 'ok',
       service: 'onekeel-swarm',
       version: '1.0.0',
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 });
 
@@ -239,12 +252,12 @@ router.get('/status', (req: Request, res: Response) => {
 router.get('/health/detailed', async (req, res) => {
   try {
     const health = getHealthData();
-    
+
     res.json({
       success: true,
       data: health,
       timestamp: new Date().toISOString(),
-      overall: 'healthy'
+      overall: 'healthy',
     });
   } catch (error) {
     console.error('Error fetching detailed health:', error);
@@ -253,8 +266,8 @@ router.get('/health/detailed', async (req, res) => {
       error: {
         code: 'DETAILED_HEALTH_ERROR',
         message: 'Failed to fetch system health data',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -263,11 +276,11 @@ router.get('/health/detailed', async (req, res) => {
 router.get('/performance', async (req, res) => {
   try {
     const performance = getPerformanceData();
-    
+
     res.json({
       success: true,
       data: performance,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error fetching performance data:', error);
@@ -276,8 +289,8 @@ router.get('/performance', async (req, res) => {
       error: {
         code: 'PERFORMANCE_ERROR',
         message: 'Failed to fetch performance metrics',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -286,7 +299,7 @@ router.get('/performance', async (req, res) => {
 router.get('/performance/alerts', async (req, res) => {
   try {
     const { resolved = 'false' } = req.query;
-    
+
     const alerts = [
       {
         id: '1',
@@ -296,7 +309,7 @@ router.get('/performance/alerts', async (req, res) => {
         severity: 'medium',
         level: 'warning',
         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        resolved: false
+        resolved: false,
       },
       {
         id: '2',
@@ -306,20 +319,21 @@ router.get('/performance/alerts', async (req, res) => {
         severity: 'low',
         level: 'info',
         timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        resolved: true
-      }
+        resolved: true,
+      },
     ];
 
-    const filteredAlerts = resolved === 'true' ? alerts : alerts.filter(a => !a.resolved);
+    const filteredAlerts =
+      resolved === 'true' ? alerts : alerts.filter(a => !a.resolved);
 
     res.json({
       success: true,
       data: {
         alerts: filteredAlerts,
         count: filteredAlerts.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      message: 'Performance alerts retrieved'
+      message: 'Performance alerts retrieved',
     });
   } catch (error) {
     console.error('Error fetching performance alerts:', error);
@@ -328,8 +342,8 @@ router.get('/performance/alerts', async (req, res) => {
       error: {
         code: 'ALERTS_ERROR',
         message: 'Failed to fetch performance alerts',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -338,15 +352,15 @@ router.get('/performance/alerts', async (req, res) => {
 router.post('/performance/alerts/:alertId/resolve', async (req, res) => {
   try {
     const { alertId } = req.params;
-    
+
     res.json({
       success: true,
       data: {
         alertId,
         resolved: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      message: 'Alert resolved successfully'
+      message: 'Alert resolved successfully',
     });
   } catch (error) {
     console.error('Error resolving alert:', error);
@@ -355,8 +369,8 @@ router.post('/performance/alerts/:alertId/resolve', async (req, res) => {
       error: {
         code: 'ALERT_RESOLVE_ERROR',
         message: 'Failed to resolve alert',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -375,7 +389,7 @@ router.get('/dashboard', async (req, res) => {
         uptime: performance.uptime,
         memory: performance.memory,
         environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0'
+        version: '1.0.0',
       },
       health: {
         overall: 'healthy',
@@ -383,15 +397,15 @@ router.get('/dashboard', async (req, res) => {
         components: Object.keys(health).map(key => ({
           name: key,
           status: health[key as keyof typeof health].status,
-          responseTime: health[key as keyof typeof health].responseTime
-        }))
+          responseTime: health[key as keyof typeof health].responseTime,
+        })),
       },
       performance: {
         ...performance,
         alerts: {
           active: 1,
-          critical: 0
-        }
+          critical: 0,
+        },
       },
       business,
       infrastructure: {
@@ -400,15 +414,15 @@ router.get('/dashboard', async (req, res) => {
         circuitBreakers: {
           healthy: ['email', 'database'],
           degraded: [],
-          unhealthy: []
-        }
-      }
+          unhealthy: [],
+        },
+      },
     };
 
     res.json({
       success: true,
       data: dashboard,
-      message: 'System dashboard data retrieved'
+      message: 'System dashboard data retrieved',
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
@@ -417,8 +431,8 @@ router.get('/dashboard', async (req, res) => {
       error: {
         code: 'DASHBOARD_ERROR',
         message: 'Failed to fetch dashboard data',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -430,9 +444,9 @@ router.get('/realtime', async (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
+      'Access-Control-Allow-Headers': 'Cache-Control',
     });
 
     const sendUpdate = async () => {
@@ -441,12 +455,16 @@ router.get('/realtime', async (req, res) => {
           timestamp: new Date().toISOString(),
           memory: {
             usage: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-            percentage: Math.round((process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100)
+            percentage: Math.round(
+              (process.memoryUsage().heapUsed /
+                process.memoryUsage().heapTotal) *
+                100
+            ),
           },
           uptime: process.uptime(),
           alerts: 1,
           queues: true,
-          cpu: Math.random() * 40 + 10
+          cpu: Math.random() * 40 + 10,
         };
 
         res.write(`data: ${JSON.stringify(realtimeData)}\n\n`);
@@ -475,7 +493,6 @@ router.get('/realtime', async (req, res) => {
     req.on('close', () => {
       clearInterval(keepAlive);
     });
-
   } catch (error) {
     console.error('Error starting realtime monitoring:', error);
     res.status(500).json({
@@ -483,8 +500,8 @@ router.get('/realtime', async (req, res) => {
       error: {
         code: 'REALTIME_ERROR',
         message: 'Failed to start realtime monitoring',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -493,11 +510,11 @@ router.get('/realtime', async (req, res) => {
 router.get('/business', async (req, res) => {
   try {
     const business = getBusinessData();
-    
+
     res.json({
       success: true,
       data: business,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error fetching business metrics:', error);
@@ -506,8 +523,8 @@ router.get('/business', async (req, res) => {
       error: {
         code: 'BUSINESS_METRICS_ERROR',
         message: 'Failed to fetch business metrics',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -522,26 +539,26 @@ router.get('/infrastructure', async (req, res) => {
         connections: {
           main: true,
           rateLimit: true,
-          session: true
+          session: true,
         },
         details: {
           main: 'connected',
           rateLimit: 'connected',
-          session: 'connected'
-        }
+          session: 'connected',
+        },
       },
       circuitBreakers: {
         status: 'healthy',
         summary: {
           healthy: 4,
           degraded: 0,
-          unhealthy: 0
+          unhealthy: 0,
         },
         services: {
           healthy: ['email', 'database', 'redis', 'api'],
           degraded: [],
-          unhealthy: []
-        }
+          unhealthy: [],
+        },
       },
       queues: {
         status: 'healthy',
@@ -550,19 +567,19 @@ router.get('/infrastructure', async (req, res) => {
           active: 2,
           waiting: 5,
           completed: 150,
-          failed: 2
-        }
+          failed: 2,
+        },
       },
       database: {
         status: 'healthy',
-        connections: 'normal'
-      }
+        connections: 'normal',
+      },
     };
 
     res.json({
       success: true,
       data: infrastructure,
-      message: 'Infrastructure status retrieved'
+      message: 'Infrastructure status retrieved',
     });
   } catch (error) {
     console.error('Error fetching infrastructure status:', error);
@@ -571,8 +588,8 @@ router.get('/infrastructure', async (req, res) => {
       error: {
         code: 'INFRASTRUCTURE_ERROR',
         message: 'Failed to fetch infrastructure status',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -588,18 +605,18 @@ router.get('/stats', async (req, res) => {
         nodeVersion: process.version,
         platform: process.platform,
         arch: process.arch,
-        pid: process.pid
+        pid: process.pid,
       },
       memory: process.memoryUsage(),
       cpu: process.cpuUsage(),
       performance: getPerformanceData(),
-      health: getHealthData()
+      health: getHealthData(),
     };
 
     res.json({
       success: true,
       data: stats,
-      message: 'System statistics retrieved'
+      message: 'System statistics retrieved',
     });
   } catch (error) {
     console.error('Error fetching system statistics:', error);
@@ -608,8 +625,8 @@ router.get('/stats', async (req, res) => {
       error: {
         code: 'STATS_ERROR',
         message: 'Failed to fetch system statistics',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -625,7 +642,7 @@ router.get('/alerts', async (req, res) => {
         message: 'Memory usage is above 80%',
         severity: 'medium',
         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-        resolved: false
+        resolved: false,
       },
       {
         id: '2',
@@ -634,15 +651,15 @@ router.get('/alerts', async (req, res) => {
         message: 'Query performance improved by 15%',
         severity: 'low',
         timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        resolved: true
-      }
+        resolved: true,
+      },
     ];
-    
+
     res.json({
       success: true,
       data: alerts,
       total: alerts.length,
-      unresolved: alerts.filter(a => !a.resolved).length
+      unresolved: alerts.filter(a => !a.resolved).length,
     });
   } catch (error) {
     console.error('Error fetching alerts:', error);
@@ -651,8 +668,8 @@ router.get('/alerts', async (req, res) => {
       error: {
         code: 'ALERTS_FETCH_ERROR',
         message: 'Failed to fetch system alerts',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -661,15 +678,15 @@ router.get('/alerts', async (req, res) => {
 router.patch('/alerts/:id/resolve', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     res.json({
       success: true,
       data: {
         alertId: id,
-        resolved: true
+        resolved: true,
       },
       message: `Alert ${id} resolved`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error resolving alert:', error);
@@ -678,8 +695,8 @@ router.patch('/alerts/:id/resolve', async (req, res) => {
       error: {
         code: 'ALERT_RESOLVE_ERROR',
         message: 'Failed to resolve alert',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -694,39 +711,39 @@ router.get('/circuit-breakers', async (req, res) => {
           status: 'closed',
           failures: 0,
           successRate: 99.5,
-          lastFailure: null
+          lastFailure: null,
         },
         database: {
           status: 'closed',
           failures: 0,
           successRate: 100,
-          lastFailure: null
+          lastFailure: null,
         },
         redis: {
           status: 'closed',
           failures: 0,
           successRate: 99.8,
-          lastFailure: null
+          lastFailure: null,
         },
         api: {
           status: 'closed',
           failures: 0,
           successRate: 98.2,
-          lastFailure: null
-        }
+          lastFailure: null,
+        },
       },
       summary: {
         healthy: 4,
         degraded: 0,
         unhealthy: 0,
-        total: 4
-      }
+        total: 4,
+      },
     };
 
     res.json({
       success: true,
       data: circuitBreakers,
-      message: 'Circuit breaker status retrieved'
+      message: 'Circuit breaker status retrieved',
     });
   } catch (error) {
     console.error('Error fetching circuit breaker status:', error);
@@ -735,8 +752,8 @@ router.get('/circuit-breakers', async (req, res) => {
       error: {
         code: 'CIRCUIT_BREAKER_ERROR',
         message: 'Failed to fetch circuit breaker status',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -745,15 +762,15 @@ router.get('/circuit-breakers', async (req, res) => {
 router.post('/circuit-breakers/:service/reset', async (req, res) => {
   try {
     const { service } = req.params;
-    
+
     res.json({
       success: true,
       data: {
         service,
         status: 'reset',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
-      message: `Circuit breaker for ${service} has been reset`
+      message: `Circuit breaker for ${service} has been reset`,
     });
   } catch (error) {
     console.error('Error resetting circuit breaker:', error);
@@ -762,8 +779,8 @@ router.post('/circuit-breakers/:service/reset', async (req, res) => {
       error: {
         code: 'CIRCUIT_BREAKER_RESET_ERROR',
         message: 'Failed to reset circuit breaker',
-        category: 'system'
-      }
+        category: 'system',
+      },
     });
   }
 });
@@ -811,49 +828,51 @@ router.get('/performance', requireAuth, async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+
     // Get total leads count
     const [{ totalLeads }] = await db
       .select({ totalLeads: sql<number>`count(*)::int` })
       .from(leads);
-    
+
     // Get new leads today
     const [{ newLeadsToday }] = await db
       .select({ newLeadsToday: sql<number>`count(*)::int` })
       .from(leads)
       .where(gte(leads.createdAt, today));
-    
+
     // Get active conversations
     const [{ activeConversations }] = await db
       .select({ activeConversations: sql<number>`count(*)::int` })
       .from(conversations)
       .where(eq(conversations.status, 'active'));
-    
+
     // Get conversion metrics
     const [{ totalConverted }] = await db
       .select({ totalConverted: sql<number>`count(*)::int` })
       .from(leads)
       .where(eq(leads.status, 'converted'));
-    
-    const conversionRate = totalLeads > 0 ? (totalConverted / totalLeads * 100) : 0;
-    
+
+    const conversionRate =
+      totalLeads > 0 ? (totalConverted / totalLeads) * 100 : 0;
+
     // Get campaign engagement
     const campaignStats = await db
       .select({
         totalSent: sql<number>`count(distinct ${leadCampaignEnrollments.leadId})::int`,
-        totalCompleted: sql<number>`count(case when ${leadCampaignEnrollments.completed} then 1 end)::int`
+        totalCompleted: sql<number>`count(case when ${leadCampaignEnrollments.completed} then 1 end)::int`,
       })
       .from(leadCampaignEnrollments);
-    
-    const campaignEngagement = campaignStats[0].totalSent > 0 
-      ? (campaignStats[0].totalCompleted / campaignStats[0].totalSent * 100) 
-      : 0;
-    
+
+    const campaignEngagement =
+      campaignStats[0].totalSent > 0
+        ? (campaignStats[0].totalCompleted / campaignStats[0].totalSent) * 100
+        : 0;
+
     // Get response metrics
     const [{ totalResponses }] = await db
       .select({ totalResponses: sql<number>`count(*)::int` })
@@ -864,7 +883,7 @@ router.get('/performance', requireAuth, async (req, res) => {
           gte(communications.createdAt, thisMonth)
         )
       );
-    
+
     const [{ totalOutbound }] = await db
       .select({ totalOutbound: sql<number>`count(*)::int` })
       .from(communications)
@@ -874,15 +893,16 @@ router.get('/performance', requireAuth, async (req, res) => {
           gte(communications.createdAt, thisMonth)
         )
       );
-    
-    const responseRate = totalOutbound > 0 ? (totalResponses / totalOutbound * 100) : 0;
-    
+
+    const responseRate =
+      totalOutbound > 0 ? (totalResponses / totalOutbound) * 100 : 0;
+
     // Calculate average response time (mock for now)
     const avgResponseTime = '2.3 min';
-    
+
     // Calculate total revenue (mock for now - would come from actual revenue data)
     const totalRevenue = totalConverted * 1000; // $1000 per conversion as example
-    
+
     res.json({
       success: true,
       metrics: {
@@ -893,9 +913,9 @@ router.get('/performance', requireAuth, async (req, res) => {
         campaignEngagement: parseFloat(campaignEngagement.toFixed(1)),
         responseRate: parseFloat(responseRate.toFixed(1)),
         totalRevenue,
-        avgResponseTime
+        avgResponseTime,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error fetching performance metrics:', error);
@@ -904,8 +924,8 @@ router.get('/performance', requireAuth, async (req, res) => {
       error: {
         code: 'METRICS_FETCH_ERROR',
         message: 'Failed to fetch performance metrics',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });

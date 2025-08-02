@@ -1,13 +1,16 @@
 /**
  * Enhanced Service Monitor Component
- * 
+ *
  * Enhances the existing service monitor to integrate with the new monitoring
  * infrastructure and provide comprehensive service health monitoring.
  */
 
 import { logger } from '../utils/logger';
 import { serviceMonitor as existingServiceMonitor } from '../utils/service-health/service-monitor';
-import type { SystemServiceHealth, ServiceHealthResult } from '../utils/service-health/service-monitor';
+import type {
+  SystemServiceHealth,
+  ServiceHealthResult,
+} from '../utils/service-health/service-monitor';
 
 // This interface is now defined at the bottom to avoid conflicts
 
@@ -25,8 +28,16 @@ export interface EnhancedServiceHealth extends SystemServiceHealth {
     timestamp: string;
   }>;
   trends: {
-    responseTimeHistory: Array<{ timestamp: string; service: string; responseTime: number }>;
-    availabilityHistory: Array<{ timestamp: string; service: string; available: boolean }>;
+    responseTimeHistory: Array<{
+      timestamp: string;
+      service: string;
+      responseTime: number;
+    }>;
+    availabilityHistory: Array<{
+      timestamp: string;
+      service: string;
+      available: boolean;
+    }>;
   };
 }
 
@@ -37,7 +48,7 @@ export class EnhancedServiceMonitor {
     status: 'healthy' | 'degraded' | 'unhealthy';
     responseTime: number;
   }> = [];
-  
+
   private alertHistory: Array<{
     service: string;
     severity: 'low' | 'medium' | 'high' | 'critical';
@@ -54,21 +65,23 @@ export class EnhancedServiceMonitor {
   /**
    * Enhanced service health check with monitoring features
    */
-  async checkAllServices(options: EnhancedServiceMonitorOptions = {}): Promise<EnhancedServiceHealth> {
+  async checkAllServices(
+    options: EnhancedServiceMonitorOptions = {}
+  ): Promise<EnhancedServiceHealth> {
     const startTime = Date.now();
-    
+
     logger.debug('Starting enhanced service health check');
 
     try {
       // Use existing service monitor for core functionality
       const baseHealth = await existingServiceMonitor.checkAllServices();
-      
+
       // Update monitoring statistics
       this.updateMonitoringStats(baseHealth.services);
-      
+
       // Generate alerts based on service status
       const alerts = this.generateAlerts(baseHealth.services);
-      
+
       // Get trends from history
       const trends = this.getTrends();
 
@@ -77,11 +90,17 @@ export class EnhancedServiceMonitor {
         monitoring: {
           lastCheck: new Date().toISOString(),
           checkInterval: 30000, // 30 seconds default
-          failureCount: Object.values(this.failureCounts).reduce((sum, count) => sum + count, 0),
-          successCount: Object.values(this.successCounts).reduce((sum, count) => sum + count, 0)
+          failureCount: Object.values(this.failureCounts).reduce(
+            (sum, count) => sum + count,
+            0
+          ),
+          successCount: Object.values(this.successCounts).reduce(
+            (sum, count) => sum + count,
+            0
+          ),
         },
         alerts,
-        trends
+        trends,
       };
 
       this.lastCheckTime = Date.now();
@@ -89,13 +108,13 @@ export class EnhancedServiceMonitor {
       logger.debug('Enhanced service health check completed', {
         duration: Date.now() - startTime,
         servicesChecked: baseHealth.services.length,
-        alertsGenerated: alerts.length
+        alertsGenerated: alerts.length,
       });
 
       return enhancedHealth;
     } catch (error) {
       logger.error('Enhanced service health check failed:', error);
-      
+
       // Return degraded status with error information
       return this.getFailsafeHealth(error);
     }
@@ -104,22 +123,27 @@ export class EnhancedServiceMonitor {
   /**
    * Check individual service health
    */
-  async checkService(serviceName: string, options: EnhancedServiceMonitorOptions = {}): Promise<ServiceHealthResult | null> {
+  async checkService(
+    serviceName: string,
+    options: EnhancedServiceMonitorOptions = {}
+  ): Promise<ServiceHealthResult | null> {
     try {
       const result = await existingServiceMonitor.checkService(serviceName);
-      
+
       if (result) {
         // Record the check result
         this.recordServiceCheck(result);
-        
+
         // Update counters
         if (result.status === 'healthy') {
-          this.successCounts[serviceName] = (this.successCounts[serviceName] || 0) + 1;
+          this.successCounts[serviceName] =
+            (this.successCounts[serviceName] || 0) + 1;
         } else {
-          this.failureCounts[serviceName] = (this.failureCounts[serviceName] || 0) + 1;
+          this.failureCounts[serviceName] =
+            (this.failureCounts[serviceName] || 0) + 1;
         }
       }
-      
+
       return result;
     } catch (error) {
       logger.error(`Service check failed for ${serviceName}:`, error);
@@ -134,10 +158,16 @@ export class EnhancedServiceMonitor {
     return {
       lastCheck: new Date(this.lastCheckTime).toISOString(),
       totalChecks: this.checkHistory.length,
-      failureCount: Object.values(this.failureCounts).reduce((sum, count) => sum + count, 0),
-      successCount: Object.values(this.successCounts).reduce((sum, count) => sum + count, 0),
+      failureCount: Object.values(this.failureCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      ),
+      successCount: Object.values(this.successCounts).reduce(
+        (sum, count) => sum + count,
+        0
+      ),
       alertCount: this.alertHistory.length,
-      services: Object.keys({ ...this.failureCounts, ...this.successCounts })
+      services: Object.keys({ ...this.failureCounts, ...this.successCounts }),
     };
   }
 
@@ -145,7 +175,7 @@ export class EnhancedServiceMonitor {
    * Get service availability over time
    */
   getServiceAvailability(serviceName: string, hours: number = 24) {
-    const cutoff = Date.now() - (hours * 60 * 60 * 1000);
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
     const serviceHistory = this.checkHistory.filter(
       check => check.service === serviceName && check.timestamp > cutoff
     );
@@ -154,13 +184,15 @@ export class EnhancedServiceMonitor {
       return { availability: 0, totalChecks: 0, uptime: 0 };
     }
 
-    const healthyChecks = serviceHistory.filter(check => check.status === 'healthy').length;
+    const healthyChecks = serviceHistory.filter(
+      check => check.status === 'healthy'
+    ).length;
     const availability = (healthyChecks / serviceHistory.length) * 100;
 
     return {
       availability: Math.round(availability * 100) / 100,
       totalChecks: serviceHistory.length,
-      uptime: Math.round(availability * 100) / 100
+      uptime: Math.round(availability * 100) / 100,
     };
   }
 
@@ -168,18 +200,19 @@ export class EnhancedServiceMonitor {
    * Get response time trends for a service
    */
   getResponseTimeTrends(serviceName: string, hours: number = 24) {
-    const cutoff = Date.now() - (hours * 60 * 60 * 1000);
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
     const serviceHistory = this.checkHistory.filter(
       check => check.service === serviceName && check.timestamp > cutoff
     );
 
     const responseTimes = serviceHistory.map(check => check.responseTime);
-    
+
     if (responseTimes.length === 0) {
       return { average: 0, min: 0, max: 0, trend: 'stable' };
     }
 
-    const average = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
+    const average =
+      responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
     const min = Math.min(...responseTimes);
     const max = Math.max(...responseTimes);
 
@@ -187,10 +220,12 @@ export class EnhancedServiceMonitor {
     const midpoint = Math.floor(responseTimes.length / 2);
     const firstHalf = responseTimes.slice(0, midpoint);
     const secondHalf = responseTimes.slice(midpoint);
-    
-    const firstAvg = firstHalf.reduce((sum, time) => sum + time, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, time) => sum + time, 0) / secondHalf.length;
-    
+
+    const firstAvg =
+      firstHalf.reduce((sum, time) => sum + time, 0) / firstHalf.length;
+    const secondAvg =
+      secondHalf.reduce((sum, time) => sum + time, 0) / secondHalf.length;
+
     let trend = 'stable';
     if (secondAvg > firstAvg * 1.1) trend = 'increasing';
     else if (secondAvg < firstAvg * 0.9) trend = 'decreasing';
@@ -199,7 +234,7 @@ export class EnhancedServiceMonitor {
       average: Math.round(average),
       min,
       max,
-      trend
+      trend,
     };
   }
 
@@ -208,7 +243,7 @@ export class EnhancedServiceMonitor {
    */
   getActiveAlerts(severity?: 'low' | 'medium' | 'high' | 'critical') {
     let alerts = this.alertHistory;
-    
+
     if (severity) {
       alerts = alerts.filter(alert => alert.severity === severity);
     }
@@ -221,23 +256,30 @@ export class EnhancedServiceMonitor {
   /**
    * Clear old monitoring data
    */
-  clearOldData(hours: number = 168) { // Default 7 days
-    const cutoff = Date.now() - (hours * 60 * 60 * 1000);
-    
-    this.checkHistory = this.checkHistory.filter(check => check.timestamp > cutoff);
-    
+  clearOldData(hours: number = 168) {
+    // Default 7 days
+    const cutoff = Date.now() - hours * 60 * 60 * 1000;
+
+    this.checkHistory = this.checkHistory.filter(
+      check => check.timestamp > cutoff
+    );
+
     const cutoffISO = new Date(cutoff).toISOString();
-    this.alertHistory = this.alertHistory.filter(alert => alert.timestamp > cutoffISO);
+    this.alertHistory = this.alertHistory.filter(
+      alert => alert.timestamp > cutoffISO
+    );
   }
 
   private updateMonitoringStats(services: ServiceHealthResult[]) {
     services.forEach(service => {
       this.recordServiceCheck(service);
-      
+
       if (service.status === 'healthy') {
-        this.successCounts[service.name] = (this.successCounts[service.name] || 0) + 1;
+        this.successCounts[service.name] =
+          (this.successCounts[service.name] || 0) + 1;
       } else {
-        this.failureCounts[service.name] = (this.failureCounts[service.name] || 0) + 1;
+        this.failureCounts[service.name] =
+          (this.failureCounts[service.name] || 0) + 1;
       }
     });
   }
@@ -247,7 +289,7 @@ export class EnhancedServiceMonitor {
       timestamp: Date.now(),
       service: service.name,
       status: service.status,
-      responseTime: service.responseTime
+      responseTime: service.responseTime,
     });
 
     // Keep history size manageable
@@ -270,21 +312,21 @@ export class EnhancedServiceMonitor {
           service: service.name,
           severity: 'critical',
           message: `Service ${service.name} is unhealthy: ${service.error || 'Unknown error'}`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } else if (service.status === 'degraded') {
         alerts.push({
           service: service.name,
           severity: 'medium',
           message: `Service ${service.name} is degraded: ${service.error || 'Performance issues detected'}`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } else if (service.responseTime > 5000) {
         alerts.push({
           service: service.name,
           severity: 'low',
           message: `Service ${service.name} has high response time: ${service.responseTime}ms`,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     });
@@ -303,20 +345,22 @@ export class EnhancedServiceMonitor {
   }
 
   private getTrends() {
-    const cutoff = Date.now() - (24 * 60 * 60 * 1000); // Last 24 hours
-    const recentHistory = this.checkHistory.filter(check => check.timestamp > cutoff);
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000; // Last 24 hours
+    const recentHistory = this.checkHistory.filter(
+      check => check.timestamp > cutoff
+    );
 
     return {
       responseTimeHistory: recentHistory.map(check => ({
         timestamp: new Date(check.timestamp).toISOString(),
         service: check.service,
-        responseTime: check.responseTime
+        responseTime: check.responseTime,
       })),
       availabilityHistory: recentHistory.map(check => ({
         timestamp: new Date(check.timestamp).toISOString(),
         service: check.service,
-        available: check.status === 'healthy'
-      }))
+        available: check.status === 'healthy',
+      })),
     };
   }
 
@@ -332,36 +376,41 @@ export class EnhancedServiceMonitor {
         degraded: 0,
         unhealthy: 0,
         configured: 0,
-        connected: 0
+        connected: 0,
       },
       performance: {
         averageResponseTime: 0,
         slowestService: 'unknown',
-        fastestService: 'unknown'
+        fastestService: 'unknown',
       },
       recommendations: ['Service monitoring system is experiencing issues'],
       monitoring: {
         lastCheck: new Date().toISOString(),
         checkInterval: 30000,
         failureCount: 1,
-        successCount: 0
+        successCount: 0,
       },
-      alerts: [{
-        service: 'monitoring',
-        severity: 'critical',
-        message: `Service monitoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date().toISOString()
-      }],
+      alerts: [
+        {
+          service: 'monitoring',
+          severity: 'critical',
+          message: `Service monitoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
       trends: {
         responseTimeHistory: [],
-        availabilityHistory: []
-      }
+        availabilityHistory: [],
+      },
     };
   }
 }
 
 // Export types for external use
-export type { ServiceHealthResult, SystemServiceHealth } from '../utils/service-health/service-monitor';
+export type {
+  ServiceHealthResult,
+  SystemServiceHealth,
+} from '../utils/service-health/service-monitor';
 export type { EnhancedServiceHealth };
 
 // Rename interface to avoid confusion

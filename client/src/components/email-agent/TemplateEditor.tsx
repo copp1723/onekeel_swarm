@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  FileText, 
-  Plus, 
+import {
+  FileText,
+  Plus,
   Edit,
   Trash2,
   Save,
   X,
   Eye,
   Code,
-  Mail
+  Mail,
 } from 'lucide-react';
 
 interface Template {
@@ -31,7 +37,9 @@ interface Template {
 
 export function TemplateEditor() {
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,9 +47,11 @@ export function TemplateEditor() {
     subject: '',
     content: '',
     variables: [] as string[],
-    category: 'custom'
+    category: 'custom',
   });
-  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
+  const [previewVariables, setPreviewVariables] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     loadTemplates();
@@ -66,11 +76,11 @@ export function TemplateEditor() {
       subject: template.subject,
       content: template.content,
       variables: template.variables,
-      category: template.category
+      category: template.category,
     });
     setIsEditing(false);
     setShowPreview(false);
-    
+
     // Initialize preview variables
     const vars: Record<string, string> = {};
     template.variables.forEach(v => {
@@ -81,22 +91,23 @@ export function TemplateEditor() {
 
   const handleSave = async () => {
     try {
-      const url = selectedTemplate && !isEditing
-        ? `/api/email/templates/${selectedTemplate.id}`
-        : '/api/email/templates';
-      
+      const url =
+        selectedTemplate && !isEditing
+          ? `/api/email/templates/${selectedTemplate.id}`
+          : '/api/email/templates';
+
       const method = selectedTemplate && !isEditing ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
         await loadTemplates();
         setIsEditing(false);
-        
+
         // If creating new, clear selection
         if (!selectedTemplate || isEditing) {
           setSelectedTemplate(null);
@@ -105,7 +116,7 @@ export function TemplateEditor() {
             subject: '',
             content: '',
             variables: [],
-            category: 'custom'
+            category: 'custom',
           });
         }
       }
@@ -115,12 +126,19 @@ export function TemplateEditor() {
   };
 
   const handleDelete = async () => {
-    if (!selectedTemplate || !confirm('Are you sure you want to delete this template?')) return;
+    if (
+      !selectedTemplate ||
+      !confirm('Are you sure you want to delete this template?')
+    )
+      return;
 
     try {
-      const response = await fetch(`/api/email/templates/${selectedTemplate.id}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `/api/email/templates/${selectedTemplate.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (response.ok) {
         await loadTemplates();
@@ -130,7 +148,7 @@ export function TemplateEditor() {
           subject: '',
           content: '',
           variables: [],
-          category: 'custom'
+          category: 'custom',
         });
       }
     } catch (error) {
@@ -150,14 +168,14 @@ export function TemplateEditor() {
 
   const handleContentChange = (field: 'subject' | 'content', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Extract variables from all content
-    const allContent = field === 'subject' ? value + formData.content
-                     : formData.subject + value;
-    
+    const allContent =
+      field === 'subject' ? value + formData.content : formData.subject + value;
+
     const vars = extractVariables(allContent);
     setFormData(prev => ({ ...prev, variables: vars }));
-    
+
     // Update preview variables
     const newPreviewVars: Record<string, string> = {};
     vars.forEach(v => {
@@ -169,23 +187,23 @@ export function TemplateEditor() {
   const renderPreview = () => {
     let content = formData.content;
     let subject = formData.subject;
-    
+
     Object.entries(previewVariables).forEach(([key, value]) => {
       const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
       content = content.replace(regex, value);
       subject = subject.replace(regex, value);
     });
-    
+
     return { content, subject };
   };
 
   return (
-    <div className="grid grid-cols-12 gap-6">
+    <div className='grid grid-cols-12 gap-6'>
       {/* Template List */}
-      <div className="col-span-3">
-        <Card className="h-full">
+      <div className='col-span-3'>
+        <Card className='h-full'>
           <CardHeader>
-            <CardTitle className="text-lg">Templates</CardTitle>
+            <CardTitle className='text-lg'>Templates</CardTitle>
             <CardDescription>Email templates library</CardDescription>
           </CardHeader>
           <CardContent>
@@ -198,17 +216,17 @@ export function TemplateEditor() {
                   subject: '',
                   content: '',
                   variables: [],
-                  category: 'custom'
+                  category: 'custom',
                 });
               }}
-              className="w-full mb-4"
+              className='w-full mb-4'
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className='h-4 w-4 mr-2' />
               New Template
             </Button>
-            
-            <div className="space-y-2">
-              {templates.map((template) => (
+
+            <div className='space-y-2'>
+              {templates.map(template => (
                 <div
                   key={template.id}
                   onClick={() => handleTemplateSelect(template)}
@@ -218,21 +236,21 @@ export function TemplateEditor() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <p className="font-medium text-sm">{template.name}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <Badge variant="outline" className="text-xs">
+                  <p className='font-medium text-sm'>{template.name}</p>
+                  <div className='flex items-center justify-between mt-1'>
+                    <Badge variant='outline' className='text-xs'>
                       {template.category}
                     </Badge>
-                    <span className="text-xs text-gray-500">
+                    <span className='text-xs text-gray-500'>
                       {template.variables.length} vars
                     </span>
                   </div>
                 </div>
               ))}
               {templates.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm">No templates yet</p>
+                <div className='text-center py-8 text-gray-500'>
+                  <FileText className='h-12 w-12 mx-auto mb-2 text-gray-300' />
+                  <p className='text-sm'>No templates yet</p>
                 </div>
               )}
             </div>
@@ -241,48 +259,48 @@ export function TemplateEditor() {
       </div>
 
       {/* Template Editor */}
-      <div className="col-span-9">
-        {(selectedTemplate || isEditing) ? (
+      <div className='col-span-9'>
+        {selectedTemplate || isEditing ? (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className='flex items-center justify-between'>
                 <CardTitle>
                   {isEditing ? 'Create New Template' : 'Edit Template'}
                 </CardTitle>
-                <div className="flex items-center space-x-2">
+                <div className='flex items-center space-x-2'>
                   {selectedTemplate && !isEditing && (
                     <>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant='outline'
+                        size='sm'
                         onClick={() => setShowPreview(!showPreview)}
                       >
-                        <Eye className="h-4 w-4 mr-2" />
+                        <Eye className='h-4 w-4 mr-2' />
                         {showPreview ? 'Edit' : 'Preview'}
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant='outline'
+                        size='sm'
                         onClick={() => setIsEditing(true)}
                       >
-                        <Edit className="h-4 w-4 mr-2" />
+                        <Edit className='h-4 w-4 mr-2' />
                         Edit
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        variant='ghost'
+                        size='sm'
                         onClick={handleDelete}
-                        className="text-red-600 hover:text-red-700"
+                        className='text-red-600 hover:text-red-700'
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className='h-4 w-4' />
                       </Button>
                     </>
                   )}
                   {isEditing && (
                     <>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant='outline'
+                        size='sm'
                         onClick={() => {
                           if (selectedTemplate) {
                             handleTemplateSelect(selectedTemplate);
@@ -292,11 +310,11 @@ export function TemplateEditor() {
                           }
                         }}
                       >
-                        <X className="h-4 w-4 mr-2" />
+                        <X className='h-4 w-4 mr-2' />
                         Cancel
                       </Button>
-                      <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
+                      <Button size='sm' onClick={handleSave}>
+                        <Save className='h-4 w-4 mr-2' />
                         Save
                       </Button>
                     </>
@@ -306,24 +324,31 @@ export function TemplateEditor() {
             </CardHeader>
             <CardContent>
               {showPreview ? (
-                <div className="space-y-6">
+                <div className='space-y-6'>
                   {/* Preview Variables */}
                   {formData.variables.length > 0 && (
                     <div>
-                      <Label className="mb-2">Preview Variables</Label>
-                      <div className="grid grid-cols-2 gap-4">
-                        {formData.variables.map((variable) => (
-                          <div key={variable} className="space-y-2">
-                            <Label htmlFor={`var-${variable}`} className="text-sm">
+                      <Label className='mb-2'>Preview Variables</Label>
+                      <div className='grid grid-cols-2 gap-4'>
+                        {formData.variables.map(variable => (
+                          <div key={variable} className='space-y-2'>
+                            <Label
+                              htmlFor={`var-${variable}`}
+                              className='text-sm'
+                            >
                               {variable}
                             </Label>
                             <Input
                               id={`var-${variable}`}
                               value={previewVariables[variable] || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPreviewVariables(prev => ({
-                                ...prev,
-                                [variable]: e.target.value
-                              }))}
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>
+                              ) =>
+                                setPreviewVariables(prev => ({
+                                  ...prev,
+                                  [variable]: e.target.value,
+                                }))
+                              }
                               placeholder={`Enter ${variable}`}
                             />
                           </div>
@@ -334,14 +359,14 @@ export function TemplateEditor() {
 
                   {/* Email Preview */}
                   <div>
-                    <Label className="mb-2">Email Preview</Label>
-                    <div className="border rounded-lg overflow-hidden">
-                      <div className="bg-gray-50 p-4 border-b">
-                        <p className="text-sm text-gray-600">Subject:</p>
-                        <p className="font-medium">{renderPreview().subject}</p>
+                    <Label className='mb-2'>Email Preview</Label>
+                    <div className='border rounded-lg overflow-hidden'>
+                      <div className='bg-gray-50 p-4 border-b'>
+                        <p className='text-sm text-gray-600'>Subject:</p>
+                        <p className='font-medium'>{renderPreview().subject}</p>
                       </div>
-                      <div className="p-4 bg-white">
-                        <pre className="whitespace-pre-wrap text-sm">
+                      <div className='p-4 bg-white'>
+                        <pre className='whitespace-pre-wrap text-sm'>
                           {renderPreview().content}
                         </pre>
                       </div>
@@ -349,70 +374,80 @@ export function TemplateEditor() {
                   </div>
                 </div>
               ) : (
-                <Tabs defaultValue="content" className="space-y-4">
+                <Tabs defaultValue='content' className='space-y-4'>
                   <TabsList>
-                    <TabsTrigger value="content">Content</TabsTrigger>
-                    <TabsTrigger value="variables">Variables</TabsTrigger>
+                    <TabsTrigger value='content'>Content</TabsTrigger>
+                    <TabsTrigger value='variables'>Variables</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="content" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Template Name</Label>
+                  <TabsContent value='content' className='space-y-4'>
+                    <div className='space-y-2'>
+                      <Label htmlFor='name'>Template Name</Label>
                       <Input
-                        id="name"
+                        id='name'
                         value={formData.name}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Welcome Email"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        placeholder='e.g., Welcome Email'
                         disabled={!isEditing}
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="subject">Subject Line</Label>
+                    <div className='space-y-2'>
+                      <Label htmlFor='subject'>Subject Line</Label>
                       <Input
-                        id="subject"
+                        id='subject'
                         value={formData.subject}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleContentChange('subject', e.target.value)}
-                        placeholder="e.g., Welcome to {{companyName}}, {{firstName}}!"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleContentChange('subject', e.target.value)
+                        }
+                        placeholder='e.g., Welcome to {{companyName}}, {{firstName}}!'
                         disabled={!isEditing}
                       />
-                      <p className="text-sm text-gray-500">
+                      <p className='text-sm text-gray-500'>
                         Use {`{{variableName}}`} for dynamic content
                       </p>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="content">Email Content</Label>
+                    <div className='space-y-2'>
+                      <Label htmlFor='content'>Email Content</Label>
                       <Textarea
-                        id="content"
+                        id='content'
                         value={formData.content}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleContentChange('content', e.target.value)}
-                        placeholder="Email content with variables like {{firstName}}, {{vehicleInterest}}..."
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          handleContentChange('content', e.target.value)
+                        }
+                        placeholder='Email content with variables like {{firstName}}, {{vehicleInterest}}...'
                         rows={10}
                         disabled={!isEditing}
                       />
                     </div>
                   </TabsContent>
 
-
-                  <TabsContent value="variables" className="space-y-4">
+                  <TabsContent value='variables' className='space-y-4'>
                     <div>
-                      <Label className="mb-2">Template Variables</Label>
-                      <p className="text-sm text-gray-500 mb-4">
-                        These variables are automatically detected from your template content.
+                      <Label className='mb-2'>Template Variables</Label>
+                      <p className='text-sm text-gray-500 mb-4'>
+                        These variables are automatically detected from your
+                        template content.
                       </p>
                       {formData.variables.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {formData.variables.map((variable) => (
-                            <Badge key={variable} variant="secondary">
-                              <Code className="h-3 w-3 mr-1" />
+                        <div className='flex flex-wrap gap-2'>
+                          {formData.variables.map(variable => (
+                            <Badge key={variable} variant='secondary'>
+                              <Code className='h-3 w-3 mr-1' />
                               {`{{${variable}}}`}
                             </Badge>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-500 italic">
-                          No variables found. Add variables using {`{{variableName}}`} syntax.
+                        <p className='text-sm text-gray-500 italic'>
+                          No variables found. Add variables using{' '}
+                          {`{{variableName}}`} syntax.
                         </p>
                       )}
                     </div>
@@ -423,12 +458,12 @@ export function TemplateEditor() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="text-center py-12">
-              <Mail className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <CardContent className='text-center py-12'>
+              <Mail className='h-16 w-16 mx-auto mb-4 text-gray-300' />
+              <h3 className='text-lg font-medium text-gray-900 mb-2'>
                 Select a template to edit
               </h3>
-              <p className="text-gray-500">
+              <p className='text-gray-500'>
                 Choose a template from the list or create a new one.
               </p>
             </CardContent>

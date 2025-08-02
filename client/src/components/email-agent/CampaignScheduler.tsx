@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Calendar,
   Plus,
   Edit,
@@ -13,7 +25,7 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  X
+  X,
 } from 'lucide-react';
 
 interface Schedule {
@@ -41,15 +53,19 @@ export function CampaignScheduler() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
+    null
+  );
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    attempts: [{
-      templateId: '',
-      delayDays: 0,
-      delayHours: 0
-    }]
+    attempts: [
+      {
+        templateId: '',
+        delayDays: 0,
+        delayHours: 0,
+      },
+    ],
   });
 
   useEffect(() => {
@@ -60,7 +76,7 @@ export function CampaignScheduler() {
     try {
       const [schedulesRes, templatesRes] = await Promise.all([
         fetch('/api/email/schedules'),
-        fetch('/api/email/templates')
+        fetch('/api/email/templates'),
       ]);
 
       if (schedulesRes.ok) {
@@ -79,16 +95,16 @@ export function CampaignScheduler() {
 
   const handleSave = async () => {
     try {
-      const url = selectedSchedule 
+      const url = selectedSchedule
         ? `/api/email/schedules/${selectedSchedule.id}`
         : '/api/email/schedules';
-      
+
       const method = selectedSchedule ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
@@ -107,7 +123,7 @@ export function CampaignScheduler() {
 
     try {
       const response = await fetch(`/api/email/schedules/${scheduleId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       if (response.ok) {
@@ -120,11 +136,14 @@ export function CampaignScheduler() {
 
   const handleToggle = async (scheduleId: string, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/email/schedules/${scheduleId}/toggle`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !isActive })
-      });
+      const response = await fetch(
+        `/api/email/schedules/${scheduleId}/toggle`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: !isActive }),
+        }
+      );
 
       if (response.ok) {
         await loadData();
@@ -138,38 +157,43 @@ export function CampaignScheduler() {
     setFormData({
       name: '',
       description: '',
-      attempts: [{
-        templateId: '',
-        delayDays: 0,
-        delayHours: 0
-      }]
+      attempts: [
+        {
+          templateId: '',
+          delayDays: 0,
+          delayHours: 0,
+        },
+      ],
     });
   };
 
   const addAttempt = () => {
     setFormData(prev => ({
       ...prev,
-      attempts: [...prev.attempts, {
-        templateId: '',
-        delayDays: 0,
-        delayHours: 0
-      }]
+      attempts: [
+        ...prev.attempts,
+        {
+          templateId: '',
+          delayDays: 0,
+          delayHours: 0,
+        },
+      ],
     }));
   };
 
   const removeAttempt = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      attempts: prev.attempts.filter((_, i) => i !== index)
+      attempts: prev.attempts.filter((_, i) => i !== index),
     }));
   };
 
   const updateAttempt = (index: number, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      attempts: prev.attempts.map((attempt, i) => 
+      attempts: prev.attempts.map((attempt, i) =>
         i === index ? { ...attempt, [field]: value } : attempt
-      )
+      ),
     }));
   };
 
@@ -178,7 +202,7 @@ export function CampaignScheduler() {
     setFormData({
       name: schedule.name,
       description: schedule.description,
-      attempts: schedule.attempts
+      attempts: schedule.attempts,
     });
     setShowForm(true);
   };
@@ -187,91 +211,100 @@ export function CampaignScheduler() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className='flex items-center justify-between'>
             <span>{selectedSchedule ? 'Edit' : 'Create'} Email Schedule</span>
             <Button
-              variant="ghost"
-              size="sm"
+              variant='ghost'
+              size='sm'
               onClick={() => {
                 setShowForm(false);
                 setSelectedSchedule(null);
                 resetForm();
               }}
             >
-              <X className="h-4 w-4" />
+              <X className='h-4 w-4' />
             </Button>
           </CardTitle>
           <CardDescription>
             Define when follow-up emails should be sent
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Schedule Name</Label>
+        <CardContent className='space-y-6'>
+          <div className='space-y-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='name'>Schedule Name</Label>
               <Input
-                id="name"
+                id='name'
                 value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Standard Follow-up Sequence"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                }
+                placeholder='e.g., Standard Follow-up Sequence'
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='description'>Description</Label>
               <Input
-                id="description"
+                id='description'
                 value={formData.description}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe when this schedule should be used"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder='Describe when this schedule should be used'
               />
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className='space-y-4'>
+            <div className='flex items-center justify-between'>
               <Label>Email Attempts</Label>
               <Button
-                type="button"
-                variant="outline"
-                size="sm"
+                type='button'
+                variant='outline'
+                size='sm'
                 onClick={addAttempt}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className='h-4 w-4 mr-2' />
                 Add Attempt
               </Button>
             </div>
 
-            <div className="space-y-4">
+            <div className='space-y-4'>
               {formData.attempts.map((attempt, index) => (
-                <Card key={index} className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Attempt {index + 1}</h4>
+                <Card key={index} className='p-4'>
+                  <div className='space-y-4'>
+                    <div className='flex items-center justify-between'>
+                      <h4 className='font-medium'>Attempt {index + 1}</h4>
                       {formData.attempts.length > 1 && (
                         <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
+                          type='button'
+                          variant='ghost'
+                          size='sm'
                           onClick={() => removeAttempt(index)}
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <Trash2 className='h-4 w-4 text-red-600' />
                         </Button>
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className='space-y-2'>
                       <Label>Email Template</Label>
                       <Select
                         value={attempt.templateId}
-                        onValueChange={(value) => updateAttempt(index, 'templateId', value)}
+                        onValueChange={value =>
+                          updateAttempt(index, 'templateId', value)
+                        }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a template" />
+                          <SelectValue placeholder='Select a template' />
                         </SelectTrigger>
                         <SelectContent>
-                          {templates.map((template) => (
+                          {templates.map(template => (
                             <SelectItem key={template.id} value={template.id}>
                               {template.name}
                             </SelectItem>
@@ -280,37 +313,50 @@ export function CampaignScheduler() {
                       </Select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                    <div className='grid grid-cols-2 gap-4'>
+                      <div className='space-y-2'>
                         <Label>Days Delay</Label>
                         <Input
-                          type="number"
+                          type='number'
                           value={attempt.delayDays}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttempt(index, 'delayDays', parseInt(e.target.value))}
-                          min="0"
-                          placeholder="0"
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            updateAttempt(
+                              index,
+                              'delayDays',
+                              parseInt(e.target.value)
+                            )
+                          }
+                          min='0'
+                          placeholder='0'
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className='space-y-2'>
                         <Label>Hours Delay</Label>
                         <Input
-                          type="number"
+                          type='number'
                           value={attempt.delayHours}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateAttempt(index, 'delayHours', parseInt(e.target.value))}
-                          min="0"
-                          max="23"
-                          placeholder="0"
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            updateAttempt(
+                              index,
+                              'delayHours',
+                              parseInt(e.target.value)
+                            )
+                          }
+                          min='0'
+                          max='23'
+                          placeholder='0'
                         />
                       </div>
                     </div>
 
                     {index === 0 && (
-                      <p className="text-sm text-gray-500">
-                        First email will be sent after this delay from enrollment
+                      <p className='text-sm text-gray-500'>
+                        First email will be sent after this delay from
+                        enrollment
                       </p>
                     )}
                     {index > 0 && (
-                      <p className="text-sm text-gray-500">
+                      <p className='text-sm text-gray-500'>
                         Sent after previous email if no response received
                       </p>
                     )}
@@ -320,9 +366,9 @@ export function CampaignScheduler() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end space-x-4">
+          <div className='flex items-center justify-end space-x-4'>
             <Button
-              variant="outline"
+              variant='outline'
               onClick={() => {
                 setShowForm(false);
                 setSelectedSchedule(null);
@@ -341,27 +387,27 @@ export function CampaignScheduler() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className='space-y-6'>
+      <div className='flex items-center justify-between'>
         <div>
-          <h3 className="text-lg font-medium">Email Schedules</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className='text-lg font-medium'>Email Schedules</h3>
+          <p className='text-sm text-gray-500'>
             Manage multi-step email sequences and follow-up timing
           </p>
         </div>
         <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className='h-4 w-4 mr-2' />
           New Schedule
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {schedules.map((schedule) => (
-          <Card key={schedule.id} className="hover:shadow-lg transition-shadow">
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        {schedules.map(schedule => (
+          <Card key={schedule.id} className='hover:shadow-lg transition-shadow'>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className='flex items-center justify-between'>
                 <div>
-                  <CardTitle className="text-lg">{schedule.name}</CardTitle>
+                  <CardTitle className='text-lg'>{schedule.name}</CardTitle>
                   <CardDescription>{schedule.description}</CardDescription>
                 </div>
                 <Badge variant={schedule.isActive ? 'default' : 'secondary'}>
@@ -370,18 +416,22 @@ export function CampaignScheduler() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Email Sequence</p>
+              <div className='space-y-3'>
+                <div className='space-y-2'>
+                  <p className='text-sm font-medium text-gray-700'>
+                    Email Sequence
+                  </p>
                   {schedule.attempts.map((attempt, idx) => {
-                    const template = templates.find(t => t.id === attempt.templateId);
+                    const template = templates.find(
+                      t => t.id === attempt.templateId
+                    );
                     return (
-                      <div key={idx} className="flex items-center text-sm">
-                        <ChevronRight className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="flex-1">
+                      <div key={idx} className='flex items-center text-sm'>
+                        <ChevronRight className='h-4 w-4 text-gray-400 mr-2' />
+                        <span className='flex-1'>
                           {template?.name || 'Unknown Template'}
                         </span>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant='outline' className='text-xs'>
                           {attempt.delayDays}d {attempt.delayHours}h
                         </Badge>
                       </div>
@@ -389,41 +439,43 @@ export function CampaignScheduler() {
                   })}
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t">
-                  <div className="flex items-center space-x-2">
+                <div className='flex items-center justify-between pt-3 border-t'>
+                  <div className='flex items-center space-x-2'>
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant='outline'
+                      size='sm'
                       onClick={() => editSchedule(schedule)}
                     >
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className='h-4 w-4 mr-2' />
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggle(schedule.id, schedule.isActive)}
+                      variant='outline'
+                      size='sm'
+                      onClick={() =>
+                        handleToggle(schedule.id, schedule.isActive)
+                      }
                     >
                       {schedule.isActive ? (
                         <>
-                          <AlertCircle className="h-4 w-4 mr-2" />
+                          <AlertCircle className='h-4 w-4 mr-2' />
                           Pause
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <CheckCircle className='h-4 w-4 mr-2' />
                           Activate
                         </>
                       )}
                     </Button>
                   </div>
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant='ghost'
+                    size='sm'
                     onClick={() => handleDelete(schedule.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className='text-red-600 hover:text-red-700'
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className='h-4 w-4' />
                   </Button>
                 </div>
               </div>
@@ -434,14 +486,16 @@ export function CampaignScheduler() {
 
       {schedules.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No schedules yet</h3>
-            <p className="text-gray-500 mb-6">
+          <CardContent className='text-center py-12'>
+            <Calendar className='h-16 w-16 mx-auto mb-4 text-gray-300' />
+            <h3 className='text-lg font-medium text-gray-900 mb-2'>
+              No schedules yet
+            </h3>
+            <p className='text-gray-500 mb-6'>
               Create your first email schedule to automate follow-ups.
             </p>
             <Button onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className='h-4 w-4 mr-2' />
               Create First Schedule
             </Button>
           </CardContent>

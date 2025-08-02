@@ -27,7 +27,7 @@ async function createAdminUsers() {
         password: 'password123',
         firstName: 'Admin',
         lastName: 'User',
-        role: 'admin' as const
+        role: 'admin' as const,
       },
       {
         email: 'josh.copp@onekeel.ai',
@@ -35,8 +35,8 @@ async function createAdminUsers() {
         password: 'password123',
         firstName: 'Josh',
         lastName: 'Copp',
-        role: 'admin' as const
-      }
+        role: 'admin' as const,
+      },
     ];
 
     for (const userData of adminUsers) {
@@ -50,11 +50,13 @@ async function createAdminUsers() {
         .limit(1);
 
       if (existingUser.length > 0) {
-        console.log(`⚠️  User ${userData.email} already exists. Updating password...`);
-        
+        console.log(
+          `⚠️  User ${userData.email} already exists. Updating password...`
+        );
+
         // Hash the password
         const passwordHash = await bcrypt.hash(userData.password, 12);
-        
+
         // Update existing user
         await db
           .update(users)
@@ -65,17 +67,17 @@ async function createAdminUsers() {
             lastName: userData.lastName,
             role: userData.role,
             active: true,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(users.email, userData.email));
 
         console.log(`✅ Updated user: ${userData.email}`);
       } else {
         console.log(`📝 Creating new user: ${userData.email}`);
-        
+
         // Hash the password
         const passwordHash = await bcrypt.hash(userData.password, 12);
-        
+
         // Create new user
         await db.insert(users).values({
           id: uuidv4(),
@@ -87,7 +89,7 @@ async function createAdminUsers() {
           role: userData.role,
           active: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
 
         console.log(`✅ Created user: ${userData.email}`);
@@ -101,14 +103,16 @@ async function createAdminUsers() {
         email: users.email,
         username: users.username,
         role: users.role,
-        active: users.active
+        active: users.active,
       })
       .from(users)
       .where(eq(users.role, 'admin'));
 
     console.log('📋 Admin users in database:');
     allAdmins.forEach(user => {
-      console.log(`  - ${user.email} (${user.username}) - Active: ${user.active}`);
+      console.log(
+        `  - ${user.email} (${user.username}) - Active: ${user.active}`
+      );
     });
 
     console.log('\n🎉 Admin users setup completed successfully!');
@@ -118,18 +122,17 @@ async function createAdminUsers() {
     console.log('  OR');
     console.log('  Email: josh.copp@onekeel.ai');
     console.log('  Password: password123');
-
   } catch (error) {
     console.error('❌ Failed to create admin users:', error);
-    
+
     if (error instanceof Error) {
       console.error('Error details:', {
         message: error.message,
         code: (error as any).code,
-        stack: error.stack?.split('\n').slice(0, 5).join('\n')
+        stack: error.stack?.split('\n').slice(0, 5).join('\n'),
       });
     }
-    
+
     process.exit(1);
   }
 }
@@ -140,7 +143,7 @@ createAdminUsers()
     console.log('\n✅ Script completed successfully');
     process.exit(0);
   })
-  .catch((error) => {
+  .catch(error => {
     console.error('❌ Script failed:', error);
     process.exit(1);
   });

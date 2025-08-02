@@ -3,11 +3,15 @@ import postgres from 'postgres';
 import * as schema from './schema';
 
 // Create postgres connection
-const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
+const connectionString =
+  process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
 
 // Configure SSL for production databases
 const isProduction = process.env.NODE_ENV === 'production';
-const isExternalDatabase = connectionString.includes('render.com') || connectionString.includes('amazonaws.com') || connectionString.includes('supabase.com');
+const isExternalDatabase =
+  connectionString.includes('render.com') ||
+  connectionString.includes('amazonaws.com') ||
+  connectionString.includes('supabase.com');
 
 // Determine SSL configuration
 let sslConfig: boolean | 'require' | 'prefer' = false;

@@ -17,21 +17,23 @@ These components are part of **Half 1** of the agent management consolidation st
 ### Core Components
 
 #### `AgentManagementDashboard`
+
 The main dashboard component that provides a complete agent management interface.
 
 ```tsx
 import { AgentManagementDashboard } from '@/components/shared';
 
 <AgentManagementDashboard
-  onAgentSelect={(agent) => console.log('Selected:', agent)}
+  onAgentSelect={agent => console.log('Selected:', agent)}
   showCreateButton={true}
   allowEdit={true}
   allowDelete={true}
   compact={false}
-/>
+/>;
 ```
 
 #### `UnifiedAgentConfigurator`
+
 A comprehensive form for creating and editing agents of any type.
 
 ```tsx
@@ -42,10 +44,11 @@ import { UnifiedAgentConfigurator } from '@/components/shared';
   onSave={handleSave}
   onCancel={handleCancel}
   allowTypeChange={true}
-/>
+/>;
 ```
 
 #### `AgentCard`
+
 A flexible card component for displaying agent information.
 
 ```tsx
@@ -58,21 +61,23 @@ import { AgentCard } from '@/components/shared';
   onToggle={handleToggle}
   onViewAnalytics={handleAnalytics}
   compact={false}
-/>
+/>;
 ```
 
 ### Utility Components
 
 #### `AgentStatusBadge`
+
 Displays agent status with consistent styling.
 
 ```tsx
 import { AgentStatusBadge } from '@/components/shared';
 
-<AgentStatusBadge agent={agent} showDot={true} />
+<AgentStatusBadge agent={agent} showDot={true} />;
 ```
 
 #### `AgentCapabilitySelector`
+
 Interactive component for selecting agent capabilities.
 
 ```tsx
@@ -83,12 +88,13 @@ import { AgentCapabilitySelector } from '@/components/shared';
   onChange={setCapabilities}
   readonly={false}
   compact={false}
-/>
+/>;
 ```
 
 ## 🔧 Hooks
 
 ### `useAgents(options?)`
+
 Main hook for agent management operations.
 
 ```tsx
@@ -103,14 +109,18 @@ const {
   updateAgent,
   deleteAgent,
   toggleAgent,
-  getActiveAgent
+  getActiveAgent,
 } = useAgents({ type: 'email', active: true });
 ```
 
 ### Specialized Hooks
 
 ```tsx
-import { useAgentsByType, useActiveAgents, useAgentConfiguration } from '@/hooks/useAgents';
+import {
+  useAgentsByType,
+  useActiveAgents,
+  useAgentConfiguration,
+} from '@/hooks/useAgents';
 
 // Get agents by specific type
 const { agents: emailAgents } = useAgentsByType('email');
@@ -125,20 +135,26 @@ const { agent, loading } = useAgentConfiguration(agentId);
 ## 🛠 Utilities
 
 ### Agent Type Definitions
+
 ```tsx
-import { AGENT_TYPES, PERSONALITY_OPTIONS, TONE_OPTIONS } from '@/utils/agentUtils';
+import {
+  AGENT_TYPES,
+  PERSONALITY_OPTIONS,
+  TONE_OPTIONS,
+} from '@/utils/agentUtils';
 
 // Use in dropdowns, forms, etc.
-AGENT_TYPES.map(type => ({ value: type.value, label: type.label }))
+AGENT_TYPES.map(type => ({ value: type.value, label: type.label }));
 ```
 
 ### Validation & Helpers
+
 ```tsx
-import { 
-  validateAgentConfig, 
-  cleanAgentConfig, 
+import {
+  validateAgentConfig,
+  cleanAgentConfig,
   getDefaultConfigForType,
-  getAgentCapabilities 
+  getAgentCapabilities,
 } from '@/utils/agentUtils';
 
 // Validate agent configuration
@@ -157,7 +173,7 @@ These components are designed to integrate seamlessly with the existing Campaign
 
 ```tsx
 // In CampaignIntelligenceHub, add a new tab:
-<TabsContent value="agents">
+<TabsContent value='agents'>
   <AgentManagementDashboard compact={true} />
 </TabsContent>
 ```
@@ -196,7 +212,7 @@ Use the demo component to test the complete system:
 import { AgentManagementDemo } from '@/components/shared/AgentManagementDemo';
 
 // Renders a complete agent management interface for testing
-<AgentManagementDemo />
+<AgentManagementDemo />;
 ```
 
 ## 🚀 Next Steps (Half 2)

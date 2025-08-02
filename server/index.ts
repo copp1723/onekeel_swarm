@@ -42,7 +42,10 @@ const __dirname = dirname(__filename);
 const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  memoryLimit: parseInt(process.env.MEMORY_LIMIT || String(Math.min(1638, Math.floor(os.totalmem() / 1024 / 1024 * 0.25)))),
+  memoryLimit: parseInt(
+    process.env.MEMORY_LIMIT ||
+      String(Math.min(1638, Math.floor((os.totalmem() / 1024 / 1024) * 0.25)))
+  ),
   serverMode: process.env.SERVER_MODE || 'standard', // minimal, lightweight, debug, standard
   features: {
     enableAgents: process.env.ENABLE_AGENTS !== 'false',
@@ -53,8 +56,8 @@ const config = {
     enableQueueSystem: process.env.ENABLE_QUEUE_SYSTEM === 'true',
     enableMemoryMonitoring: process.env.ENABLE_MEMORY_MONITORING !== 'false',
     enableDebugRoutes: process.env.ENABLE_DEBUG_ROUTES === 'true',
-    enableLazyAgents: process.env.ENABLE_LAZY_AGENTS === 'true'
-  }
+    enableLazyAgents: process.env.ENABLE_LAZY_AGENTS === 'true',
+  },
 };
 
 // Mode-specific configurations
@@ -67,7 +70,7 @@ const serverModes = {
     enableHealthChecks: true,
     enableQueueSystem: false,
     enableMemoryMonitoring: false,
-    enableDebugRoutes: false
+    enableDebugRoutes: false,
   },
   lightweight: {
     enableAgents: false,
@@ -77,7 +80,7 @@ const serverModes = {
     enableHealthChecks: true,
     enableQueueSystem: false,
     enableMemoryMonitoring: true,
-    enableDebugRoutes: false
+    enableDebugRoutes: false,
   },
   debug: {
     enableAgents: true,
@@ -87,13 +90,16 @@ const serverModes = {
     enableHealthChecks: true,
     enableQueueSystem: false,
     enableMemoryMonitoring: true,
-    enableDebugRoutes: true
-  }
+    enableDebugRoutes: true,
+  },
 };
 
 // Apply mode-specific overrides
 if (config.serverMode in serverModes) {
-  config.features = { ...config.features, ...serverModes[config.serverMode as keyof typeof serverModes] };
+  config.features = {
+    ...config.features,
+    ...serverModes[config.serverMode as keyof typeof serverModes],
+  };
 }
 
 // Initialize app asynchronously
@@ -101,7 +107,7 @@ async function initializeApp() {
   logger.info('Starting OneKeel Swarm Server', {
     mode: config.serverMode,
     features: config.features,
-    memoryLimit: config.memoryLimit
+    memoryLimit: config.memoryLimit,
   });
 
   // Create Express app
@@ -128,10 +134,14 @@ async function initializeApp() {
     memoryMonitor = setInterval(() => {
       const mem = process.memoryUsage();
       const rssUsedMB = Math.round(mem.rss / 1024 / 1024);
-      const memoryUsagePercent = Math.round((rssUsedMB / config.memoryLimit) * 100);
-      
+      const memoryUsagePercent = Math.round(
+        (rssUsedMB / config.memoryLimit) * 100
+      );
+
       if (memoryUsagePercent > 90) {
-        logger.warn(`High memory usage: ${rssUsedMB}MB (${memoryUsagePercent}% of ${config.memoryLimit}MB limit)`);
+        logger.warn(
+          `High memory usage: ${rssUsedMB}MB (${memoryUsagePercent}% of ${config.memoryLimit}MB limit)`
+        );
         if (global.gc) global.gc();
       }
     }, 30000);
@@ -147,10 +157,10 @@ async function initializeApp() {
         heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
         rss: Math.round(mem.rss / 1024 / 1024),
         limit: config.memoryLimit,
-        percent: Math.round((mem.rss / 1024 / 1024 / config.memoryLimit) * 100)
+        percent: Math.round((mem.rss / 1024 / 1024 / config.memoryLimit) * 100),
       },
       features: config.features,
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
 
@@ -172,20 +182,31 @@ async function initializeApp() {
     const leadProcessor = new LeadProcessor();
 
     // Use secure WebSocket handler in production, regular handler in development
-    if (config.nodeEnv === 'production' || process.env.SECURE_WEBSOCKET === 'true') {
+    if (
+      config.nodeEnv === 'production' ||
+      process.env.SECURE_WEBSOCKET === 'true'
+    ) {
       logger.info('Initializing secure WebSocket server');
-      const secureWsHandler = new SecureWebSocketMessageHandler(wss, leadProcessor, (data: any) => {
-        // Broadcast handled by secure handler
-      });
+      const secureWsHandler = new SecureWebSocketMessageHandler(
+        wss,
+        leadProcessor,
+        (data: any) => {
+          // Broadcast handled by secure handler
+        }
+      );
     } else {
       logger.info('Initializing development WebSocket server');
-      const wsHandler = new WebSocketMessageHandler(wss, leadProcessor, (data: any) => {
-        wss.clients.forEach(client => {
-          if (client.readyState === 1) {
-            client.send(JSON.stringify(data));
-          }
-        });
-      });
+      const wsHandler = new WebSocketMessageHandler(
+        wss,
+        leadProcessor,
+        (data: any) => {
+          wss.clients.forEach(client => {
+            if (client.readyState === 1) {
+              client.send(JSON.stringify(data));
+            }
+          });
+        }
+      );
     }
   }
 
@@ -201,7 +222,9 @@ async function initializeApp() {
     monitoringWsHandler = new MonitoringWebSocketHandler(monitoringWss);
 
     monitoringServer.listen(monitoringPort, () => {
-      logger.info(`Monitoring WebSocket server listening on port ${monitoringPort}`);
+      logger.info(
+        `Monitoring WebSocket server listening on port ${monitoringPort}`
+      );
     });
 
     // Cleanup monitoring handler on server shutdown
@@ -218,8 +241,12 @@ async function initializeApp() {
   // Initialize services (conditional)
   if (config.features.enableAgents) {
     // Engine and hub are started conditionally now
-    campaignExecutionEngine.start().catch(err => logger.error('Campaign engine startup failed', err));
-    communicationHubService.start().catch(err => logger.error('Communication hub startup failed', err));
+    campaignExecutionEngine
+      .start()
+      .catch(err => logger.error('Campaign engine startup failed', err));
+    communicationHubService
+      .start()
+      .catch(err => logger.error('Communication hub startup failed', err));
   }
 
   // Initialize agents (conditional)
@@ -233,19 +260,26 @@ async function initializeApp() {
   }
 
   // Static file serving
-  const staticPath = config.nodeEnv === 'production'
-    ? join(__dirname, '../dist/client')
-    : join(__dirname, '../client/dist');
+  const staticPath =
+    config.nodeEnv === 'production'
+      ? join(__dirname, '../dist/client')
+      : join(__dirname, '../client/dist');
 
   // Only serve static files in production
   if (config.nodeEnv === 'production') {
     app.use(express.static(staticPath));
-    
+
     // Chat widget files
     const publicPath = join(__dirname, '../dist/client');
-    app.use('/chat-widget-embed.js', express.static(join(publicPath, 'chat-widget-embed.js')));
-    app.use('/chat-demo.html', express.static(join(publicPath, 'chat-demo.html')));
-    
+    app.use(
+      '/chat-widget-embed.js',
+      express.static(join(publicPath, 'chat-widget-embed.js'))
+    );
+    app.use(
+      '/chat-demo.html',
+      express.static(join(publicPath, 'chat-demo.html'))
+    );
+
     // React app fallback
     app.get('*', (req, res) => {
       if (req.path.startsWith('/api')) {
@@ -298,18 +332,18 @@ async function initializeApp() {
     logger.info(`OneKeel Swarm Server started on port ${config.port}`, {
       environment: config.nodeEnv,
       memory: `${Math.round(mem.rss / 1024 / 1024)}MB`,
-      features: config.features
+      features: config.features,
     });
 
     // Add server error handling
-    server.on('error', (error) => {
+    server.on('error', error => {
       logger.error('Server error:', error);
     });
 
     server.on('close', () => {
       logger.info('Server closed');
     });
-    
+
     // Initialize all deployment services
     try {
       await StartupService.initialize();
@@ -330,40 +364,63 @@ async function initializeApp() {
 
           // Only try to ensure admin user if database connection works
           try {
-            const { ensureAdminUser } = await import('../scripts/ensure-admin-user');
+            const { ensureAdminUser } = await import(
+              '../scripts/ensure-admin-user'
+            );
             await ensureAdminUser();
             logger.info('✅ Database initialization completed');
           } catch (error) {
-            logger.warn('⚠️ Admin user setup failed - this is normal if database schema is not migrated yet', {
-              error: error instanceof Error ? error.message : String(error)
-            });
+            logger.warn(
+              '⚠️ Admin user setup failed - this is normal if database schema is not migrated yet',
+              {
+                error: error instanceof Error ? error.message : String(error),
+              }
+            );
             // Ensure this error doesn't propagate and cause process exit
           }
         } catch (error) {
-          logger.warn('⚠️ Database connection failed - application will continue without database features', {
-            error: error instanceof Error ? error.message : String(error),
-            code: (error as any)?.code
-          });
+          logger.warn(
+            '⚠️ Database connection failed - application will continue without database features',
+            {
+              error: error instanceof Error ? error.message : String(error),
+              code: (error as any)?.code,
+            }
+          );
         }
-      })().catch((error) => {
+      })().catch(error => {
         // Final safety net - log any errors that somehow escape
         logger.error('Unexpected error in database initialization', {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       });
     }, 1000); // Wait 1 second after server starts
-    
+
     // Start enhanced email monitor (optional service)
-    enhancedEmailMonitor.start().catch(error => logger.warn('Enhanced email monitor not available - continuing without it', { error: (error as Error).message }));
-    
+    enhancedEmailMonitor
+      .start()
+      .catch(error =>
+        logger.warn(
+          'Enhanced email monitor not available - continuing without it',
+          { error: (error as Error).message }
+        )
+      );
+
     // Start email monitor if configured
-    if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
+    if (
+      process.env.IMAP_HOST &&
+      process.env.IMAP_USER &&
+      process.env.IMAP_PASSWORD
+    ) {
       const { emailMonitor } = await import('./services/email-monitor');
-      emailMonitor.start().catch((error: Error) => logger.error('Email monitor failed to start', error));
+      emailMonitor
+        .start()
+        .catch((error: Error) =>
+          logger.error('Email monitor failed to start', error)
+        );
     } else {
       logger.info('Email monitor not started - IMAP configuration missing');
     }
-    
+
     // Initialize cron jobs
     try {
       await initializeCronJobs();
@@ -383,7 +440,9 @@ async function initializeApp() {
       global.appShutdownRefs.heartbeat = heartbeat;
     }
 
-    logger.info('🚀 Server initialization complete - ready to accept connections');
+    logger.info(
+      '🚀 Server initialization complete - ready to accept connections'
+    );
   });
 
   // Graceful shutdown handlers are set up below
@@ -393,7 +452,7 @@ async function initializeApp() {
     server,
     wss,
     memoryMonitor,
-    config
+    config,
   };
 }
 
@@ -455,22 +514,27 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Promise Rejection', {
     reason: reason instanceof Error ? reason.message : String(reason),
     stack: reason instanceof Error ? reason.stack : undefined,
-    promise: promise
+    promise: promise,
   });
   // Don't exit the process for unhandled rejections in production
   // Just log them and continue
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   logger.error('Uncaught Exception', {
     message: error.message,
-    stack: error.stack
+    stack: error.stack,
   });
 
   // Only exit for critical errors, not database schema issues
-  if (error.message.includes('column') && error.message.includes('does not exist')) {
-    logger.warn('Database schema issue detected - continuing without admin user setup');
+  if (
+    error.message.includes('column') &&
+    error.message.includes('does not exist')
+  ) {
+    logger.warn(
+      'Database schema issue detected - continuing without admin user setup'
+    );
     return;
   }
 
@@ -480,7 +544,7 @@ process.on('uncaughtException', (error) => {
 });
 
 // Add warning for process exit
-process.on('exit', (code) => {
+process.on('exit', code => {
   logger.info('Process exiting', { code });
 });
 

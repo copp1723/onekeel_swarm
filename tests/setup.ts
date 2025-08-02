@@ -4,13 +4,13 @@ import { vi } from 'vitest';
 vi.mock('bcryptjs', () => ({
   hash: vi.fn(),
   compare: vi.fn(),
-  genSalt: vi.fn()
+  genSalt: vi.fn(),
 }));
 
 vi.mock('jsonwebtoken', () => ({
   sign: vi.fn(),
   verify: vi.fn(),
-  decode: vi.fn()
+  decode: vi.fn(),
 }));
 
 vi.mock('express', () => ({
@@ -18,14 +18,14 @@ vi.mock('express', () => ({
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
-    listen: vi.fn()
+    listen: vi.fn(),
   })),
   Router: vi.fn(() => ({
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
-    delete: vi.fn()
-  }))
+    delete: vi.fn(),
+  })),
 }));
 
 // Mock database
@@ -34,8 +34,8 @@ vi.mock('../server/db', () => ({
     findById: vi.fn(),
     findByEmail: vi.fn(),
     create: vi.fn(),
-    update: vi.fn()
-  }
+    update: vi.fn(),
+  },
 }));
 
 // Global test setup
@@ -45,5 +45,5 @@ global.console = {
   log: vi.fn(),
   error: vi.fn(),
   warn: vi.fn(),
-  info: vi.fn()
+  info: vi.fn(),
 };

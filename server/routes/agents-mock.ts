@@ -11,7 +11,7 @@ const createAgentSchema = z.object({
   endGoal: z.string().min(1),
   instructions: z.object({
     dos: z.array(z.string()).min(1),
-    donts: z.array(z.string()).min(1)
+    donts: z.array(z.string()).min(1),
   }),
   domainExpertise: z.array(z.string()).optional(),
   personality: z.string().min(1),
@@ -20,11 +20,11 @@ const createAgentSchema = z.object({
   apiModel: z.string().optional(),
   temperature: z.number().min(0).max(100).optional(),
   maxTokens: z.number().min(50).max(4000).optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 
 const updateAgentSchema = createAgentSchema.partial().extend({
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 });
 
 const agentDecisionSchema = z.object({
@@ -32,14 +32,15 @@ const agentDecisionSchema = z.object({
   agentType: z.string(),
   decision: z.string(),
   reasoning: z.string().optional(),
-  context: z.record(z.any()).optional()
+  context: z.record(z.any()).optional(),
 });
 
 // Get all agent configurations
 router.get('/', async (req, res) => {
   try {
-    const { type, active, search, personality, tone, limit, offset } = req.query;
-    
+    const { type, active, search, personality, tone, limit, offset } =
+      req.query;
+
     // Mock agent data
     const agents = [
       {
@@ -47,20 +48,21 @@ router.get('/', async (req, res) => {
         name: 'Email Specialist',
         type: 'email',
         role: 'Lead Engagement Specialist',
-        endGoal: 'Convert leads to qualified prospects through personalized email outreach',
+        endGoal:
+          'Convert leads to qualified prospects through personalized email outreach',
         instructions: {
           dos: [
             'Personalize emails based on lead information',
             'Follow up within 24 hours of initial contact',
             'Provide value in every interaction',
-            'Use clear call-to-actions'
+            'Use clear call-to-actions',
           ],
           donts: [
             'Use aggressive sales tactics',
             'Send more than 3 follow-ups without response',
             'Make unrealistic promises',
-            'Ignore lead preferences'
-          ]
+            'Ignore lead preferences',
+          ],
         },
         domainExpertise: ['Email Marketing', 'Lead Nurturing', 'Auto Loans'],
         personality: 'professional',
@@ -74,10 +76,10 @@ router.get('/', async (req, res) => {
           conversations: 150,
           successfulOutcomes: 45,
           averageResponseTime: 5.2,
-          satisfactionScore: 4.3
+          satisfactionScore: 4.3,
         },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 'agent-2',
@@ -90,16 +92,20 @@ router.get('/', async (req, res) => {
             'Keep messages under 160 characters',
             'Include clear opt-out instructions',
             'Use conversational tone',
-            'Respond quickly to inbound messages'
+            'Respond quickly to inbound messages',
           ],
           donts: [
             'Send messages outside business hours',
             'Use complex language or jargon',
             'Send too many messages in sequence',
-            'Ignore compliance requirements'
-          ]
+            'Ignore compliance requirements',
+          ],
         },
-        domainExpertise: ['SMS Marketing', 'Mobile Communication', 'Compliance'],
+        domainExpertise: [
+          'SMS Marketing',
+          'Mobile Communication',
+          'Compliance',
+        ],
         personality: 'casual',
         tone: 'conversational',
         responseLength: 'short',
@@ -111,32 +117,37 @@ router.get('/', async (req, res) => {
           conversations: 200,
           successfulOutcomes: 75,
           averageResponseTime: 2.1,
-          satisfactionScore: 4.1
+          satisfactionScore: 4.1,
         },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 'agent-3',
         name: 'Chat Support Agent',
         type: 'chat',
         role: 'Real-time Customer Support',
-        endGoal: 'Provide immediate assistance and guide leads through the qualification process',
+        endGoal:
+          'Provide immediate assistance and guide leads through the qualification process',
         instructions: {
           dos: [
             'Respond immediately to chat messages',
             'Ask qualifying questions naturally',
             'Provide helpful resources',
-            'Escalate complex issues appropriately'
+            'Escalate complex issues appropriately',
           ],
           donts: [
             'Keep leads waiting',
             'Use scripted responses excessively',
             'Promise what you cannot deliver',
-            'End conversations abruptly'
-          ]
+            'End conversations abruptly',
+          ],
         },
-        domainExpertise: ['Live Chat', 'Customer Service', 'Lead Qualification'],
+        domainExpertise: [
+          'Live Chat',
+          'Customer Service',
+          'Lead Qualification',
+        ],
         personality: 'helpful',
         tone: 'supportive',
         responseLength: 'medium',
@@ -148,32 +159,37 @@ router.get('/', async (req, res) => {
           conversations: 300,
           successfulOutcomes: 120,
           averageResponseTime: 1.5,
-          satisfactionScore: 4.5
+          satisfactionScore: 4.5,
         },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       },
       {
         id: 'agent-4',
         name: 'Overlord Agent',
         type: 'overlord',
         role: 'Master Coordinator',
-        endGoal: 'Orchestrate multi-channel campaigns and optimize lead engagement across all touchpoints',
+        endGoal:
+          'Orchestrate multi-channel campaigns and optimize lead engagement across all touchpoints',
         instructions: {
           dos: [
             'Monitor all channel performance',
             'Coordinate between agents',
             'Optimize timing and messaging',
-            'Track lead journey progression'
+            'Track lead journey progression',
           ],
           donts: [
             'Override agent specializations without reason',
             'Create conflicting messages across channels',
             'Ignore lead preferences',
-            'Make decisions without data'
-          ]
+            'Make decisions without data',
+          ],
         },
-        domainExpertise: ['Campaign Management', 'Multi-channel Coordination', 'Analytics'],
+        domainExpertise: [
+          'Campaign Management',
+          'Multi-channel Coordination',
+          'Analytics',
+        ],
         personality: 'analytical',
         tone: 'strategic',
         responseLength: 'long',
@@ -185,11 +201,11 @@ router.get('/', async (req, res) => {
           conversations: 50,
           successfulOutcomes: 35,
           averageResponseTime: 3.0,
-          satisfactionScore: 4.7
+          satisfactionScore: 4.7,
         },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     ];
 
     // Apply filters
@@ -204,14 +220,17 @@ router.get('/', async (req, res) => {
     }
     if (search) {
       const searchLower = search.toString().toLowerCase();
-      filteredAgents = filteredAgents.filter(agent => 
-        agent.name.toLowerCase().includes(searchLower) ||
-        agent.role.toLowerCase().includes(searchLower) ||
-        agent.type.toLowerCase().includes(searchLower)
+      filteredAgents = filteredAgents.filter(
+        agent =>
+          agent.name.toLowerCase().includes(searchLower) ||
+          agent.role.toLowerCase().includes(searchLower) ||
+          agent.type.toLowerCase().includes(searchLower)
       );
     }
     if (personality) {
-      filteredAgents = filteredAgents.filter(agent => agent.personality === personality);
+      filteredAgents = filteredAgents.filter(
+        agent => agent.personality === personality
+      );
     }
     if (tone) {
       filteredAgents = filteredAgents.filter(agent => agent.tone === tone);
@@ -230,7 +249,7 @@ router.get('/', async (req, res) => {
       agents: paginatedAgents,
       total: filteredAgents.length,
       offset: parseInt(offset as string) || 0,
-      limit: parseInt(limit as string) || filteredAgents.length
+      limit: parseInt(limit as string) || filteredAgents.length,
     });
   } catch (error) {
     console.error('Error fetching agent configurations:', error);
@@ -239,8 +258,8 @@ router.get('/', async (req, res) => {
       error: {
         code: 'AGENT_FETCH_ERROR',
         message: 'Failed to fetch agent configurations',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -250,15 +269,15 @@ router.get('/type/:type', async (req, res) => {
   try {
     const { type } = req.params;
     const validTypes = ['overlord', 'email', 'sms', 'chat'];
-    
+
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_TYPE',
           message: 'Invalid agent type',
-          validTypes
-        }
+          validTypes,
+        },
       });
     }
 
@@ -271,8 +290,8 @@ router.get('/type/:type', async (req, res) => {
           type: 'email',
           role: 'Lead Engagement Specialist',
           active: true,
-          capabilities: { email: true, sms: false, chat: false }
-        }
+          capabilities: { email: true, sms: false, chat: false },
+        },
       ],
       sms: [
         {
@@ -281,8 +300,8 @@ router.get('/type/:type', async (req, res) => {
           type: 'sms',
           role: 'Mobile Engagement Specialist',
           active: true,
-          capabilities: { email: false, sms: true, chat: false }
-        }
+          capabilities: { email: false, sms: true, chat: false },
+        },
       ],
       chat: [
         {
@@ -291,8 +310,8 @@ router.get('/type/:type', async (req, res) => {
           type: 'chat',
           role: 'Real-time Customer Support',
           active: true,
-          capabilities: { email: false, sms: false, chat: true }
-        }
+          capabilities: { email: false, sms: false, chat: true },
+        },
       ],
       overlord: [
         {
@@ -301,14 +320,14 @@ router.get('/type/:type', async (req, res) => {
           type: 'overlord',
           role: 'Master Coordinator',
           active: true,
-          capabilities: { email: true, sms: true, chat: true }
-        }
-      ]
+          capabilities: { email: true, sms: true, chat: true },
+        },
+      ],
     };
 
     res.json({
       success: true,
-      agents: agentsByType[type as keyof typeof agentsByType] || []
+      agents: agentsByType[type as keyof typeof agentsByType] || [],
     });
   } catch (error) {
     console.error('Error fetching agents by type:', error);
@@ -317,8 +336,8 @@ router.get('/type/:type', async (req, res) => {
       error: {
         code: 'AGENT_TYPE_FETCH_ERROR',
         message: 'Failed to fetch agents by type',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -327,7 +346,7 @@ router.get('/type/:type', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Mock agent lookup
     const agent = {
       id,
@@ -337,7 +356,7 @@ router.get('/:id', async (req, res) => {
       endGoal: 'Sample goal',
       instructions: {
         dos: ['Be helpful'],
-        donts: ['Be pushy']
+        donts: ['Be pushy'],
       },
       domainExpertise: ['Email Marketing'],
       personality: 'professional',
@@ -351,15 +370,15 @@ router.get('/:id', async (req, res) => {
         conversations: 100,
         successfulOutcomes: 30,
         averageResponseTime: 4.5,
-        satisfactionScore: 4.2
+        satisfactionScore: 4.2,
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     res.json({
       success: true,
-      agent
+      agent,
     });
   } catch (error) {
     console.error('Error fetching agent configuration:', error);
@@ -368,8 +387,8 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'AGENT_FETCH_ERROR',
         message: 'Failed to fetch agent configuration',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -384,8 +403,8 @@ router.post('/', async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid agent data',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
 
@@ -397,15 +416,15 @@ router.post('/', async (req, res) => {
         conversations: 0,
         successfulOutcomes: 0,
         averageResponseTime: 0,
-        satisfactionScore: 0
+        satisfactionScore: 0,
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     res.status(201).json({
       success: true,
-      agent
+      agent,
     });
   } catch (error) {
     console.error('Error creating agent configuration:', error);
@@ -414,8 +433,8 @@ router.post('/', async (req, res) => {
       error: {
         code: 'AGENT_CREATE_ERROR',
         message: 'Failed to create agent configuration',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -425,27 +444,27 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const validationResult = updateAgentSchema.safeParse(req.body);
-    
+
     if (!validationResult.success) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid agent data',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
 
     const agent = {
       id,
       ...validationResult.data,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     res.json({
       success: true,
-      agent
+      agent,
     });
   } catch (error) {
     console.error('Error updating agent configuration:', error);
@@ -454,8 +473,8 @@ router.put('/:id', async (req, res) => {
       error: {
         code: 'AGENT_UPDATE_ERROR',
         message: 'Failed to update agent configuration',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -464,18 +483,18 @@ router.put('/:id', async (req, res) => {
 router.patch('/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const agent = {
       id,
       name: 'Sample Agent',
       active: true, // Mock toggle
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     res.json({
       success: true,
       agent,
-      message: `Agent ${agent.active ? 'activated' : 'deactivated'} successfully`
+      message: `Agent ${agent.active ? 'activated' : 'deactivated'} successfully`,
     });
   } catch (error) {
     console.error('Error toggling agent:', error);
@@ -484,8 +503,8 @@ router.patch('/:id/toggle', async (req, res) => {
       error: {
         code: 'AGENT_TOGGLE_ERROR',
         message: 'Failed to toggle agent status',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -497,7 +516,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Agent configuration deleted successfully'
+      message: 'Agent configuration deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting agent configuration:', error);
@@ -506,8 +525,8 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'AGENT_DELETE_ERROR',
         message: 'Failed to delete agent configuration',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -523,8 +542,8 @@ router.post('/:id/clone', async (req, res) => {
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'New agent name is required'
-        }
+          message: 'New agent name is required',
+        },
       });
     }
 
@@ -536,19 +555,19 @@ router.post('/:id/clone', async (req, res) => {
       endGoal: 'Sample cloned goal',
       instructions: {
         dos: ['Be helpful'],
-        donts: ['Be pushy']
+        donts: ['Be pushy'],
       },
       personality: 'professional',
       tone: 'friendly',
       active: false,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     res.status(201).json({
       success: true,
       agent: cloned,
-      message: 'Agent configuration cloned successfully'
+      message: 'Agent configuration cloned successfully',
     });
   } catch (error) {
     console.error('Error cloning agent:', error);
@@ -557,8 +576,8 @@ router.post('/:id/clone', async (req, res) => {
       error: {
         code: 'AGENT_CLONE_ERROR',
         message: 'Failed to clone agent configuration',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -567,7 +586,7 @@ router.post('/:id/clone', async (req, res) => {
 router.get('/:id/performance', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const performance = {
       agentId: id,
       agentName: 'Sample Agent',
@@ -576,18 +595,18 @@ router.get('/:id/performance', async (req, res) => {
         conversations: 150,
         successfulOutcomes: 45,
         averageResponseTime: 5.2,
-        satisfactionScore: 4.3
+        satisfactionScore: 4.3,
       },
       trends: {
         conversationsThisWeek: 25,
         successRateThisWeek: 0.32,
-        responseTimeImprovement: -0.5
-      }
+        responseTimeImprovement: -0.5,
+      },
     };
 
     res.json({
       success: true,
-      data: performance
+      data: performance,
     });
   } catch (error) {
     console.error('Error fetching agent performance:', error);
@@ -596,8 +615,8 @@ router.get('/:id/performance', async (req, res) => {
       error: {
         code: 'PERFORMANCE_FETCH_ERROR',
         message: 'Failed to fetch agent performance',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -606,16 +625,20 @@ router.get('/:id/performance', async (req, res) => {
 router.get('/performance/top', async (req, res) => {
   try {
     const { metric = 'satisfactionScore', limit = '10' } = req.query;
-    const validMetrics = ['satisfactionScore', 'conversations', 'successfulOutcomes'];
-    
+    const validMetrics = [
+      'satisfactionScore',
+      'conversations',
+      'successfulOutcomes',
+    ];
+
     if (!validMetrics.includes(metric as string)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_METRIC',
           message: 'Invalid metric',
-          validMetrics
-        }
+          validMetrics,
+        },
       });
     }
 
@@ -626,7 +649,7 @@ router.get('/performance/top', async (req, res) => {
         type: 'overlord',
         satisfactionScore: 4.7,
         conversations: 50,
-        successfulOutcomes: 35
+        successfulOutcomes: 35,
       },
       {
         id: 'agent-3',
@@ -634,7 +657,7 @@ router.get('/performance/top', async (req, res) => {
         type: 'chat',
         satisfactionScore: 4.5,
         conversations: 300,
-        successfulOutcomes: 120
+        successfulOutcomes: 120,
       },
       {
         id: 'agent-1',
@@ -642,14 +665,14 @@ router.get('/performance/top', async (req, res) => {
         type: 'email',
         satisfactionScore: 4.3,
         conversations: 150,
-        successfulOutcomes: 45
-      }
+        successfulOutcomes: 45,
+      },
     ];
 
     res.json({
       success: true,
       agents: topAgents.slice(0, parseInt(limit as string)),
-      metric
+      metric,
     });
   } catch (error) {
     console.error('Error fetching top performing agents:', error);
@@ -658,8 +681,8 @@ router.get('/performance/top', async (req, res) => {
       error: {
         code: 'TOP_AGENTS_ERROR',
         message: 'Failed to fetch top performing agents',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -669,7 +692,7 @@ router.post('/:id/generate-prompt', async (req, res) => {
   try {
     const { id } = req.params;
     const context = req.body.context || {};
-    
+
     // Mock prompt generation
     const prompt = `You are an AI assistant specialized in ${context.domain || 'customer service'}. 
 Your role is to be professional and helpful while following these guidelines:
@@ -686,8 +709,8 @@ Your role is to be professional and helpful while following these guidelines:
         agentName: 'Sample Agent',
         temperature: 70,
         maxTokens: 500,
-        context
-      }
+        context,
+      },
     });
   } catch (error) {
     console.error('Error generating prompt:', error);
@@ -696,8 +719,8 @@ Your role is to be professional and helpful while following these guidelines:
       error: {
         code: 'PROMPT_GENERATION_ERROR',
         message: 'Failed to generate prompt',
-        category: 'processing'
-      }
+        category: 'processing',
+      },
     });
   }
 });
@@ -707,15 +730,15 @@ router.get('/active/:type', async (req, res) => {
   try {
     const { type } = req.params;
     const validTypes = ['overlord', 'email', 'sms', 'chat'];
-    
+
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_TYPE',
           message: 'Invalid agent type',
-          validTypes
-        }
+          validTypes,
+        },
       });
     }
 
@@ -726,47 +749,47 @@ router.get('/active/:type', async (req, res) => {
         name: 'Email Specialist',
         type: 'email',
         role: 'Lead Engagement Specialist',
-        active: true
+        active: true,
       },
       sms: {
         id: 'agent-2',
         name: 'SMS Outreach Agent',
         type: 'sms',
         role: 'Mobile Engagement Specialist',
-        active: true
+        active: true,
       },
       chat: {
         id: 'agent-3',
         name: 'Chat Support Agent',
         type: 'chat',
         role: 'Real-time Customer Support',
-        active: true
+        active: true,
       },
       overlord: {
         id: 'agent-4',
         name: 'Overlord Agent',
         type: 'overlord',
         role: 'Master Coordinator',
-        active: true
-      }
+        active: true,
+      },
     };
 
     const agent = activeAgents[type as keyof typeof activeAgents];
-    
+
     if (!agent) {
       return res.status(404).json({
         success: false,
         error: {
           code: 'NO_ACTIVE_AGENT',
           message: `No active ${type} agent found`,
-          suggestion: 'Please configure and activate an agent of this type'
-        }
+          suggestion: 'Please configure and activate an agent of this type',
+        },
       });
     }
 
     res.json({
       success: true,
-      agent
+      agent,
     });
   } catch (error) {
     console.error('Error fetching active agent:', error);
@@ -775,8 +798,8 @@ router.get('/active/:type', async (req, res) => {
       error: {
         code: 'ACTIVE_AGENT_ERROR',
         message: 'Failed to fetch active agent',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -785,7 +808,7 @@ router.get('/active/:type', async (req, res) => {
 router.get('/decisions/lead/:leadId', async (req, res) => {
   try {
     const { leadId } = req.params;
-    
+
     const decisions = [
       {
         id: 'decision-1',
@@ -794,7 +817,7 @@ router.get('/decisions/lead/:leadId', async (req, res) => {
         decision: 'send_follow_up',
         reasoning: 'Lead opened previous email but did not respond',
         context: { emailOpenRate: 1, lastContactDays: 2 },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       {
         id: 'decision-2',
@@ -803,13 +826,13 @@ router.get('/decisions/lead/:leadId', async (req, res) => {
         decision: 'escalate_to_human',
         reasoning: 'Lead expressed specific technical questions',
         context: { conversationTurns: 5, technicalQuestions: true },
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     ];
 
     res.json({
       success: true,
-      decisions
+      decisions,
     });
   } catch (error) {
     console.error('Error fetching decisions:', error);
@@ -818,8 +841,8 @@ router.get('/decisions/lead/:leadId', async (req, res) => {
       error: {
         code: 'DECISIONS_FETCH_ERROR',
         message: 'Failed to fetch decisions',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -827,31 +850,31 @@ router.get('/decisions/lead/:leadId', async (req, res) => {
 router.get('/decisions/lead/:leadId/timeline', async (req, res) => {
   try {
     const { leadId } = req.params;
-    
+
     const timeline = [
       {
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         agentType: 'email',
         decision: 'initial_contact',
-        outcome: 'email_sent'
+        outcome: 'email_sent',
       },
       {
         timestamp: new Date(Date.now() - 1800000).toISOString(),
         agentType: 'email',
         decision: 'track_engagement',
-        outcome: 'email_opened'
+        outcome: 'email_opened',
       },
       {
         timestamp: new Date().toISOString(),
         agentType: 'overlord',
         decision: 'coordinate_follow_up',
-        outcome: 'sms_scheduled'
-      }
+        outcome: 'sms_scheduled',
+      },
     ];
 
     res.json({
       success: true,
-      timeline
+      timeline,
     });
   } catch (error) {
     console.error('Error fetching decision timeline:', error);
@@ -860,8 +883,8 @@ router.get('/decisions/lead/:leadId/timeline', async (req, res) => {
       error: {
         code: 'TIMELINE_FETCH_ERROR',
         message: 'Failed to fetch decision timeline',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -875,13 +898,14 @@ router.post('/decisions', async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid decision data',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
 
-    const { leadId, agentType, decision, reasoning, context } = validationResult.data;
-    
+    const { leadId, agentType, decision, reasoning, context } =
+      validationResult.data;
+
     const decisionRecord = {
       id: `decision-${Date.now()}`,
       leadId,
@@ -889,12 +913,12 @@ router.post('/decisions', async (req, res) => {
       decision,
       reasoning,
       context,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     res.json({
       success: true,
-      decision: decisionRecord
+      decision: decisionRecord,
     });
   } catch (error) {
     console.error('Error creating decision:', error);
@@ -903,8 +927,8 @@ router.post('/decisions', async (req, res) => {
       error: {
         code: 'DECISION_CREATE_ERROR',
         message: 'Failed to create decision',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -917,24 +941,24 @@ router.get('/decisions/stats', async (req, res) => {
         email: 450,
         sms: 320,
         chat: 280,
-        overlord: 200
+        overlord: 200,
       },
       decisionsByOutcome: {
         successful: 875,
         pending: 200,
-        failed: 175
+        failed: 175,
       },
       averageDecisionTime: 2.3,
       topDecisions: [
         { decision: 'send_follow_up', count: 320 },
         { decision: 'schedule_call', count: 180 },
-        { decision: 'escalate_to_human', count: 95 }
-      ]
+        { decision: 'escalate_to_human', count: 95 },
+      ],
     };
 
     res.json({
       success: true,
-      stats
+      stats,
     });
   } catch (error) {
     console.error('Error fetching decision stats:', error);
@@ -943,8 +967,8 @@ router.get('/decisions/stats', async (req, res) => {
       error: {
         code: 'DECISION_STATS_ERROR',
         message: 'Failed to fetch decision stats',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -958,34 +982,34 @@ router.get('/available', async (req, res) => {
         name: 'Email Specialist',
         type: 'email',
         active: true,
-        capabilities: { email: true, sms: false, chat: false }
+        capabilities: { email: true, sms: false, chat: false },
       },
       {
         id: 'agent-2',
         name: 'SMS Outreach Agent',
         type: 'sms',
         active: true,
-        capabilities: { email: false, sms: true, chat: false }
+        capabilities: { email: false, sms: true, chat: false },
       },
       {
         id: 'agent-3',
         name: 'Chat Support Agent',
         type: 'chat',
         active: true,
-        capabilities: { email: false, sms: false, chat: true }
+        capabilities: { email: false, sms: false, chat: true },
       },
       {
         id: 'agent-4',
         name: 'Overlord Agent',
         type: 'overlord',
         active: true,
-        capabilities: { email: true, sms: true, chat: true }
-      }
+        capabilities: { email: true, sms: true, chat: true },
+      },
     ];
 
     res.json({
       success: true,
-      agents
+      agents,
     });
   } catch (error) {
     console.error('Error fetching available agents:', error);
@@ -994,8 +1018,8 @@ router.get('/available', async (req, res) => {
       error: {
         code: 'AVAILABLE_AGENTS_ERROR',
         message: 'Failed to fetch available agents',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -1006,7 +1030,7 @@ router.get('/available', async (req, res) => {
 router.post('/enhance-campaign-field', async (req, res) => {
   try {
     const { field, value, context } = req.body;
-    
+
     // Mock enhancement
     const enhanced = {
       originalField: field,
@@ -1015,14 +1039,14 @@ router.post('/enhance-campaign-field', async (req, res) => {
       suggestions: [
         'Make it more personalized',
         'Add urgency',
-        'Include social proof'
+        'Include social proof',
       ],
-      confidence: 0.85
+      confidence: 0.85,
     };
 
     res.json({
       success: true,
-      data: enhanced
+      data: enhanced,
     });
   } catch (error) {
     console.error('Error enhancing campaign field:', error);
@@ -1030,8 +1054,8 @@ router.post('/enhance-campaign-field', async (req, res) => {
       success: false,
       error: {
         code: 'ENHANCEMENT_ERROR',
-        message: 'Failed to enhance campaign field'
-      }
+        message: 'Failed to enhance campaign field',
+      },
     });
   }
 });
@@ -1040,7 +1064,7 @@ router.post('/enhance-campaign-field', async (req, res) => {
 router.post('/email/generate-sequence', async (req, res) => {
   try {
     const { campaignType, audience, goals } = req.body;
-    
+
     // Mock sequence generation
     const sequence = {
       id: `seq-${Date.now()}`,
@@ -1053,33 +1077,33 @@ router.post('/email/generate-sequence', async (req, res) => {
           delay: 0,
           subject: 'Welcome to our service',
           content: 'Thank you for your interest...',
-          type: 'welcome'
+          type: 'welcome',
         },
         {
           step: 2,
           delay: 24,
           subject: 'Getting started guide',
-          content: 'Here\'s how to get the most out of...',
-          type: 'educational'
+          content: "Here's how to get the most out of...",
+          type: 'educational',
         },
         {
           step: 3,
           delay: 72,
           subject: 'Special offer just for you',
           content: 'We have a limited time offer...',
-          type: 'promotional'
-        }
+          type: 'promotional',
+        },
       ],
       estimatedPerformance: {
         openRate: 0.68,
         clickRate: 0.12,
-        conversionRate: 0.08
-      }
+        conversionRate: 0.08,
+      },
     };
 
     res.json({
       success: true,
-      data: sequence
+      data: sequence,
     });
   } catch (error) {
     console.error('Error generating email sequence:', error);
@@ -1087,8 +1111,8 @@ router.post('/email/generate-sequence', async (req, res) => {
       success: false,
       error: {
         code: 'SEQUENCE_GENERATION_ERROR',
-        message: 'Failed to generate email sequence'
-      }
+        message: 'Failed to generate email sequence',
+      },
     });
   }
 });

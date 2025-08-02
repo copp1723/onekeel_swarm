@@ -1,11 +1,13 @@
 # Database Schema Audit Report
 
 ## Overview
+
 This document provides a comprehensive audit of the current database schema for the OneKeel Swarm application. The audit includes an analysis of existing tables, columns, indexes, and identifies any missing elements that should be present according to the application requirements.
 
 ## Current Schema Analysis
 
 ### Core Tables
+
 1. **users** - Authentication and access control
 2. **clients** - Multi-tenant client management
 3. **agent_configurations** - AI agent settings
@@ -24,6 +26,7 @@ This document provides a comprehensive audit of the current database schema for 
 16. **feature_flag_user_overrides** - User-specific feature overrides
 
 ### Enums
+
 1. **user_role** - admin, manager, agent, viewer
 2. **lead_status** - new, contacted, qualified, converted, rejected
 3. **channel** - email, sms, chat
@@ -39,9 +42,11 @@ This document provides a comprehensive audit of the current database schema for 
 ## Missing Elements Analysis
 
 ### Missing Tables
+
 After reviewing the current schema, all required tables appear to be present. However, the following tables might benefit from additional columns or indexes:
 
 ### Missing Columns
+
 1. **leads table**:
    - `score` - Lead qualification score (0-100) to supplement existing `qualification_score`
    - `name` - Computed full name field using existing `first_name` and `last_name`
@@ -59,6 +64,7 @@ After reviewing the current schema, all required tables appear to be present. Ho
    - `conversation_id` - UUID reference linking communication to a conversation thread
 
 ### Index Optimization Opportunities
+
 1. **leads table**:
    - Add index on `score` column for performance
    - Add index on computed `name` column for search performance
@@ -81,20 +87,26 @@ After reviewing the current schema, all required tables appear to be present. Ho
 ## Recommendations
 
 ### 1. Add Missing Columns
+
 The identified missing columns should be added to improve data integrity and application functionality.
 
 ### 2. Create Additional Indexes
+
 Adding the recommended indexes will improve query performance for common operations.
 
 ### 3. Data Migration
+
 When adding new columns, consider data migration strategies for existing records.
 
 ## Rollback Procedures
+
 All schema changes should be implemented with rollback procedures in mind:
+
 1. Always create database backups before applying migrations
 2. Ensure all migrations can be reversed
 3. Test rollback procedures in a development environment
 4. Document any data that may be lost during rollback
 
 ## Conclusion
+
 The current database schema is well-structured and comprehensive. The identified missing columns and index opportunities are relatively minor and can be addressed through standard migration procedures. The existing validation utilities provide a good foundation for ongoing schema verification.

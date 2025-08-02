@@ -1,6 +1,6 @@
 /**
  * Security Authentication Tests
- * 
+ *
  * These tests verify that the secure authentication system is working properly
  * and that all security vulnerabilities have been fixed.
  */
@@ -36,7 +36,7 @@ describe('Security Authentication System', () => {
       firstName: 'Test',
       lastName: 'User',
       role: 'agent',
-      active: true
+      active: true,
     });
   });
 
@@ -50,12 +50,10 @@ describe('Security Authentication System', () => {
 
   describe('POST /api/auth/login', () => {
     it('should reject login with hardcoded admin credentials', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: 'admin@onekeel.com',
-          password: 'password123'
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        username: 'admin@onekeel.com',
+        password: 'password123',
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
@@ -67,47 +65,41 @@ describe('Security Authentication System', () => {
       const originalSkipAuth = process.env.SKIP_AUTH;
       process.env.SKIP_AUTH = 'true';
 
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: 'admin@onekeel.com',
-          password: 'password123'
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        username: 'admin@onekeel.com',
+        password: 'password123',
+      });
 
       // Should still require proper authentication even if SKIP_AUTH is set
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
-      
+
       // Restore original environment
       process.env.SKIP_AUTH = originalSkipAuth;
     });
 
     it('should accept valid user credentials from database', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: testEmail,
-          password: testPassword
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        username: testEmail,
+        password: testPassword,
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.user.email).toBe(testEmail);
       expect(response.body.accessToken).toBeDefined();
       expect(response.body.refreshToken).toBeDefined();
-      
+
       // Verify tokens are proper JWTs (not hardcoded strings)
       expect(response.body.accessToken).not.toMatch(/^skip-auth-token/);
       expect(response.body.accessToken).not.toMatch(/^hardcoded-jwt-token/);
     });
 
     it('should reject invalid credentials', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: testEmail,
-          password: 'WrongPassword123!'
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        username: testEmail,
+        password: 'WrongPassword123!',
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
@@ -119,12 +111,10 @@ describe('Security Authentication System', () => {
       testUser.active = false;
       // In a real test, you'd update the user in the database
 
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: testEmail,
-          password: testPassword
-        });
+      const response = await request(app).post('/api/auth/login').send({
+        username: testEmail,
+        password: testPassword,
+      });
 
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
@@ -134,8 +124,7 @@ describe('Security Authentication System', () => {
 
   describe('GET /api/auth/me', () => {
     it('should require valid JWT token', async () => {
-      const response = await request(app)
-        .get('/api/auth/me');
+      const response = await request(app).get('/api/auth/me');
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBeDefined();
@@ -146,7 +135,7 @@ describe('Security Authentication System', () => {
         'skip-auth-token-123456789',
         'hardcoded-jwt-token-123456789',
         'mock-token',
-        'test-token'
+        'test-token',
       ];
 
       for (const token of hardcodedTokens) {
@@ -164,7 +153,7 @@ describe('Security Authentication System', () => {
       const tokens = await tokenService.generateTokens({
         id: testUser.id,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       const response = await request(app)
@@ -182,16 +171,16 @@ describe('Security Authentication System', () => {
       const tokens = await tokenService.generateTokens({
         id: testUser.id,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       // Verify token structure (JWT has 3 parts separated by dots)
       expect(tokens.accessToken.split('.')).toHaveLength(3);
       expect(tokens.refreshToken.split('.')).toHaveLength(3);
-      
+
       // Verify tokens are different
       expect(tokens.accessToken).not.toBe(tokens.refreshToken);
-      
+
       // Verify expiration is set correctly
       expect(tokens.expiresIn).toBe(900); // 15 minutes
     });
@@ -208,7 +197,7 @@ describe('Security Authentication System', () => {
       const tokens = await tokenService.generateTokens({
         id: testUser.id,
         email: testUser.email,
-        role: testUser.role
+        role: testUser.role,
       });
 
       const decoded = tokenService.verifyAccessToken(tokens.accessToken);
@@ -233,7 +222,7 @@ describe('Security Authentication System', () => {
 
     it('should validate sessions correctly', async () => {
       const session = await sessionService.createSession(testUser.id);
-      
+
       if (session) {
         const validation = await sessionService.validateSession(session.token);
         expect(validation).toBeTruthy();
@@ -250,15 +239,15 @@ describe('Security Authentication System', () => {
 
       // Import auth middleware to test
       const { authenticate } = require('../../server/middleware/auth');
-      
+
       // Mock request/response
       const mockReq = {
         headers: {},
-        user: null
+        user: null,
       };
       const mockRes = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis()
+        json: jest.fn().mockReturnThis(),
       };
       const mockNext = jest.fn();
 
@@ -275,8 +264,11 @@ describe('Security Authentication System', () => {
     it('should not contain hardcoded credentials in source code', async () => {
       // Read the auth routes file and verify no hardcoded credentials
       const fs = require('fs');
-      const authRoutesContent = fs.readFileSync('../../server/routes/auth.ts', 'utf8');
-      
+      const authRoutesContent = fs.readFileSync(
+        '../../server/routes/auth.ts',
+        'utf8'
+      );
+
       // Should not contain the old hardcoded credentials
       expect(authRoutesContent).not.toContain('admin@onekeel.com');
       expect(authRoutesContent).not.toContain('password123');

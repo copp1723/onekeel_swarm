@@ -56,7 +56,7 @@ export class ExecutionMonitor {
 
     try {
       const dueExecutions = executionScheduler.getDueExecutions(10); // Process max 10 at a time
-      
+
       if (dueExecutions.length === 0) {
         return;
       }
@@ -65,10 +65,9 @@ export class ExecutionMonitor {
 
       // Process executions in batch
       await executionProcessor.processBatch(dueExecutions);
-
     } catch (error) {
       logger.error('Error processing scheduled executions', {
-        error: (error as Error).message
+        error: (error as Error).message,
       });
     }
   }
@@ -77,7 +76,7 @@ export class ExecutionMonitor {
    * Get execution statistics
    */
   getExecutionStats(campaignId?: string): ExecutionStats {
-    const executions = campaignId 
+    const executions = campaignId
       ? executionStorage.getByCampaign(campaignId)
       : executionStorage.getAll();
 
@@ -87,7 +86,7 @@ export class ExecutionMonitor {
       executing: 0,
       completed: 0,
       failed: 0,
-      executions
+      executions,
     };
 
     for (const execution of executions) {
@@ -129,13 +128,13 @@ export class ExecutionMonitor {
     lastProcessedAt?: Date;
   } {
     const stats = this.getExecutionStats();
-    
+
     return {
       isRunning: this.isRunning,
       totalExecutions: stats.total,
       pendingExecutions: stats.scheduled,
       failedExecutions: stats.failed,
-      lastProcessedAt: new Date() // Could track actual last processed time
+      lastProcessedAt: new Date(), // Could track actual last processed time
     };
   }
 
@@ -150,9 +149,9 @@ export class ExecutionMonitor {
     }
 
     if (execution.status !== 'scheduled') {
-      logger.warn('Execution is not in scheduled status', { 
-        executionId, 
-        status: execution.status 
+      logger.warn('Execution is not in scheduled status', {
+        executionId,
+        status: execution.status,
       });
       return false;
     }
@@ -162,9 +161,9 @@ export class ExecutionMonitor {
       logger.info('Execution force processed', { executionId });
       return true;
     } catch (error) {
-      logger.error('Force processing failed', { 
-        executionId, 
-        error: (error as Error).message 
+      logger.error('Force processing failed', {
+        executionId,
+        error: (error as Error).message,
       });
       return false;
     }
@@ -186,14 +185,17 @@ export class ExecutionMonitor {
     upcomingExecutions: CampaignExecution[];
   } {
     const summary = this.getExecutionStats(campaignId);
-    
-    const allExecutions = campaignId 
+
+    const allExecutions = campaignId
       ? executionStorage.getByCampaign(campaignId)
       : executionStorage.getAll();
 
     const recentFailures = allExecutions
       .filter(exec => exec.status === 'failed')
-      .sort((a, b) => (b.lastAttempt?.getTime() || 0) - (a.lastAttempt?.getTime() || 0))
+      .sort(
+        (a, b) =>
+          (b.lastAttempt?.getTime() || 0) - (a.lastAttempt?.getTime() || 0)
+      )
       .slice(0, 10);
 
     const upcomingExecutions = allExecutions
@@ -204,7 +206,7 @@ export class ExecutionMonitor {
     return {
       summary,
       recentFailures,
-      upcomingExecutions
+      upcomingExecutions,
     };
   }
 }

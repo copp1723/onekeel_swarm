@@ -78,7 +78,9 @@ describe('Twilio Integration Tests', () => {
       const validation = await twilioHealthChecker.validateConfiguration();
 
       expect(validation.valid).toBe(false);
-      expect(validation.issues).toContain('TWILIO_AUTH_TOKEN appears to be too short');
+      expect(validation.issues).toContain(
+        'TWILIO_AUTH_TOKEN appears to be too short'
+      );
     });
 
     it('should validate phone number format', async () => {
@@ -147,7 +149,8 @@ describe('Twilio Integration Tests', () => {
 
     it('should handle API errors gracefully', async () => {
       // Set invalid credentials to trigger API error
-      process.env.TWILIO_ACCOUNT_SID = 'ACinvalid123456789012345678901234567890';
+      process.env.TWILIO_ACCOUNT_SID =
+        'ACinvalid123456789012345678901234567890';
       process.env.TWILIO_AUTH_TOKEN = 'invalid_auth_token_32_characters_long';
 
       const health = await twilioHealthChecker.checkHealth();
@@ -272,7 +275,8 @@ describe('Twilio Integration Tests', () => {
     });
 
     it('should handle authentication errors', async () => {
-      process.env.TWILIO_ACCOUNT_SID = 'ACinvalid123456789012345678901234567890';
+      process.env.TWILIO_ACCOUNT_SID =
+        'ACinvalid123456789012345678901234567890';
       process.env.TWILIO_AUTH_TOKEN = 'invalid_token';
 
       const health = await twilioHealthChecker.checkHealth();
@@ -289,9 +293,9 @@ describe('Twilio Integration Tests', () => {
       process.env.TWILIO_AUTH_TOKEN = 'test_auth_token_32_characters_long';
 
       // Test multiple rapid calls to simulate circuit breaker scenarios
-      const promises = Array(5).fill(null).map(() => 
-        twilioHealthChecker.checkHealth()
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => twilioHealthChecker.checkHealth());
 
       const results = await Promise.allSettled(promises);
 

@@ -26,17 +26,20 @@ export class ExecutionProcessor {
         campaignId: execution.campaignId,
         leadId: execution.leadId,
         templateId: execution.templateId,
-        attempt: execution.attempts
+        attempt: execution.attempts,
       });
 
       // Render template with lead data
-      const renderedContent = await templateRenderingService.renderTemplateForLead(
-        execution.templateId,
-        execution.leadId
-      );
+      const renderedContent =
+        await templateRenderingService.renderTemplateForLead(
+          execution.templateId,
+          execution.leadId
+        );
 
       if (!renderedContent) {
-        throw new Error(`Failed to render template ${execution.templateId} for lead ${execution.leadId}`);
+        throw new Error(
+          `Failed to render template ${execution.templateId} for lead ${execution.leadId}`
+        );
       }
 
       // Send email via queue
@@ -47,13 +50,12 @@ export class ExecutionProcessor {
 
       // Mark as completed
       execution.status = 'completed';
-      
+
       logger.info('Campaign execution completed successfully', {
         executionId: execution.id,
         leadId: execution.leadId,
-        templateId: execution.templateId
+        templateId: execution.templateId,
       });
-
     } catch (error) {
       await this.handleExecutionError(execution, error as Error);
     }
@@ -62,31 +64,41 @@ export class ExecutionProcessor {
   /**
    * Send email via queue system
    */
-  private async sendEmail(execution: CampaignExecution, renderedContent: any): Promise<void> {
+  private async sendEmail(
+    execution: CampaignExecution,
+    renderedContent: any
+  ): Promise<void> {
     // Get lead email from rendered content or fetch from database
     const leadData = await this.getLeadEmail(execution.leadId);
-    
-    await queueManager.addJob('email', {
-      to: leadData.email,
-      subject: renderedContent.subject,
-      html: renderedContent.html,
-      text: renderedContent.text,
-      leadId: execution.leadId,
-      campaignId: execution.campaignId,
-      templateId: execution.templateId
-    }, { priority: 1 });
+
+    await queueManager.addJob(
+      'email',
+      {
+        to: leadData.email,
+        subject: renderedContent.subject,
+        html: renderedContent.html,
+        text: renderedContent.text,
+        leadId: execution.leadId,
+        campaignId: execution.campaignId,
+        templateId: execution.templateId,
+      },
+      { priority: 1 }
+    );
 
     logger.debug('Email queued for sending', {
       executionId: execution.id,
       to: leadData.email,
-      subject: renderedContent.subject
+      subject: renderedContent.subject,
     });
   }
 
   /**
    * Record communication in database
    */
-  private async recordCommunication(execution: CampaignExecution, renderedContent: any): Promise<void> {
+  private async recordCommunication(
+    execution: CampaignExecution,
+    renderedContent: any
+  ): Promise<void> {
     try {
       await db.insert(communications).values({
         id: `comm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -98,18 +110,18 @@ export class ExecutionProcessor {
         metadata: {
           campaignId: execution.campaignId,
           templateId: execution.templateId,
-          executionId: execution.id
-        }
+          executionId: execution.id,
+        },
       });
 
       logger.debug('Communication recorded', {
         executionId: execution.id,
-        leadId: execution.leadId
+        leadId: execution.leadId,
       });
     } catch (error) {
       logger.error('Failed to record communication', {
         executionId: execution.id,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       // Don't fail the execution for communication recording errors
     }
@@ -118,14 +130,17 @@ export class ExecutionProcessor {
   /**
    * Handle execution errors and retry logic
    */
-  private async handleExecutionError(execution: CampaignExecution, error: Error): Promise<void> {
+  private async handleExecutionError(
+    execution: CampaignExecution,
+    error: Error
+  ): Promise<void> {
     execution.status = 'failed';
     execution.errorMessage = error.message;
-    
+
     logger.error('Campaign execution failed', {
       executionId: execution.id,
       error: error.message,
-      attempts: execution.attempts
+      attempts: execution.attempts,
     });
 
     // Attempt retry if possible
@@ -134,7 +149,7 @@ export class ExecutionProcessor {
     } else {
       logger.warn('Execution failed permanently - max retries exceeded', {
         executionId: execution.id,
-        attempts: execution.attempts
+        attempts: execution.attempts,
       });
     }
   }
@@ -148,7 +163,11 @@ export class ExecutionProcessor {
       const { leads } = await import('../../db/schema');
       const { eq } = await import('drizzle-orm');
 
-      const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+      const result = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, leadId))
+        .limit(1);
       const lead = result[0];
 
       if (!lead || !lead.email) {
@@ -157,7 +176,10 @@ export class ExecutionProcessor {
 
       return { email: lead.email };
     } catch (error) {
-      logger.error('Failed to get lead email', { leadId, error: (error as Error).message });
+      logger.error('Failed to get lead email', {
+        leadId,
+        error: (error as Error).message,
+      });
       throw error;
     }
   }
@@ -166,19 +188,19 @@ export class ExecutionProcessor {
    * Process multiple executions in batch
    */
   async processBatch(executions: CampaignExecution[]): Promise<void> {
-    const promises = executions.map(execution => 
+    const promises = executions.map(execution =>
       this.processExecution(execution).catch(error => {
         logger.error('Batch execution failed', {
           executionId: execution.id,
-          error: (error as Error).message
+          error: (error as Error).message,
         });
       })
     );
 
     await Promise.allSettled(promises);
-    
+
     logger.info('Batch processing completed', {
-      totalExecutions: executions.length
+      totalExecutions: executions.length,
     });
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Unified Monitoring Infrastructure - Main Export Module
- * 
+ *
  * This module provides a centralized monitoring infrastructure that integrates
  * health checking, metrics collection, database monitoring, and service monitoring
  * into a unified system for the OneKeel Swarm platform.
@@ -15,25 +15,25 @@ export { EnhancedServiceMonitor } from './service-monitor';
 export type {
   HealthCheckResult,
   SystemHealthStatus,
-  HealthCheckOptions
+  HealthCheckOptions,
 } from './health-checker';
 
 export type {
   SystemMetrics,
   PerformanceMetrics,
   BusinessMetrics,
-  MetricsCollectionOptions
+  MetricsCollectionOptions,
 } from './metrics-collector';
 
 export type {
   DatabaseHealthStatus,
   DatabasePerformanceMetrics,
-  DatabaseMonitorOptions
+  DatabaseMonitorOptions,
 } from './database-monitor';
 
 export type {
   EnhancedServiceHealth,
-  EnhancedServiceMonitorOptions
+  EnhancedServiceMonitorOptions,
 } from './service-monitor';
 
 // Create singleton instances for application-wide use
@@ -64,20 +64,36 @@ export class UnifiedMonitor {
    * Get comprehensive system status
    */
   async getSystemStatus() {
-    const [healthStatus, systemMetrics, dbHealth, serviceHealth] = await Promise.allSettled([
-      this.health.checkSystemHealth(),
-      this.metrics.collectSystemMetrics(),
-      this.database.checkHealth(),
-      this.services.checkAllServices()
-    ]);
+    const [healthStatus, systemMetrics, dbHealth, serviceHealth] =
+      await Promise.allSettled([
+        this.health.checkSystemHealth(),
+        this.metrics.collectSystemMetrics(),
+        this.database.checkHealth(),
+        this.services.checkAllServices(),
+      ]);
 
     return {
       timestamp: new Date().toISOString(),
-      health: healthStatus.status === 'fulfilled' ? healthStatus.value : { status: 'unhealthy', error: 'Health check failed' },
-      metrics: systemMetrics.status === 'fulfilled' ? systemMetrics.value : null,
-      database: dbHealth.status === 'fulfilled' ? dbHealth.value : { status: 'unhealthy', error: 'Database check failed' },
-      services: serviceHealth.status === 'fulfilled' ? serviceHealth.value : { status: 'unhealthy', error: 'Service check failed' },
-      overall: this.calculateOverallStatus([healthStatus, systemMetrics, dbHealth, serviceHealth])
+      health:
+        healthStatus.status === 'fulfilled'
+          ? healthStatus.value
+          : { status: 'unhealthy', error: 'Health check failed' },
+      metrics:
+        systemMetrics.status === 'fulfilled' ? systemMetrics.value : null,
+      database:
+        dbHealth.status === 'fulfilled'
+          ? dbHealth.value
+          : { status: 'unhealthy', error: 'Database check failed' },
+      services:
+        serviceHealth.status === 'fulfilled'
+          ? serviceHealth.value
+          : { status: 'unhealthy', error: 'Service check failed' },
+      overall: this.calculateOverallStatus([
+        healthStatus,
+        systemMetrics,
+        dbHealth,
+        serviceHealth,
+      ]),
     };
   }
 
@@ -88,36 +104,45 @@ export class UnifiedMonitor {
     const [performance, business, health] = await Promise.allSettled([
       this.metrics.collectPerformanceMetrics(),
       this.metrics.collectBusinessMetrics(),
-      this.health.checkSystemHealth()
+      this.health.checkSystemHealth(),
     ]);
 
     return {
       timestamp: new Date().toISOString(),
-      performance: performance.status === 'fulfilled' ? performance.value : null,
+      performance:
+        performance.status === 'fulfilled' ? performance.value : null,
       business: business.status === 'fulfilled' ? business.value : null,
       health: health.status === 'fulfilled' ? health.value : null,
       uptime: process.uptime(),
-      version: '1.0.0'
+      version: '1.0.0',
     };
   }
 
   /**
    * Start real-time monitoring
    */
-  startRealTimeMonitoring(callback: (data: any) => void, intervalMs: number = 5000) {
+  startRealTimeMonitoring(
+    callback: (data: any) => void,
+    intervalMs: number = 5000
+  ) {
     const interval = setInterval(async () => {
       try {
         const data = await this.getSystemStatus();
         callback(data);
       } catch (error) {
-        callback({ error: 'Failed to collect monitoring data', timestamp: new Date().toISOString() });
+        callback({
+          error: 'Failed to collect monitoring data',
+          timestamp: new Date().toISOString(),
+        });
       }
     }, intervalMs);
 
     return () => clearInterval(interval);
   }
 
-  private calculateOverallStatus(results: PromiseSettledResult<any>[]): 'healthy' | 'degraded' | 'unhealthy' {
+  private calculateOverallStatus(
+    results: PromiseSettledResult<any>[]
+  ): 'healthy' | 'degraded' | 'unhealthy' {
     const failures = results.filter(r => r.status === 'rejected').length;
     const total = results.length;
 

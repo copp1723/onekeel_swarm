@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const logLevels = ['debug', 'info', 'warn', 'error'] as const;
-type LogLevel = typeof logLevels[number];
+type LogLevel = (typeof logLevels)[number];
 
 interface LogContext {
   [key: string]: any;
@@ -66,8 +66,8 @@ class Logger {
       error: {
         name: error.name,
         message: error.message,
-        stack: error.stack
-      }
+        stack: error.stack,
+      },
     };
     this.error(message || error.message, errorContext);
   }
@@ -84,18 +84,26 @@ class Logger {
       timestamp: timestamp.toISOString(),
       level,
       message,
-      ...context
+      ...context,
     };
 
     // Console output with colors
     let formattedMessage = `[${timestampStr}] ${levelLabel} ${message}`;
 
     // Apply color based on log level
-    switch(level) {
-      case 'debug': formattedMessage = chalk.blue(formattedMessage); break;
-      case 'info': formattedMessage = chalk.green(formattedMessage); break;
-      case 'warn': formattedMessage = chalk.yellow(formattedMessage); break;
-      case 'error': formattedMessage = chalk.red(formattedMessage); break;
+    switch (level) {
+      case 'debug':
+        formattedMessage = chalk.blue(formattedMessage);
+        break;
+      case 'info':
+        formattedMessage = chalk.green(formattedMessage);
+        break;
+      case 'warn':
+        formattedMessage = chalk.yellow(formattedMessage);
+        break;
+      case 'error':
+        formattedMessage = chalk.red(formattedMessage);
+        break;
     }
 
     console.log(formattedMessage);

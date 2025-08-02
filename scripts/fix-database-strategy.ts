@@ -11,32 +11,31 @@ const __dirname = path.dirname(__filename);
 
 async function implementDatabaseStrategy() {
   console.log('🚀 Implementing Database Strategy...\n');
-  
+
   try {
     // Step 1: Fix migration numbering conflicts
     console.log('📁 Step 1: Fixing migration numbering conflicts...');
     await fixMigrationNumbering();
-    
+
     // Step 2: Verify current database schema
     console.log('\n🔍 Step 2: Verifying database schema...');
     const schemaIssues = await verifyDatabaseSchema();
-    
+
     // Step 3: Apply missing schema elements
     if (schemaIssues.length > 0) {
       console.log('\n🔧 Step 3: Applying schema fixes...');
       await applySchemaFixes(schemaIssues);
     }
-    
+
     // Step 4: Create verification script
     console.log('\n📝 Step 4: Creating schema verification script...');
     await createVerificationScript();
-    
+
     console.log('\n✅ Database strategy implementation complete!');
     console.log('📋 Next steps:');
     console.log('   1. Run "npm run db:verify" to verify schema integrity');
     console.log('   2. Commit the migration fixes');
     console.log('   3. Deploy to production with confidence');
-    
   } catch (error) {
     console.error('❌ Error implementing database strategy:', error);
     process.exit(1);
@@ -46,32 +45,36 @@ async function implementDatabaseStrategy() {
 async function fixMigrationNumbering() {
   const migrationsDir = path.join(__dirname, '../migrations');
   const journalPath = path.join(migrationsDir, 'meta/_journal.json');
-  
+
   // Read current journal
   const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8'));
-  
+
   // Check for conflicts
-  const migrations = fs.readdirSync(migrationsDir)
+  const migrations = fs
+    .readdirSync(migrationsDir)
     .filter(f => f.endsWith('.sql'))
     .sort();
-  
+
   const conflicts = migrations.filter(m => m.startsWith('0002_'));
-  
+
   if (conflicts.length > 1) {
     console.log(`  Found ${conflicts.length} migrations with number 0002:`);
     conflicts.forEach(c => console.log(`    - ${c}`));
-    
+
     // The journal shows 0002_closed_shooting_star is already applied
     // We need to renumber the other 0002 migrations
     const toRename = [
-      { old: '0002_add_agent_configurations.sql', new: '0003_add_agent_configurations.sql' },
-      { old: '0002_feature_flags.sql', new: '0004_feature_flags.sql' }
+      {
+        old: '0002_add_agent_configurations.sql',
+        new: '0003_add_agent_configurations.sql',
+      },
+      { old: '0002_feature_flags.sql', new: '0004_feature_flags.sql' },
     ];
-    
+
     for (const rename of toRename) {
       const oldPath = path.join(migrationsDir, rename.old);
       const newPath = path.join(migrationsDir, rename.new);
-      
+
       if (fs.existsSync(oldPath)) {
         fs.renameSync(oldPath, newPath);
         console.log(`  ✅ Renamed: ${rename.old} → ${rename.new}`);
@@ -84,23 +87,31 @@ async function fixMigrationNumbering() {
 
 async function verifyDatabaseSchema() {
   const issues: string[] = [];
-  
+
   // Check for required tables
   const tables = await db.execute(sql`
     SELECT table_name 
     FROM information_schema.tables 
     WHERE table_schema = 'public'
   `);
-  
+
   const existingTables = new Set(tables.rows.map(r => r.table_name as string));
-  
+
   // Required tables based on schema
   const requiredTables = [
-    'users', 'campaigns', 'leads', 'agent_configurations',
-    'feature_flags', 'communications', 'templates', 'jobs',
-    'whatsapp_messages', 'feature_flag_evaluations', 'api_keys'
+    'users',
+    'campaigns',
+    'leads',
+    'agent_configurations',
+    'feature_flags',
+    'communications',
+    'templates',
+    'jobs',
+    'whatsapp_messages',
+    'feature_flag_evaluations',
+    'api_keys',
   ];
-  
+
   for (const table of requiredTables) {
     if (!existingTables.has(table)) {
       issues.push(`Missing table: ${table}`);
@@ -109,13 +120,13 @@ async function verifyDatabaseSchema() {
       console.log(`  ✅ Table exists: ${table}`);
     }
   }
-  
+
   // Check specific columns that were missing in production
   const columnChecks = [
     { table: 'campaigns', column: 'description' },
-    { table: 'agent_configurations', column: 'context_note' }
+    { table: 'agent_configurations', column: 'context_note' },
   ];
-  
+
   for (const check of columnChecks) {
     const columns = await db.execute(sql`
       SELECT column_name 
@@ -124,7 +135,7 @@ async function verifyDatabaseSchema() {
       AND table_name = ${check.table}
       AND column_name = ${check.column}
     `);
-    
+
     if (columns.rows.length === 0) {
       issues.push(`Missing column: ${check.table}.${check.column}`);
       console.log(`  ❌ Missing column: ${check.table}.${check.column}`);
@@ -132,7 +143,7 @@ async function verifyDatabaseSchema() {
       console.log(`  ✅ Column exists: ${check.table}.${check.column}`);
     }
   }
-  
+
   return issues;
 }
 
@@ -162,7 +173,7 @@ async function applySchemaFixes(issues: string[]) {
       `);
       console.log('  ✅ Created feature_flags table');
     }
-    
+
     if (issue.includes('campaigns.description')) {
       console.log('  Adding description column to campaigns...');
       await db.execute(sql`
@@ -170,7 +181,7 @@ async function applySchemaFixes(issues: string[]) {
       `);
       console.log('  ✅ Added campaigns.description');
     }
-    
+
     if (issue.includes('agent_configurations.context_note')) {
       console.log('  Adding context_note column to agent_configurations...');
       await db.execute(sql`
@@ -248,14 +259,14 @@ verifySchema();
   const scriptPath = path.join(__dirname, 'verify-schema.ts');
   fs.writeFileSync(scriptPath, verifyScript);
   console.log(`  ✅ Created schema verification script at: ${scriptPath}`);
-  
+
   // Make it executable
   fs.chmodSync(scriptPath, '755');
-  
+
   // Add npm script
   const packageJsonPath = path.join(__dirname, '../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  
+
   if (!packageJson.scripts['db:verify']) {
     packageJson.scripts['db:verify'] = 'tsx scripts/verify-schema.ts';
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));

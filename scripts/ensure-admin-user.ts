@@ -13,7 +13,9 @@ export async function ensureAdminUser() {
     try {
       await db.execute(sql`SELECT 1`);
     } catch (dbError) {
-      console.log('❌ Database connection failed, skipping admin user creation');
+      console.log(
+        '❌ Database connection failed, skipping admin user creation'
+      );
       console.log('   This is normal if database is not set up yet');
       return;
     }
@@ -22,7 +24,9 @@ export async function ensureAdminUser() {
     try {
       await db.execute(sql`SELECT id, email, role FROM users LIMIT 1`);
     } catch (schemaError) {
-      console.log('❌ Users table or required columns not found, skipping admin user creation');
+      console.log(
+        '❌ Users table or required columns not found, skipping admin user creation'
+      );
       console.log('   Run database migrations first: npm run db:push');
       return;
     }
@@ -33,19 +37,19 @@ export async function ensureAdminUser() {
       .from(users)
       .where(eq(users.role, 'admin'))
       .limit(1);
-    
+
     if (existingAdmins.length > 0) {
       console.log('✅ Admin user already exists');
       return;
     }
-    
+
     console.log('📝 No admin user found, creating default admin...');
-    
+
     // Create default admin credentials from environment or use defaults
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    
+
     // Create admin user
     await db.insert(users).values({
       id: uuidv4(),
@@ -57,14 +61,14 @@ export async function ensureAdminUser() {
       role: 'admin',
       active: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
-    
+
     console.log('✅ Default admin user created successfully!');
     console.log(`📧 Email: ${adminEmail}`);
     console.log(`🔑 Password: ${adminPassword}`);
     console.log('⚠️  IMPORTANT: Change the password after first login!');
-    
+
     // Also create the demo user for testing if specified
     const demoEmail = process.env.DEMO_EMAIL;
     if (demoEmail) {
@@ -85,13 +89,12 @@ export async function ensureAdminUser() {
           role: 'admin',
           active: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
 
         console.log(`✅ Demo user created: ${demoEmail}`);
       }
     }
-    
   } catch (error) {
     console.error('❌ Failed to ensure admin user:', error);
     // Don't throw - this should not prevent the app from starting
@@ -100,7 +103,7 @@ export async function ensureAdminUser() {
       console.error('Error details:', {
         message: error.message,
         code: (error as any).code,
-        stack: error.stack?.split('\n').slice(0, 3).join('\n')
+        stack: error.stack?.split('\n').slice(0, 3).join('\n'),
       });
     }
   }

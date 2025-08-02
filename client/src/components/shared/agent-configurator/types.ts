@@ -38,7 +38,11 @@ export interface SectionProps {
 
 export interface InstructionsSectionProps extends SectionProps {
   onAddInstruction: (type: 'dos' | 'donts') => void;
-  onUpdateInstruction: (type: 'dos' | 'donts', index: number, value: string) => void;
+  onUpdateInstruction: (
+    type: 'dos' | 'donts',
+    index: number,
+    value: string
+  ) => void;
   onRemoveInstruction: (type: 'dos' | 'donts', index: number) => void;
 }
 

@@ -14,7 +14,7 @@ router.get('/config', requireAuth, async (req, res) => {
     res.json({
       success: true,
       data: configs,
-      message: 'Service configurations retrieved successfully'
+      message: 'Service configurations retrieved successfully',
     });
   } catch (error) {
     logger.error('Failed to retrieve service configurations', error);
@@ -23,8 +23,8 @@ router.get('/config', requireAuth, async (req, res) => {
       error: {
         code: 'CONFIG_RETRIEVE_ERROR',
         message: 'Failed to retrieve service configurations',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });
@@ -34,24 +34,28 @@ router.put('/config/:service', requireAuth, async (req, res) => {
   try {
     const { service } = req.params;
     const configData = req.body;
-    
+
     // Validate service name
     if (!['mailgun', 'twilio', 'openrouter'].includes(service)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_SERVICE',
-          message: 'Invalid service name. Must be one of: mailgun, twilio, openrouter'
-        }
+          message:
+            'Invalid service name. Must be one of: mailgun, twilio, openrouter',
+        },
       });
     }
-    
-    const updatedConfig = await serviceManager.updateServiceConfig(service, configData);
-    
+
+    const updatedConfig = await serviceManager.updateServiceConfig(
+      service,
+      configData
+    );
+
     res.json({
       success: true,
       data: updatedConfig,
-      message: `Configuration for ${service} updated successfully`
+      message: `Configuration for ${service} updated successfully`,
     });
   } catch (error) {
     logger.error('Failed to update service configuration', error);
@@ -60,8 +64,8 @@ router.put('/config/:service', requireAuth, async (req, res) => {
       error: {
         code: 'CONFIG_UPDATE_ERROR',
         message: 'Failed to update service configuration',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });
@@ -70,27 +74,32 @@ router.put('/config/:service', requireAuth, async (req, res) => {
 router.post('/test/:service', requireAuth, async (req, res) => {
   try {
     const { service } = req.params;
-    
+
     // Validate service name
     if (!['mailgun', 'twilio', 'openrouter'].includes(service)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_SERVICE',
-          message: 'Invalid service name. Must be one of: mailgun, twilio, openrouter'
-        }
+          message:
+            'Invalid service name. Must be one of: mailgun, twilio, openrouter',
+        },
       });
     }
-    
+
     const testResult = await serviceManager.testServiceConnection(service);
-    
-    const statusCode = testResult.status === 'healthy' ? 200 : 
-                      testResult.status === 'degraded' ? 200 : 503;
-    
+
+    const statusCode =
+      testResult.status === 'healthy'
+        ? 200
+        : testResult.status === 'degraded'
+          ? 200
+          : 503;
+
     res.status(statusCode).json({
       success: testResult.status !== 'unhealthy',
       data: testResult,
-      message: `Service test for ${service} completed`
+      message: `Service test for ${service} completed`,
     });
   } catch (error) {
     logger.error('Failed to test service connection', error);
@@ -99,8 +108,8 @@ router.post('/test/:service', requireAuth, async (req, res) => {
       error: {
         code: 'SERVICE_TEST_ERROR',
         message: 'Failed to test service connection',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });
@@ -109,27 +118,32 @@ router.post('/test/:service', requireAuth, async (req, res) => {
 router.get('/health/:service', requireAuth, async (req, res) => {
   try {
     const { service } = req.params;
-    
+
     // Validate service name
     if (!['mailgun', 'twilio', 'openrouter'].includes(service)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_SERVICE',
-          message: 'Invalid service name. Must be one of: mailgun, twilio, openrouter'
-        }
+          message:
+            'Invalid service name. Must be one of: mailgun, twilio, openrouter',
+        },
       });
     }
-    
+
     const healthStatus = await serviceManager.getServiceHealth(service);
-    
-    const statusCode = healthStatus.status === 'healthy' ? 200 : 
-                      healthStatus.status === 'degraded' ? 200 : 503;
-    
+
+    const statusCode =
+      healthStatus.status === 'healthy'
+        ? 200
+        : healthStatus.status === 'degraded'
+          ? 200
+          : 503;
+
     res.status(statusCode).json({
       success: healthStatus.status !== 'unhealthy',
       data: healthStatus,
-      message: `Health status for ${service} retrieved`
+      message: `Health status for ${service} retrieved`,
     });
   } catch (error) {
     logger.error('Failed to retrieve service health status', error);
@@ -138,8 +152,8 @@ router.get('/health/:service', requireAuth, async (req, res) => {
       error: {
         code: 'HEALTH_STATUS_ERROR',
         message: 'Failed to retrieve service health status',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });
@@ -149,11 +163,11 @@ router.get('/metrics', requireAuth, async (req, res) => {
   try {
     const serviceManager = new ServiceManager();
     const metrics = await serviceManager.getServiceMetrics();
-    
+
     res.json({
       success: true,
       data: metrics,
-      message: 'Service metrics retrieved successfully'
+      message: 'Service metrics retrieved successfully',
     });
   } catch (error) {
     logger.error('Failed to retrieve service metrics', error);
@@ -162,8 +176,8 @@ router.get('/metrics', requireAuth, async (req, res) => {
       error: {
         code: 'METRICS_RETRIEVE_ERROR',
         message: 'Failed to retrieve service metrics',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });
@@ -172,35 +186,36 @@ router.get('/metrics', requireAuth, async (req, res) => {
 router.get('/metrics/:service', requireAuth, async (req, res) => {
   try {
     const { service } = req.params;
-    
+
     // Validate service name
     if (!['mailgun', 'twilio', 'openrouter'].includes(service)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_SERVICE',
-          message: 'Invalid service name. Must be one of: mailgun, twilio, openrouter'
-        }
+          message:
+            'Invalid service name. Must be one of: mailgun, twilio, openrouter',
+        },
       });
     }
-    
+
     const serviceManager = new ServiceManager();
     const metrics = await serviceManager.getServiceMetricsForService(service);
-    
+
     if (!metrics) {
       return res.status(404).json({
         success: false,
         error: {
           code: 'SERVICE_NOT_FOUND',
-          message: `Service ${service} not found`
-        }
+          message: `Service ${service} not found`,
+        },
       });
     }
-    
+
     res.json({
       success: true,
       data: metrics,
-      message: `Metrics for ${service} retrieved successfully`
+      message: `Metrics for ${service} retrieved successfully`,
     });
   } catch (error) {
     logger.error('Failed to retrieve service metrics', error);
@@ -209,8 +224,8 @@ router.get('/metrics/:service', requireAuth, async (req, res) => {
       error: {
         code: 'METRICS_RETRIEVE_ERROR',
         message: 'Failed to retrieve service metrics',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });

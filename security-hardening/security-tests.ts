@@ -18,9 +18,9 @@ const TEST_CONFIG = {
     "1'; DROP TABLE users--",
     "1' UNION SELECT NULL, username, password FROM users--",
     "admin' --",
-    "1 OR 1=1",
-    "${1+1}",
-    "'; EXEC xp_cmdshell('dir'); --"
+    '1 OR 1=1',
+    '${1+1}',
+    "'; EXEC xp_cmdshell('dir'); --",
   ],
   xssPayloads: [
     '<script>alert("XSS")</script>',
@@ -28,14 +28,14 @@ const TEST_CONFIG = {
     'javascript:alert("XSS")',
     '<svg onload=alert("XSS")>',
     '"><script>alert("XSS")</script>',
-    '<iframe src="javascript:alert(\'XSS\')"></iframe>'
+    '<iframe src="javascript:alert(\'XSS\')"></iframe>',
   ],
   pathTraversalPayloads: [
     '../../../etc/passwd',
     '..\\..\\..\\windows\\system32\\config\\sam',
     '%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd',
-    '....//....//....//etc/passwd'
-  ]
+    '....//....//....//etc/passwd',
+  ],
 };
 
 describe('Security Test Suite', () => {
@@ -58,7 +58,7 @@ describe('Security Test Suite', () => {
         .post('/api/auth/login')
         .send({
           username: 'admin@onekeel.com',
-          password: 'password123'
+          password: 'password123',
         });
 
       // Should fail with proper error, not succeed
@@ -77,7 +77,7 @@ describe('Security Test Suite', () => {
 
       // Should still require valid authentication
       expect(response.status).toBe(401);
-      
+
       // Clean up
       delete process.env.SKIP_AUTH;
     });
@@ -85,10 +85,10 @@ describe('Security Test Suite', () => {
     it('should enforce strong JWT secrets', async () => {
       // Test that weak JWT secrets are rejected
       const weakSecrets = ['secret', '12345', 'password', 'jwt-secret'];
-      
+
       for (const secret of weakSecrets) {
         process.env.JWT_SECRET = secret;
-        
+
         // Server should refuse to start or validate with weak secret
         try {
           // Attempt to initialize auth middleware
@@ -110,7 +110,7 @@ describe('Security Test Suite', () => {
           .post('/api/auth/login')
           .send({
             username: 'test@example.com',
-            password: 'wrongpassword'
+            password: 'wrongpassword',
           });
         responses.push(response);
       }
@@ -118,7 +118,7 @@ describe('Security Test Suite', () => {
       // Should rate limit after 5 attempts
       const rateLimited = responses.filter(r => r.status === 429);
       expect(rateLimited.length).toBeGreaterThan(0);
-      
+
       // Check rate limit headers
       const lastResponse = responses[responses.length - 1];
       expect(lastResponse.headers['x-ratelimit-limit']).toBeDefined();
@@ -130,8 +130,10 @@ describe('Security Test Suite', () => {
       const invalidTokens = [
         'invalid-token',
         jwt.sign({ userId: 'test' }, 'wrong-secret'),
-        jwt.sign({ userId: 'test' }, process.env.JWT_SECRET || 'test', { expiresIn: '-1h' }), // Expired
-        'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJ0ZXN0In0.' // Algorithm: none
+        jwt.sign({ userId: 'test' }, process.env.JWT_SECRET || 'test', {
+          expiresIn: '-1h',
+        }), // Expired
+        'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VySWQiOiJ0ZXN0In0.', // Algorithm: none
       ];
 
       for (const token of invalidTokens) {
@@ -163,8 +165,8 @@ describe('Security Test Suite', () => {
     it('should use parameterized queries for IDs', async () => {
       const maliciousIds = [
         "1' OR '1'='1",
-        "1; DELETE FROM campaigns--",
-        "1 UNION SELECT * FROM users"
+        '1; DELETE FROM campaigns--',
+        '1 UNION SELECT * FROM users',
       ];
 
       for (const id of maliciousIds) {
@@ -182,7 +184,7 @@ describe('Security Test Suite', () => {
         .post('/api/campaigns/execution/trigger')
         .send({
           campaignId: 'valid-uuid',
-          leadIds: ["1' OR '1'='1", "2; DROP TABLE leads--"]
+          leadIds: ["1' OR '1'='1", '2; DROP TABLE leads--'],
         })
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -201,7 +203,7 @@ describe('Security Test Suite', () => {
             firstName: payload,
             lastName: payload,
             email: 'test@example.com',
-            notes: payload
+            notes: payload,
           })
           .set('Authorization', `Bearer ${authToken}`);
 
@@ -221,7 +223,7 @@ describe('Security Test Suite', () => {
 
       expect(response.headers['content-security-policy']).toBeDefined();
       const csp = response.headers['content-security-policy'];
-      
+
       // Check for secure directives
       expect(csp).toContain("default-src 'self'");
       expect(csp).toContain("object-src 'none'");
@@ -244,7 +246,7 @@ describe('Security Test Suite', () => {
           id: 'custom-id',
           passwordHash: 'custom-hash',
           active: true,
-          createdAt: '2020-01-01'
+          createdAt: '2020-01-01',
         })
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -265,7 +267,7 @@ describe('Security Test Suite', () => {
           // Extra fields that shouldn't be allowed
           __proto__: { isAdmin: true },
           constructor: { name: 'hack' },
-          prototype: { hack: true }
+          prototype: { hack: true },
         })
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -277,8 +279,7 @@ describe('Security Test Suite', () => {
 
   describe('Security Headers', () => {
     it('should set all required security headers', async () => {
-      const response = await request(TEST_CONFIG.baseUrl)
-        .get('/api/health');
+      const response = await request(TEST_CONFIG.baseUrl).get('/api/health');
 
       // Check security headers
       expect(response.headers['strict-transport-security']).toBeDefined();
@@ -298,7 +299,7 @@ describe('Security Test Suite', () => {
         'user@',
         'user@.com',
         'user@domain',
-        '<script>@example.com'
+        '<script>@example.com',
       ];
 
       for (const email of invalidEmails) {
@@ -306,7 +307,7 @@ describe('Security Test Suite', () => {
           .post('/api/auth/login')
           .send({
             username: email,
-            password: 'password'
+            password: 'password',
           });
 
         expect(response.status).toBe(400);
@@ -320,7 +321,7 @@ describe('Security Test Suite', () => {
         'Password', // No number, special
         'password123', // No uppercase, special
         'Password123', // No special
-        'Pass!23' // Too short
+        'Pass!23', // Too short
       ];
 
       for (const password of weakPasswords) {
@@ -331,7 +332,7 @@ describe('Security Test Suite', () => {
             username: 'testuser',
             password: password,
             firstName: 'Test',
-            lastName: 'User'
+            lastName: 'User',
           })
           .set('Authorization', `Bearer ${authToken}`);
 
@@ -345,7 +346,7 @@ describe('Security Test Suite', () => {
         'not-a-uuid',
         '12345',
         'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-        '../etc/passwd'
+        '../etc/passwd',
       ];
 
       for (const id of invalidUUIDs) {
@@ -379,7 +380,7 @@ describe('Security Test Suite', () => {
       const maliciousFiles = [
         { name: 'test.exe', type: 'application/exe' },
         { name: 'test.php', type: 'application/php' },
-        { name: '../../../etc/passwd', type: 'text/plain' }
+        { name: '../../../etc/passwd', type: 'text/plain' },
       ];
 
       for (const file of maliciousFiles) {
@@ -417,7 +418,7 @@ describe('Security Test Suite', () => {
         .post('/api/auth/login')
         .send({
           username: 'test@example.com',
-          password: 'ValidPassword123!'
+          password: 'ValidPassword123!',
         });
 
       const token = loginResponse.body.accessToken;
@@ -440,7 +441,7 @@ describe('Security Test Suite', () => {
         .post('/api/auth/login')
         .send({
           username: 'test@example.com',
-          password: 'ValidPassword123!'
+          password: 'ValidPassword123!',
         });
 
       const cookies = response.headers['set-cookie'];
@@ -459,12 +460,14 @@ describe('Security Test Suite', () => {
         .set('Origin', 'https://evil.com');
 
       // Should not allow arbitrary origins
-      expect(response.headers['access-control-allow-origin']).not.toBe('https://evil.com');
+      expect(response.headers['access-control-allow-origin']).not.toBe(
+        'https://evil.com'
+      );
     });
 
     it('should rate limit API endpoints', async () => {
       const requests = [];
-      
+
       // Make many requests quickly
       for (let i = 0; i < 100; i++) {
         requests.push(
@@ -476,7 +479,7 @@ describe('Security Test Suite', () => {
 
       const responses = await Promise.all(requests);
       const rateLimited = responses.filter(r => r.status === 429);
-      
+
       expect(rateLimited.length).toBeGreaterThan(0);
     });
   });
@@ -503,14 +506,22 @@ export class SecurityTestUtils {
   /**
    * Generate a valid JWT token for testing
    */
-  static generateTestToken(payload: any, secret: string = process.env.JWT_SECRET || 'test-secret'): string {
+  static generateTestToken(
+    payload: any,
+    secret: string = process.env.JWT_SECRET || 'test-secret'
+  ): string {
     return jwt.sign(payload, secret, { expiresIn: '1h' });
   }
 
   /**
    * Test for timing attacks in authentication
    */
-  static async testTimingAttack(endpoint: string, validPayload: any, invalidPayload: any, iterations: number = 100) {
+  static async testTimingAttack(
+    endpoint: string,
+    validPayload: any,
+    invalidPayload: any,
+    iterations: number = 100
+  ) {
     const validTimes: number[] = [];
     const invalidTimes: number[] = [];
 
@@ -530,7 +541,8 @@ export class SecurityTestUtils {
 
     // Calculate averages
     const validAvg = validTimes.reduce((a, b) => a + b) / validTimes.length;
-    const invalidAvg = invalidTimes.reduce((a, b) => a + b) / invalidTimes.length;
+    const invalidAvg =
+      invalidTimes.reduce((a, b) => a + b) / invalidTimes.length;
 
     // The difference should be minimal to prevent timing attacks
     const difference = Math.abs(validAvg - invalidAvg);
@@ -540,7 +552,7 @@ export class SecurityTestUtils {
       vulnerable: difference > threshold,
       validAvg,
       invalidAvg,
-      difference
+      difference,
     };
   }
 
@@ -551,7 +563,13 @@ export class SecurityTestUtils {
     const issues = [];
 
     // Check for exposed debug endpoints
-    const debugEndpoints = ['/debug', '/metrics', '/health/detailed', '/.env', '/config'];
+    const debugEndpoints = [
+      '/debug',
+      '/metrics',
+      '/health/detailed',
+      '/.env',
+      '/config',
+    ];
     for (const endpoint of debugEndpoints) {
       const response = await request(baseUrl).get(endpoint);
       if (response.status === 200) {
@@ -561,7 +579,10 @@ export class SecurityTestUtils {
 
     // Check for directory listing
     const response = await request(baseUrl).get('/uploads/');
-    if (response.text.includes('Index of') || response.text.includes('<title>Directory listing')) {
+    if (
+      response.text.includes('Index of') ||
+      response.text.includes('<title>Directory listing')
+    ) {
       issues.push('Directory listing enabled');
     }
 

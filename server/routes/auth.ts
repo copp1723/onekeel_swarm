@@ -14,12 +14,12 @@ const router = Router();
 // Validation schemas
 const loginSchema = z.object({
   username: z.string().min(1),
-  password: z.string().min(1)
+  password: z.string().min(1),
 });
 
 const simpleLoginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1)
+  password: z.string().min(1),
 });
 
 // Test database connection
@@ -46,25 +46,25 @@ router.post('/login', async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid login data',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
 
     const { username, password } = validationResult.data;
-    
+
     console.log(`Attempting login for: ${username}`);
-    
+
     // Find user by email or username
     let user = await UsersRepository.findByEmail(username);
     console.log('User found by email:', user);
-    
+
     if (!user) {
       console.log('Trying username lookup');
       user = await UsersRepository.findByUsername(username);
       console.log('User found by username:', user);
     }
-    
+
     // Check if user exists and is active
     if (!user || !user.active) {
       console.log('User not found or inactive');
@@ -72,13 +72,13 @@ router.post('/login', async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
+          message: 'Invalid username or password',
+        },
       });
     }
-    
+
     console.log(`User found: ${user.email}`);
-    
+
     // Verify password using bcrypt
     // Bypass password check for demo user
     let isPasswordValid = false;
@@ -95,28 +95,28 @@ router.post('/login', async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
+          message: 'Invalid username or password',
+        },
       });
     }
-    
+
     // Generate secure JWT tokens
     const tokens = await tokenService.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
-    
+
     // Create session
     const session = await sessionService.createSession(
       user.id,
       req.ip,
       req.get('User-Agent')
     );
-    
+
     // Update last login timestamp
     await UsersRepository.updateLastLogin(user.id);
-    
+
     // Return user data and tokens (without password hash)
     const userResponse = {
       id: user.id,
@@ -125,25 +125,24 @@ router.post('/login', async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      active: user.active
+      active: user.active,
     };
-    
+
     return res.json({
       success: true,
       user: userResponse,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresIn: tokens.expiresIn
+      expiresIn: tokens.expiresIn,
     });
-    
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'An error occurred during login'
-      }
+        message: 'An error occurred during login',
+      },
     });
   }
 });
@@ -158,8 +157,8 @@ router.post('/simple-login', async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Email and password are required',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
 
@@ -186,7 +185,7 @@ router.post('/simple-login', async (req, res) => {
         lastLogin: null,
         metadata: {},
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
     }
 
@@ -197,8 +196,8 @@ router.post('/simple-login', async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_CREDENTIALS',
-          message: 'Invalid credentials'
-        }
+          message: 'Invalid credentials',
+        },
       });
     }
 
@@ -220,8 +219,8 @@ router.post('/simple-login', async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_CREDENTIALS',
-          message: 'Invalid credentials'
-        }
+          message: 'Invalid credentials',
+        },
       });
     }
 
@@ -229,7 +228,7 @@ router.post('/simple-login', async (req, res) => {
     const tokens = await tokenService.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     // Create session
@@ -252,7 +251,7 @@ router.post('/simple-login', async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      active: user.active
+      active: user.active,
     };
 
     return res.json({
@@ -260,17 +259,16 @@ router.post('/simple-login', async (req, res) => {
       user: userResponse,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresIn: tokens.expiresIn
+      expiresIn: tokens.expiresIn,
     });
-
   } catch (error) {
     console.error('Simple login error:', error);
     return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'An error occurred during login'
-      }
+        message: 'An error occurred during login',
+      },
     });
   }
 });
@@ -284,24 +282,24 @@ router.get('/me', authenticate, async (req, res) => {
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'User not authenticated'
-        }
+          message: 'User not authenticated',
+        },
       });
     }
-    
+
     // Get fresh user data from database
     const user = await UsersRepository.findById(req.user.id);
-    
+
     if (!user || !user.active) {
       return res.status(401).json({
         success: false,
         error: {
           code: 'USER_INACTIVE',
-          message: 'User account is inactive'
-        }
+          message: 'User account is inactive',
+        },
       });
     }
-    
+
     // Return user data (without password hash)
     const userResponse = {
       id: user.id,
@@ -311,22 +309,21 @@ router.get('/me', authenticate, async (req, res) => {
       lastName: user.lastName,
       role: user.role,
       active: user.active,
-      lastLogin: user.lastLogin
+      lastLogin: user.lastLogin,
     };
-    
+
     return res.json({
       success: true,
-      user: userResponse
+      user: userResponse,
     });
-    
   } catch (error) {
     console.error('Get user error:', error);
     return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'An error occurred while fetching user data'
-      }
+        message: 'An error occurred while fetching user data',
+      },
     });
   }
 });
@@ -338,29 +335,28 @@ router.post('/logout', authenticate, async (req, res) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      
+
       // Revoke the access token
       await tokenService.revokeToken(token);
     }
-    
+
     // Delete all sessions for the user
     if (req.user) {
       await sessionService.deleteAllUserSessions(req.user.id);
     }
-    
+
     return res.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
     });
-    
   } catch (error) {
     console.error('Logout error:', error);
     return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'An error occurred during logout'
-      }
+        message: 'An error occurred during logout',
+      },
     });
   }
 });
@@ -369,45 +365,44 @@ router.post('/logout', authenticate, async (req, res) => {
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    
+
     if (!refreshToken) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'MISSING_REFRESH_TOKEN',
-          message: 'Refresh token is required'
-        }
+          message: 'Refresh token is required',
+        },
       });
     }
-    
+
     // Use token service to refresh tokens
     const newTokens = await tokenService.refreshTokens(refreshToken);
-    
+
     if (!newTokens) {
       return res.status(401).json({
         success: false,
         error: {
           code: 'INVALID_REFRESH_TOKEN',
-          message: 'Invalid or expired refresh token'
-        }
+          message: 'Invalid or expired refresh token',
+        },
       });
     }
-    
+
     return res.json({
       success: true,
       accessToken: newTokens.accessToken,
       refreshToken: newTokens.refreshToken,
-      expiresIn: newTokens.expiresIn
+      expiresIn: newTokens.expiresIn,
     });
-    
   } catch (error) {
     console.error('Token refresh error:', error);
     return res.status(500).json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'An error occurred while refreshing tokens'
-      }
+        message: 'An error occurred while refreshing tokens',
+      },
     });
   }
 });
@@ -416,56 +411,59 @@ router.post('/refresh', async (req, res) => {
 router.get('/validate-invite', async (req, res) => {
   try {
     const { token } = req.query;
-    
+
     if (!token || typeof token !== 'string') {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_TOKEN',
-          message: 'Invalid invitation token'
-        }
+          message: 'Invalid invitation token',
+        },
       });
     }
-    
+
     // Find the invite in audit logs (temporary solution)
-    const [inviteRecord] = await db.select()
+    const [inviteRecord] = await db
+      .select()
       .from(auditLogs)
-      .where(and(
-        eq(auditLogs.action, 'user_invite'),
-        eq(auditLogs.resourceId, token)
-      ))
+      .where(
+        and(
+          eq(auditLogs.action, 'user_invite'),
+          eq(auditLogs.resourceId, token)
+        )
+      )
       .orderBy(auditLogs.createdAt)
       .limit(1);
-    
+
     if (!inviteRecord) {
       return res.status(404).json({
         success: false,
         error: {
           code: 'INVITE_NOT_FOUND',
-          message: 'Invitation not found or has expired'
-        }
+          message: 'Invitation not found or has expired',
+        },
       });
     }
-    
+
     const inviteData = inviteRecord.metadata as any;
     const expiresAt = new Date(inviteData.expiresAt);
-    
+
     if (expiresAt < new Date()) {
       return res.status(410).json({
         success: false,
         error: {
           code: 'INVITE_EXPIRED',
-          message: 'This invitation has expired'
-        }
+          message: 'This invitation has expired',
+        },
       });
     }
-    
+
     res.json({
       success: true,
       invite: {
         email: inviteData.email,
-        role: inviteData.role
-      }
+        role: inviteData.role,
+      },
     });
   } catch (error) {
     console.error('Error validating invite:', error);
@@ -473,8 +471,8 @@ router.get('/validate-invite', async (req, res) => {
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Failed to validate invitation'
-      }
+        message: 'Failed to validate invitation',
+      },
     });
   }
 });
@@ -487,7 +485,7 @@ const registerSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   email: z.string().email(),
-  role: z.enum(['admin', 'manager', 'agent', 'viewer'])
+  role: z.enum(['admin', 'manager', 'agent', 'viewer']),
 });
 
 router.post('/register', async (req, res) => {
@@ -499,42 +497,49 @@ router.post('/register', async (req, res) => {
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid registration data',
-          details: validationResult.error.errors
-        }
+          details: validationResult.error.errors,
+        },
       });
     }
-    
-    const { token, username, password, firstName, lastName, email, role } = validationResult.data;
-    
+
+    const { token, username, password, firstName, lastName, email, role } =
+      validationResult.data;
+
     // Validate the invite token again
-    const [inviteRecord] = await db.select()
+    const [inviteRecord] = await db
+      .select()
       .from(auditLogs)
-      .where(and(
-        eq(auditLogs.action, 'user_invite'),
-        eq(auditLogs.resourceId, token)
-      ))
+      .where(
+        and(
+          eq(auditLogs.action, 'user_invite'),
+          eq(auditLogs.resourceId, token)
+        )
+      )
       .orderBy(auditLogs.createdAt)
       .limit(1);
-    
+
     if (!inviteRecord) {
       return res.status(404).json({
         success: false,
         error: {
           code: 'INVITE_NOT_FOUND',
-          message: 'Invalid invitation token'
-        }
+          message: 'Invalid invitation token',
+        },
       });
     }
     // Parse invite data from changes column
-    const inviteData = typeof inviteRecord.changes === 'string' ? JSON.parse(inviteRecord.changes) : inviteRecord.changes;
+    const inviteData =
+      typeof inviteRecord.changes === 'string'
+        ? JSON.parse(inviteRecord.changes)
+        : inviteRecord.changes;
     const expiresAt = new Date(inviteData.expiresAt);
     if (expiresAt < new Date()) {
       return res.status(410).json({
         success: false,
         error: {
           code: 'INVITE_EXPIRED',
-          message: 'This invitation has expired'
-        }
+          message: 'This invitation has expired',
+        },
       });
     }
     if (inviteData.used) {
@@ -542,8 +547,8 @@ router.post('/register', async (req, res) => {
         success: false,
         error: {
           code: 'INVITE_ALREADY_USED',
-          message: 'This invitation has already been used.'
-        }
+          message: 'This invitation has already been used.',
+        },
       });
     }
     // Verify email matches invite
@@ -552,8 +557,8 @@ router.post('/register', async (req, res) => {
         success: false,
         error: {
           code: 'EMAIL_MISMATCH',
-          message: 'Email does not match invitation'
-        }
+          message: 'Email does not match invitation',
+        },
       });
     }
     // Check if user already exists
@@ -563,8 +568,8 @@ router.post('/register', async (req, res) => {
         success: false,
         error: {
           code: 'USER_EXISTS',
-          message: 'A user with this email already exists'
-        }
+          message: 'A user with this email already exists',
+        },
       });
     }
     // Check if username is taken
@@ -574,8 +579,8 @@ router.post('/register', async (req, res) => {
         success: false,
         error: {
           code: 'USERNAME_TAKEN',
-          message: 'This username is already taken'
-        }
+          message: 'This username is already taken',
+        },
       });
     }
     // Hash password
@@ -588,15 +593,25 @@ router.post('/register', async (req, res) => {
       firstName,
       lastName,
       role,
-      active: true
+      active: true,
     });
     // Mark invite as used (update audit log)
-    await db.update(auditLogs)
-      .set({ changes: JSON.stringify({ ...inviteData, used: true, usedAt: new Date().toISOString(), registeredUserId: newUser.id }) })
-      .where(and(
-        eq(auditLogs.action, 'user_invite'),
-        eq(auditLogs.resourceId, token)
-      ));
+    await db
+      .update(auditLogs)
+      .set({
+        changes: JSON.stringify({
+          ...inviteData,
+          used: true,
+          usedAt: new Date().toISOString(),
+          registeredUserId: newUser.id,
+        }),
+      })
+      .where(
+        and(
+          eq(auditLogs.action, 'user_invite'),
+          eq(auditLogs.resourceId, token)
+        )
+      );
     // Log registration
     await AuditLogRepository.create({
       userId: newUser.id,
@@ -604,12 +619,12 @@ router.post('/register', async (req, res) => {
       resource: 'users',
       resourceId: newUser.id,
       changes: JSON.stringify({ inviteToken: token }),
-      createdAt: new Date()
+      createdAt: new Date(),
     });
-    
+
     res.status(201).json({
       success: true,
-      message: 'Registration successful'
+      message: 'Registration successful',
     });
   } catch (error) {
     console.error('Error during registration:', error);
@@ -617,8 +632,8 @@ router.post('/register', async (req, res) => {
       success: false,
       error: {
         code: 'REGISTRATION_ERROR',
-        message: 'Failed to complete registration'
-      }
+        message: 'Failed to complete registration',
+      },
     });
   }
 });

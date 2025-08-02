@@ -14,7 +14,11 @@ export type SimpleErrorCode =
 export class SimpleError extends Error {
   code: SimpleErrorCode;
   status: number;
-  constructor(message: string, code: SimpleErrorCode = 'SYSTEM_ERROR', status = 500) {
+  constructor(
+    message: string,
+    code: SimpleErrorCode = 'SYSTEM_ERROR',
+    status = 500
+  ) {
     super(message);
     this.code = code;
     this.status = status;
@@ -51,7 +55,12 @@ export function globalErrorHandler(err: Error, req: Request, res: Response) {
 
   // Log only the basics
   if (status >= 500) {
-    logger.error('System Error', { url: req.url, code, message, stack: err.stack });
+    logger.error('System Error', {
+      url: req.url,
+      code,
+      message,
+      stack: err.stack,
+    });
   } else {
     logger.warn('Request Error', { url: req.url, code, message });
   }
@@ -61,41 +70,43 @@ export function globalErrorHandler(err: Error, req: Request, res: Response) {
     error: {
       code,
       message,
-      status
-    }
+      status,
+    },
   });
 }
 
 // Not found handler
 export function notFoundHandler(req: Request, res: Response): void {
   logger.warn('Route not found', { method: req.method, url: req.originalUrl });
-  
+
   res.status(404).json({
     success: false,
     error: {
       code: 'NOT_FOUND',
       message: `Route ${req.originalUrl} not found`,
-      status: 404
-    }
+      status: 404,
+    },
   });
 }
 
 // Helper for handling API errors
 export function handleApiError(res: Response, error: any) {
-  const customError = error instanceof SimpleError ? error : 
-    new SimpleError(
-      error.message || 'An unexpected error occurred',
-      'SYSTEM_ERROR',
-      500
-    );
-  
+  const customError =
+    error instanceof SimpleError
+      ? error
+      : new SimpleError(
+          error.message || 'An unexpected error occurred',
+          'SYSTEM_ERROR',
+          500
+        );
+
   res.status(customError.status).json({
     success: false,
     error: {
       code: customError.code,
       message: customError.message,
-      status: customError.status
-    }
+      status: customError.status,
+    },
   });
 }
 

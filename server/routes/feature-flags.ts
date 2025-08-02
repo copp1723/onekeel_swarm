@@ -8,24 +8,30 @@ const router = Router();
 const evaluateSchema = {
   body: z.object({
     flagKey: z.string().min(1),
-    context: z.object({
-      userId: z.string().optional(),
-      userRole: z.string().optional(),
-      environment: z.string().optional(),
-      clientId: z.string().optional()
-    }).optional().default({})
-  })
+    context: z
+      .object({
+        userId: z.string().optional(),
+        userRole: z.string().optional(),
+        environment: z.string().optional(),
+        clientId: z.string().optional(),
+      })
+      .optional()
+      .default({}),
+  }),
 };
 
 const getAllSchema = {
   body: z.object({
-    context: z.object({
-      userId: z.string().optional(),
-      userRole: z.string().optional(),
-      environment: z.string().optional(),
-      clientId: z.string().optional()
-    }).optional().default({})
-  })
+    context: z
+      .object({
+        userId: z.string().optional(),
+        userRole: z.string().optional(),
+        environment: z.string().optional(),
+        clientId: z.string().optional(),
+      })
+      .optional()
+      .default({}),
+  }),
 };
 
 // TEMPORARY: Mock feature flag data for alpha testing
@@ -41,19 +47,19 @@ const mockFeatureFlags: Record<string, boolean> = {
   'ui.reporting': true,
   'ui.branding': true,
   'ui.new-navigation': true,
-  'ui.enhanced-dashboard': true
+  'ui.enhanced-dashboard': true,
 };
 
 // Evaluate a feature flag
 router.post('/evaluate', validateRequest(evaluateSchema), async (req, res) => {
   try {
     const { flagKey, context } = req.body;
-    
+
     // TEMPORARY: Return mock data for alpha testing
     const enabled = mockFeatureFlags[flagKey] ?? false;
-    
+
     console.log(`[FEATURE FLAG] ${flagKey}: ${enabled} (mock data)`);
-    
+
     res.json({
       success: true,
       evaluation: {
@@ -61,15 +67,15 @@ router.post('/evaluate', validateRequest(evaluateSchema), async (req, res) => {
         enabled,
         context,
         timestamp: new Date().toISOString(),
-        source: 'mock'
-      }
+        source: 'mock',
+      },
     });
   } catch (error) {
     console.error('Error evaluating feature flag:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to evaluate feature flag',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -78,23 +84,23 @@ router.post('/evaluate', validateRequest(evaluateSchema), async (req, res) => {
 router.post('/all', validateRequest(getAllSchema), async (req, res) => {
   try {
     const { context } = req.body;
-    
+
     // TEMPORARY: Return mock data for alpha testing
     console.log('[FEATURE FLAGS] Returning all mock flags for alpha testing');
-    
+
     res.json({
       success: true,
       flags: mockFeatureFlags,
       context,
       timestamp: new Date().toISOString(),
-      source: 'mock'
+      source: 'mock',
     });
   } catch (error) {
     console.error('Error getting all feature flags:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get feature flags',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -103,53 +109,62 @@ router.post('/all', validateRequest(getAllSchema), async (req, res) => {
 router.get('/admin', async (req, res) => {
   try {
     // Return all flags with admin metadata
-    const adminFlags = Object.entries(mockFeatureFlags).map(([key, enabled]) => ({
-      id: key,
-      key,
-      name: key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      description: `Feature flag for ${key}`,
-      enabled,
-      category: key.split('.')[0] || 'general',
-      rolloutPercentage: enabled ? 100 : 0,
-      environments: ['development', 'staging', 'production'],
-      userRoles: ['admin', 'manager', 'agent', 'viewer'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      source: 'mock'
-    }));
-    
+    const adminFlags = Object.entries(mockFeatureFlags).map(
+      ([key, enabled]) => ({
+        id: key,
+        key,
+        name: key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: `Feature flag for ${key}`,
+        enabled,
+        category: key.split('.')[0] || 'general',
+        rolloutPercentage: enabled ? 100 : 0,
+        environments: ['development', 'staging', 'production'],
+        userRoles: ['admin', 'manager', 'agent', 'viewer'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        source: 'mock',
+      })
+    );
+
     res.json({
       success: true,
-      flags: adminFlags
+      flags: adminFlags,
     });
   } catch (error) {
     console.error('Error getting admin feature flags:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get admin feature flags',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 router.post('/admin', async (req, res) => {
   try {
-    const { key, name, description, enabled = false, category = 'general' } = req.body;
-    
+    const {
+      key,
+      name,
+      description,
+      enabled = false,
+      category = 'general',
+    } = req.body;
+
     if (!key) {
       return res.status(400).json({
         success: false,
-        error: 'Flag key is required'
+        error: 'Flag key is required',
       });
     }
-    
+
     // Add to mock flags
     mockFeatureFlags[key] = enabled;
-    
+
     const newFlag = {
       id: key,
       key,
-      name: name || key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name:
+        name || key.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: description || `Feature flag for ${key}`,
       enabled,
       category,
@@ -158,19 +173,19 @@ router.post('/admin', async (req, res) => {
       userRoles: ['admin', 'manager', 'agent', 'viewer'],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      source: 'mock'
+      source: 'mock',
     };
-    
+
     res.json({
       success: true,
-      flag: newFlag
+      flag: newFlag,
     });
   } catch (error) {
     console.error('Error creating feature flag:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create feature flag',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -179,44 +194,47 @@ router.put('/admin/:flagKey', async (req, res) => {
   try {
     const { flagKey } = req.params;
     const { enabled, name, description, rolloutPercentage } = req.body;
-    
+
     if (!(flagKey in mockFeatureFlags)) {
       return res.status(404).json({
         success: false,
-        error: 'Feature flag not found'
+        error: 'Feature flag not found',
       });
     }
-    
+
     // Update mock flag
     if (typeof enabled === 'boolean') {
       mockFeatureFlags[flagKey] = enabled;
     }
-    
+
     const updatedFlag = {
       id: flagKey,
       key: flagKey,
-      name: name || flagKey.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name:
+        name ||
+        flagKey.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       description: description || `Feature flag for ${flagKey}`,
       enabled: mockFeatureFlags[flagKey],
       category: flagKey.split('.')[0] || 'general',
-      rolloutPercentage: rolloutPercentage || (mockFeatureFlags[flagKey] ? 100 : 0),
+      rolloutPercentage:
+        rolloutPercentage || (mockFeatureFlags[flagKey] ? 100 : 0),
       environments: ['development', 'staging', 'production'],
       userRoles: ['admin', 'manager', 'agent', 'viewer'],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      source: 'mock'
+      source: 'mock',
     };
-    
+
     res.json({
       success: true,
-      flag: updatedFlag
+      flag: updatedFlag,
     });
   } catch (error) {
     console.error('Error updating feature flag:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update feature flag',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -224,26 +242,26 @@ router.put('/admin/:flagKey', async (req, res) => {
 router.delete('/admin/:flagKey', async (req, res) => {
   try {
     const { flagKey } = req.params;
-    
+
     if (!(flagKey in mockFeatureFlags)) {
       return res.status(404).json({
         success: false,
-        error: 'Feature flag not found'
+        error: 'Feature flag not found',
       });
     }
-    
+
     delete mockFeatureFlags[flagKey];
-    
+
     res.json({
       success: true,
-      message: `Feature flag ${flagKey} deleted`
+      message: `Feature flag ${flagKey} deleted`,
     });
   } catch (error) {
     console.error('Error deleting feature flag:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to delete feature flag',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -258,15 +276,15 @@ router.get('/health', async (req, res) => {
         status: 'healthy',
         flagsCount: Object.keys(mockFeatureFlags).length,
         cacheSize: 0,
-        source: 'mock'
-      }
+        source: 'mock',
+      },
     });
   } catch (error) {
     console.error('Error checking feature flag health:', error);
     res.status(500).json({
       success: false,
       error: 'Feature flag health check failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

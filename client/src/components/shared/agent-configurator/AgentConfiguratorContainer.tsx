@@ -13,26 +13,25 @@ import { AdvancedSettingsSection } from './sections/AdvancedSettingsSection';
  * Main Agent Configurator Container
  * Orchestrates all configuration sections and manages form state
  */
-export function AgentConfiguratorContainer({ 
-  agent, 
-  onSave, 
-  onCancel, 
-  allowTypeChange = true 
+export function AgentConfiguratorContainer({
+  agent,
+  onSave,
+  onCancel,
+  allowTypeChange = true,
 }: AgentConfiguratorProps) {
-  
   const {
     formData,
     setFormData,
     errors,
     submissionState,
     handleSubmit,
-    handleTypeChange
+    handleTypeChange,
   } = useAgentConfig(agent, onSave);
 
   const isEditing = !!agent;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
+    <form onSubmit={handleSubmit} className='space-y-6 max-w-4xl mx-auto'>
       {/* Basic Information */}
       <BasicInfoSection
         formData={formData}
@@ -78,19 +77,19 @@ export function AgentConfiguratorContainer({
       />
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className='flex items-center justify-end space-x-4'>
+        <Button type='button' variant='outline' onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={submissionState.isSubmitting}>
+        <Button type='submit' disabled={submissionState.isSubmitting}>
           {submissionState.isSubmitting ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2' />
               Saving...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4 mr-2" />
+              <Save className='h-4 w-4 mr-2' />
               {isEditing ? 'Update' : 'Create'} Agent
             </>
           )}
@@ -99,16 +98,14 @@ export function AgentConfiguratorContainer({
 
       {/* Form Status */}
       {submissionState.hasChanges && !submissionState.isSubmitting && (
-        <div className="text-center">
-          <p className="text-sm text-amber-600">
-            You have unsaved changes
-          </p>
+        <div className='text-center'>
+          <p className='text-sm text-amber-600'>You have unsaved changes</p>
         </div>
       )}
 
       {submissionState.lastSaved && (
-        <div className="text-center">
-          <p className="text-sm text-green-600">
+        <div className='text-center'>
+          <p className='text-sm text-green-600'>
             Last saved: {submissionState.lastSaved.toLocaleTimeString()}
           </p>
         </div>

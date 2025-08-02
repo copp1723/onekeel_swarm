@@ -1,6 +1,6 @@
 /**
  * Agent Configurator System
- * 
+ *
  * This module provides a refactored, modular agent configuration system
  * that replaces the monolithic UnifiedAgentConfigurator.tsx
  */

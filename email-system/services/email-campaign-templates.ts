@@ -32,34 +32,38 @@ export class EmailCampaignTemplateManager {
         id: 'welcome',
         name: 'Welcome Email',
         subject: 'Welcome to {{companyName}}!',
-        bodyHtml: '<h1>Welcome {{leadName}}!</h1><p>Thank you for your interest in our services.</p>',
-        bodyText: 'Welcome {{leadName}}! Thank you for your interest in our services.',
+        bodyHtml:
+          '<h1>Welcome {{leadName}}!</h1><p>Thank you for your interest in our services.</p>',
+        bodyText:
+          'Welcome {{leadName}}! Thank you for your interest in our services.',
         variables: ['leadName', 'companyName'],
         category: 'campaign',
         isActive: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         id: 'follow-up',
         name: 'Follow-up Email',
         subject: 'Following up on your inquiry',
-        bodyHtml: '<p>Hi {{leadName}},</p><p>I wanted to follow up on your recent inquiry.</p>',
-        bodyText: 'Hi {{leadName}}, I wanted to follow up on your recent inquiry.',
+        bodyHtml:
+          '<p>Hi {{leadName}},</p><p>I wanted to follow up on your recent inquiry.</p>',
+        bodyText:
+          'Hi {{leadName}}, I wanted to follow up on your recent inquiry.',
         variables: ['leadName'],
         category: 'follow-up',
         isActive: true,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
 
     defaultTemplates.forEach(template => {
       this.templates.set(template.id, template);
     });
 
-    logger.info('Email campaign templates initialized', { 
-      count: defaultTemplates.length 
+    logger.info('Email campaign templates initialized', {
+      count: defaultTemplates.length,
     });
   }
 
@@ -75,32 +79,38 @@ export class EmailCampaignTemplateManager {
     return Array.from(this.templates.values()).filter(t => t.isActive);
   }
 
-  async getTemplatesByCategory(category: EmailTemplate['category']): Promise<EmailTemplate[]> {
-    return Array.from(this.templates.values()).filter(t => t.category === category);
+  async getTemplatesByCategory(
+    category: EmailTemplate['category']
+  ): Promise<EmailTemplate[]> {
+    return Array.from(this.templates.values()).filter(
+      t => t.category === category
+    );
   }
 
-  async createTemplate(template: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async createTemplate(
+    template: Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<string> {
     const id = crypto.randomUUID();
     const newTemplate: EmailTemplate = {
       ...template,
       id,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.templates.set(id, newTemplate);
-    
-    logger.info('Email template created', { 
-      id, 
+
+    logger.info('Email template created', {
+      id,
       name: template.name,
-      category: template.category 
+      category: template.category,
     });
 
     return id;
   }
 
   async updateTemplate(
-    templateId: string, 
+    templateId: string,
     updates: Partial<Omit<EmailTemplate, 'id' | 'createdAt' | 'updatedAt'>>
   ): Promise<boolean> {
     const template = this.templates.get(templateId);
@@ -109,14 +119,14 @@ export class EmailCampaignTemplateManager {
     const updatedTemplate: EmailTemplate = {
       ...template,
       ...updates,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.templates.set(templateId, updatedTemplate);
-    
-    logger.info('Email template updated', { 
+
+    logger.info('Email template updated', {
       id: templateId,
-      updates: Object.keys(updates) 
+      updates: Object.keys(updates),
     });
 
     return true;
@@ -124,7 +134,7 @@ export class EmailCampaignTemplateManager {
 
   async deleteTemplate(templateId: string): Promise<boolean> {
     const deleted = this.templates.delete(templateId);
-    
+
     if (deleted) {
       logger.info('Email template deleted', { id: templateId });
     }
@@ -132,7 +142,10 @@ export class EmailCampaignTemplateManager {
     return deleted;
   }
 
-  async renderTemplate(templateId: string, variables: Record<string, any>): Promise<{
+  async renderTemplate(
+    templateId: string,
+    variables: Record<string, any>
+  ): Promise<{
     subject: string;
     bodyHtml: string;
     bodyText: string;
@@ -153,7 +166,7 @@ export class EmailCampaignTemplateManager {
     return {
       subject: renderText(template.subject),
       bodyHtml: renderText(template.bodyHtml),
-      bodyText: renderText(template.bodyText)
+      bodyText: renderText(template.bodyText),
     };
   }
 
@@ -181,18 +194,21 @@ export class EmailCampaignTemplateManager {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
-  async duplicateTemplate(templateId: string, newName?: string): Promise<string | null> {
+  async duplicateTemplate(
+    templateId: string,
+    newName?: string
+  ): Promise<string | null> {
     const template = this.templates.get(templateId);
     if (!template) return null;
 
     const duplicate = {
       ...template,
       name: newName || `${template.name} (Copy)`,
-      isActive: false // Start as inactive
+      isActive: false, // Start as inactive
     };
 
     delete (duplicate as any).id;
@@ -217,7 +233,7 @@ export class EmailCampaignTemplateManager {
     return {
       total: templates.length,
       active: templates.filter(t => t.isActive).length,
-      byCategory
+      byCategory,
     };
   }
 }

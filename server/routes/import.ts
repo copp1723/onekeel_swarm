@@ -17,46 +17,49 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel') {
+    if (
+      file.mimetype === 'text/csv' ||
+      file.mimetype === 'application/vnd.ms-excel'
+    ) {
       cb(null, true);
     } else {
       cb(new Error('Only CSV files are allowed'));
     }
-  }
+  },
 });
 
 // Field mapping suggestions based on common CSV headers
 const fieldMappingSuggestions: Record<string, string> = {
   'first name': 'firstName',
-  'firstname': 'firstName',
-  'first_name': 'firstName',
-  'fname': 'firstName',
+  firstname: 'firstName',
+  first_name: 'firstName',
+  fname: 'firstName',
   'last name': 'lastName',
-  'lastname': 'lastName',
-  'last_name': 'lastName',
-  'lname': 'lastName',
-  'email': 'email',
+  lastname: 'lastName',
+  last_name: 'lastName',
+  lname: 'lastName',
+  email: 'email',
   'email address': 'email',
-  'email_address': 'email',
-  'phone': 'phone',
+  email_address: 'email',
+  phone: 'phone',
   'phone number': 'phone',
-  'phone_number': 'phone',
-  'mobile': 'phone',
-  'source': 'source',
+  phone_number: 'phone',
+  mobile: 'phone',
+  source: 'source',
   'lead source': 'source',
-  'lead_source': 'source',
-  'company': 'employer',
-  'employer': 'employer',
+  lead_source: 'source',
+  company: 'employer',
+  employer: 'employer',
   'job title': 'jobTitle',
-  'job_title': 'jobTitle',
-  'position': 'jobTitle',
-  'income': 'income',
+  job_title: 'jobTitle',
+  position: 'jobTitle',
+  income: 'income',
   'annual income': 'income',
-  'annual_income': 'income',
+  annual_income: 'income',
   'credit score': 'creditScore',
-  'credit_score': 'creditScore',
-  'notes': 'notes',
-  'comments': 'notes'
+  credit_score: 'creditScore',
+  notes: 'notes',
+  comments: 'notes',
 };
 
 // Analyze CSV file and suggest field mappings
@@ -67,8 +70,8 @@ router.post('/analyze', upload.single('file'), async (req, res) => {
         success: false,
         error: {
           code: 'NO_FILE',
-          message: 'No file uploaded'
-        }
+          message: 'No file uploaded',
+        },
       });
     }
 
@@ -82,49 +85,51 @@ router.post('/analyze', upload.single('file'), async (req, res) => {
       skip_empty_lines: true,
       trim: true,
       cast: false,
-      max_record_size: 50000
+      max_record_size: 50000,
     });
 
-    parser.on('readable', function() {
+    parser.on('readable', function () {
       let record;
       while ((record = parser.read()) !== null) {
         if (rows.length === 0 && Object.keys(record).length > 0) {
           headers = Object.keys(record);
         }
-        if (rows.length < 5) { // Get first 5 rows for preview
+        if (rows.length < 5) {
+          // Get first 5 rows for preview
           rows.push(record);
         }
       }
     });
 
-    parser.on('error', function(err) {
+    parser.on('error', function (err) {
       logger.error('CSV parsing error:', err);
       res.status(400).json({
         success: false,
         error: {
           code: 'PARSE_ERROR',
           message: 'Failed to parse CSV file',
-          details: err.message
-        }
+          details: err.message,
+        },
       });
     });
 
     parser.write(fileContent);
     parser.end();
 
-    await new Promise((resolve) => parser.on('end', resolve));
+    await new Promise(resolve => parser.on('end', resolve));
 
     // Count total rows
-    const allRows = fileContent.split('\n').filter(line => line.trim()).length - 1;
+    const allRows =
+      fileContent.split('\n').filter(line => line.trim()).length - 1;
 
     // Generate field mapping suggestions
     const suggestedMappings = headers.map(header => {
       const normalizedHeader = header.toLowerCase().trim();
       const leadField = fieldMappingSuggestions[normalizedHeader] || '';
-      
+
       return {
         csvColumn: header,
-        leadField: leadField
+        leadField: leadField,
       };
     });
 
@@ -132,9 +137,8 @@ router.post('/analyze', upload.single('file'), async (req, res) => {
       headers,
       previewRows: rows,
       suggestedMappings,
-      totalRows: allRows
+      totalRows: allRows,
     });
-
   } catch (error) {
     logger.error('Error analyzing CSV:', error);
     res.status(500).json({
@@ -142,8 +146,8 @@ router.post('/analyze', upload.single('file'), async (req, res) => {
       error: {
         code: 'ANALYSIS_ERROR',
         message: 'Failed to analyze CSV file',
-        category: 'processing'
-      }
+        category: 'processing',
+      },
     });
   }
 });
@@ -156,8 +160,8 @@ router.post('/leads', upload.single('file'), async (req, res) => {
         success: false,
         error: {
           code: 'NO_FILE',
-          message: 'No file uploaded'
-        }
+          message: 'No file uploaded',
+        },
       });
     }
 
@@ -169,8 +173,8 @@ router.post('/leads', upload.single('file'), async (req, res) => {
         success: false,
         error: {
           code: 'NO_MAPPINGS',
-          message: 'Field mappings are required'
-        }
+          message: 'Field mappings are required',
+        },
       });
     }
 
@@ -193,26 +197,30 @@ router.post('/leads', upload.single('file'), async (req, res) => {
       skip_empty_lines: true,
       trim: true,
       cast: false,
-      max_record_size: 50000
+      max_record_size: 50000,
     });
 
-    parser.on('readable', async function() {
+    parser.on('readable', async function () {
       let record;
       while ((record = parser.read()) !== null) {
         rowNumber++;
-        
+
         try {
           // Map CSV fields to lead fields
           const leadData: any = {
             source: 'csv_import',
-            status: 'new'
+            status: 'new',
           };
 
           // Apply field mappings
           Object.entries(record).forEach(([csvField, value]) => {
             const leadField = fieldMap[csvField];
             if (leadField && value) {
-              if (leadField === 'income' || leadField === 'creditScore' || leadField === 'qualificationScore') {
+              if (
+                leadField === 'income' ||
+                leadField === 'creditScore' ||
+                leadField === 'qualificationScore'
+              ) {
                 // Convert to number for numeric fields
                 const numValue = parseInt(value as string, 10);
                 if (!isNaN(numValue)) {
@@ -239,7 +247,7 @@ router.post('/leads', upload.single('file'), async (req, res) => {
           if (!leadData.email) {
             errors.push({
               row: rowNumber,
-              error: 'Email is required'
+              error: 'Email is required',
             });
             continue;
           }
@@ -254,7 +262,7 @@ router.post('/leads', upload.single('file'), async (req, res) => {
           if (existing) {
             errors.push({
               row: rowNumber,
-              error: `Duplicate email: ${leadData.email}`
+              error: `Duplicate email: ${leadData.email}`,
             });
             continue;
           }
@@ -265,46 +273,44 @@ router.post('/leads', upload.single('file'), async (req, res) => {
             .values({
               ...leadData,
               createdAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .returning();
 
           importedLeads.push(newLead);
-
         } catch (error) {
           logger.error('Error importing lead row:', error);
           errors.push({
             row: rowNumber,
-            error: error instanceof Error ? error.message : 'Import failed'
+            error: error instanceof Error ? error.message : 'Import failed',
           });
         }
       }
     });
 
-    parser.on('error', function(err) {
+    parser.on('error', function (err) {
       logger.error('CSV import parsing error:', err);
       res.status(400).json({
         success: false,
         error: {
           code: 'PARSE_ERROR',
           message: 'Failed to parse CSV file during import',
-          details: err.message
-        }
+          details: err.message,
+        },
       });
     });
 
     parser.write(fileContent);
     parser.end();
 
-    await new Promise((resolve) => parser.on('end', resolve));
+    await new Promise(resolve => parser.on('end', resolve));
 
     res.json({
       total: rowNumber,
       successful: importedLeads.length,
       failed: errors.length,
-      errors: errors.slice(0, 100) // Limit errors returned
+      errors: errors.slice(0, 100), // Limit errors returned
     });
-
   } catch (error) {
     logger.error('Error importing leads:', error);
     res.status(500).json({
@@ -312,8 +318,8 @@ router.post('/leads', upload.single('file'), async (req, res) => {
       error: {
         code: 'IMPORT_ERROR',
         message: 'Failed to import leads',
-        category: 'processing'
-      }
+        category: 'processing',
+      },
     });
   }
 });

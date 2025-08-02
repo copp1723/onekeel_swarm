@@ -45,6 +45,7 @@ VALID_API_KEYS=key1,key2,key3
 ### Environment Setup
 
 1. **Production Environment**
+
    ```bash
    cp .env.example .env.production
    # Edit .env.production with production values
@@ -64,6 +65,7 @@ VALID_API_KEYS=key1,key2,key3
    - Choose "Web Service" deployment type
 
 2. **Configure Build Settings**
+
    ```yaml
    Build Command: npm run build
    Start Command: npm start
@@ -84,25 +86,27 @@ VALID_API_KEYS=key1,key2,key3
 ### Option 2: Docker Deployment
 
 1. **Build Docker Image**
+
    ```bash
    docker build -t onekeel-swarm .
    ```
 
 2. **Run with Docker Compose**
+
    ```yaml
    version: '3.8'
    services:
      app:
        build: .
        ports:
-         - "5000:5000"
+         - '5000:5000'
        environment:
          - NODE_ENV=production
          - DATABASE_URL=postgresql://user:pass@db:5432/swarm
        depends_on:
          - db
          - redis
-     
+
      db:
        image: postgres:15
        environment:
@@ -111,7 +115,7 @@ VALID_API_KEYS=key1,key2,key3
          POSTGRES_PASSWORD: pass
        volumes:
          - postgres_data:/var/lib/postgresql/data
-     
+
      redis:
        image: redis:7-alpine
        volumes:
@@ -130,6 +134,7 @@ VALID_API_KEYS=key1,key2,key3
 ### Option 3: Traditional VPS
 
 1. **Server Setup**
+
    ```bash
    # Install Node.js 18+
    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -143,6 +148,7 @@ VALID_API_KEYS=key1,key2,key3
    ```
 
 2. **Application Deployment**
+
    ```bash
    # Clone repository
    git clone https://github.com/your-repo/onekeel-swarm.git
@@ -173,6 +179,7 @@ VALID_API_KEYS=key1,key2,key3
 ### PostgreSQL Configuration
 
 1. **Create Database**
+
    ```sql
    CREATE DATABASE swarm_production;
    CREATE USER swarm_user WITH PASSWORD 'secure_password';
@@ -180,6 +187,7 @@ VALID_API_KEYS=key1,key2,key3
    ```
 
 2. **Run Migrations**
+
    ```bash
    DATABASE_URL=postgresql://swarm_user:secure_password@localhost:5432/swarm_production npm run db:migrate
    ```
@@ -268,24 +276,27 @@ curl https://your-domain.com/api/system/metrics
 ```javascript
 // ecosystem.config.js
 module.exports = {
-  apps: [{
-    name: 'onekeel-swarm',
-    script: 'dist/server/index.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'production'
+  apps: [
+    {
+      name: 'onekeel-swarm',
+      script: 'dist/server/index.js',
+      instances: 'max',
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'production',
+      },
+      max_memory_restart: '500M',
+      min_uptime: '10s',
+      max_restarts: 5,
     },
-    max_memory_restart: '500M',
-    min_uptime: '10s',
-    max_restarts: 5
-  }]
+  ],
 };
 ```
 
 ### External Monitoring
 
 Set up monitoring with services like:
+
 - **Uptime monitoring**: UptimeRobot, Pingdom
 - **Error tracking**: Sentry
 - **Performance monitoring**: New Relic, DataDog
@@ -295,19 +306,21 @@ Set up monitoring with services like:
 ### Application Level
 
 1. **Enable Compression**
+
    ```javascript
    // Already configured in the app
    app.use(compression());
    ```
 
 2. **Connection Pooling**
+
    ```javascript
    // Database connection pool
    const pool = new Pool({
      connectionString: process.env.DATABASE_URL,
      max: 20,
      idleTimeoutMillis: 30000,
-     connectionTimeoutMillis: 2000
+     connectionTimeoutMillis: 2000,
    });
    ```
 
@@ -332,6 +345,7 @@ CREATE INDEX idx_activities_timestamp ON activities(created_at);
 ### Application Security
 
 1. **Environment Variables**
+
    ```bash
    # Use strong secrets
    JWT_SECRET=$(openssl rand -base64 32)
@@ -339,20 +353,25 @@ CREATE INDEX idx_activities_timestamp ON activities(created_at);
    ```
 
 2. **Rate Limiting**
+
    ```javascript
    // Already configured with express-rate-limit
    const limiter = rateLimit({
      windowMs: 15 * 60 * 1000, // 15 minutes
-     max: 100 // limit each IP to 100 requests per windowMs
+     max: 100, // limit each IP to 100 requests per windowMs
    });
    ```
 
 3. **CORS Configuration**
    ```javascript
-   app.use(cors({
-     origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
-     credentials: true
-   }));
+   app.use(
+     cors({
+       origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+         'http://localhost:5173',
+       ],
+       credentials: true,
+     })
+   );
    ```
 
 ### Server Security
@@ -416,7 +435,7 @@ tar -czf $BACKUP_DIR/app_$DATE.tar.gz \
 ### Pre-Deployment
 
 - [ ] **Environment configured**: All required environment variables set
-- [ ] **Database ready**: PostgreSQL instance created and accessible  
+- [ ] **Database ready**: PostgreSQL instance created and accessible
 - [ ] **SSL certificates**: HTTPS properly configured
 - [ ] **DNS configured**: Domain pointing to server
 - [ ] **Backup system**: Database and file backups configured
@@ -442,6 +461,7 @@ tar -czf $BACKUP_DIR/app_$DATE.tar.gz \
 ### Common Issues
 
 1. **Memory Issues (Free Tier)**
+
    ```bash
    # Reduce memory usage
    ENABLE_REDIS=false
@@ -450,10 +470,11 @@ tar -czf $BACKUP_DIR/app_$DATE.tar.gz \
    ```
 
 2. **Database Connection Errors**
+
    ```bash
    # Check connection string format
    DATABASE_URL=postgresql://user:pass@host:5432/dbname
-   
+
    # Test connection
    psql $DATABASE_URL -c "SELECT 1;"
    ```

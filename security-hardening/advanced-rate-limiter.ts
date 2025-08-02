@@ -12,7 +12,7 @@ export enum RateLimitStrategy {
   FIXED_WINDOW = 'fixed_window',
   SLIDING_WINDOW = 'sliding_window',
   TOKEN_BUCKET = 'token_bucket',
-  LEAKY_BUCKET = 'leaky_bucket'
+  LEAKY_BUCKET = 'leaky_bucket',
 }
 
 // Rate limit key generators
@@ -21,7 +21,7 @@ export enum KeyGenerator {
   USER = 'user',
   API_KEY = 'api_key',
   ENDPOINT = 'endpoint',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }
 
 // Rate limit configuration
@@ -52,9 +52,14 @@ export interface RateLimitConfig {
 // In-memory store for rate limiting
 class MemoryStore {
   private hits: Map<string, number[]> = new Map();
-  private tokens: Map<string, { tokens: number; lastRefill: number }> = new Map();
+  private tokens: Map<string, { tokens: number; lastRefill: number }> =
+    new Map();
 
-  async increment(key: string, windowMs: number, strategy: RateLimitStrategy): Promise<{ count: number; resetTime: number }> {
+  async increment(
+    key: string,
+    windowMs: number,
+    strategy: RateLimitStrategy
+  ): Promise<{ count: number; resetTime: number }> {
     const now = Date.now();
     const resetTime = now + windowMs;
 
@@ -70,10 +75,14 @@ class MemoryStore {
     }
   }
 
-  private fixedWindowIncrement(key: string, windowMs: number, now: number): { count: number; resetTime: number } {
+  private fixedWindowIncrement(
+    key: string,
+    windowMs: number,
+    now: number
+  ): { count: number; resetTime: number } {
     const windowStart = Math.floor(now / windowMs) * windowMs;
     const windowKey = `${key}:${windowStart}`;
-    
+
     const hits = this.hits.get(windowKey) || [];
     hits.push(now);
     this.hits.set(windowKey, hits);
@@ -83,14 +92,18 @@ class MemoryStore {
 
     return {
       count: hits.length,
-      resetTime: windowStart + windowMs
+      resetTime: windowStart + windowMs,
     };
   }
 
-  private slidingWindowIncrement(key: string, windowMs: number, now: number): { count: number; resetTime: number } {
+  private slidingWindowIncrement(
+    key: string,
+    windowMs: number,
+    now: number
+  ): { count: number; resetTime: number } {
     const hits = this.hits.get(key) || [];
     const windowStart = now - windowMs;
-    
+
     // Filter hits within the window
     const validHits = hits.filter(hit => hit > windowStart);
     validHits.push(now);
@@ -98,16 +111,22 @@ class MemoryStore {
 
     return {
       count: validHits.length,
-      resetTime: now + windowMs
+      resetTime: now + windowMs,
     };
   }
 
-  private tokenBucketIncrement(key: string, windowMs: number, now: number, tokensPerInterval = 10, maxTokens = 100): { count: number; resetTime: number } {
+  private tokenBucketIncrement(
+    key: string,
+    windowMs: number,
+    now: number,
+    tokensPerInterval = 10,
+    maxTokens = 100
+  ): { count: number; resetTime: number } {
     let bucket = this.tokens.get(key) || { tokens: maxTokens, lastRefill: now };
-    
+
     // Refill tokens based on time passed
     const timePassed = now - bucket.lastRefill;
-    const tokensToAdd = Math.floor(timePassed / windowMs * tokensPerInterval);
+    const tokensToAdd = Math.floor((timePassed / windowMs) * tokensPerInterval);
     bucket.tokens = Math.min(bucket.tokens + tokensToAdd, maxTokens);
     bucket.lastRefill = now;
 
@@ -140,7 +159,11 @@ class MemoryStore {
 
 // Redis store for distributed rate limiting
 class RedisStore {
-  async increment(key: string, windowMs: number, strategy: RateLimitStrategy): Promise<{ count: number; resetTime: number }> {
+  async increment(
+    key: string,
+    windowMs: number,
+    strategy: RateLimitStrategy
+  ): Promise<{ count: number; resetTime: number }> {
     if (!redis) {
       throw new Error('Redis client not initialized');
     }
@@ -160,27 +183,35 @@ class RedisStore {
     }
   }
 
-  private async redisFixedWindow(key: string, windowMs: number, now: number): Promise<{ count: number; resetTime: number }> {
+  private async redisFixedWindow(
+    key: string,
+    windowMs: number,
+    now: number
+  ): Promise<{ count: number; resetTime: number }> {
     const windowStart = Math.floor(now / windowMs) * windowMs;
     const windowKey = `ratelimit:${key}:${windowStart}`;
-    
+
     const multi = redis.multi();
     multi.incr(windowKey);
     multi.expire(windowKey, Math.ceil(windowMs / 1000));
     const results = await multi.exec();
-    
-    const count = results?.[0]?.[1] as number || 1;
-    
+
+    const count = (results?.[0]?.[1] as number) || 1;
+
     return {
       count,
-      resetTime: windowStart + windowMs
+      resetTime: windowStart + windowMs,
     };
   }
 
-  private async redisSlidingWindow(key: string, windowMs: number, now: number): Promise<{ count: number; resetTime: number }> {
+  private async redisSlidingWindow(
+    key: string,
+    windowMs: number,
+    now: number
+  ): Promise<{ count: number; resetTime: number }> {
     const windowKey = `ratelimit:sliding:${key}`;
     const windowStart = now - windowMs;
-    
+
     const multi = redis.multi();
     // Remove old entries
     multi.zremrangebyscore(windowKey, '-inf', windowStart.toString());
@@ -190,19 +221,25 @@ class RedisStore {
     multi.zcount(windowKey, windowStart.toString(), '+inf');
     // Set expiry
     multi.expire(windowKey, Math.ceil(windowMs / 1000));
-    
+
     const results = await multi.exec();
-    const count = results?.[2]?.[1] as number || 1;
-    
+    const count = (results?.[2]?.[1] as number) || 1;
+
     return {
       count,
-      resetTime: now + windowMs
+      resetTime: now + windowMs,
     };
   }
 
-  private async redisTokenBucket(key: string, windowMs: number, now: number, tokensPerInterval = 10, maxTokens = 100): Promise<{ count: number; resetTime: number }> {
+  private async redisTokenBucket(
+    key: string,
+    windowMs: number,
+    now: number,
+    tokensPerInterval = 10,
+    maxTokens = 100
+  ): Promise<{ count: number; resetTime: number }> {
     const bucketKey = `ratelimit:bucket:${key}`;
-    
+
     // Lua script for atomic token bucket operations
     const luaScript = `
       local key = KEYS[1]
@@ -230,18 +267,26 @@ class RedisStore {
         return {0, max_tokens + 1}
       end
     `;
-    
-    const result = await redis.eval(luaScript, 1, bucketKey, now.toString(), windowMs.toString(), tokensPerInterval.toString(), maxTokens.toString()) as [number, number];
-    
+
+    const result = (await redis.eval(
+      luaScript,
+      1,
+      bucketKey,
+      now.toString(),
+      windowMs.toString(),
+      tokensPerInterval.toString(),
+      maxTokens.toString()
+    )) as [number, number];
+
     return {
       count: result[1],
-      resetTime: now + windowMs
+      resetTime: now + windowMs,
     };
   }
 
   async reset(key: string): Promise<void> {
     if (!redis) return;
-    
+
     const keys = await redis.keys(`ratelimit:*:${key}*`);
     if (keys.length > 0) {
       await redis.del(...keys);
@@ -268,16 +313,18 @@ export class AdvancedRateLimiter {
       message: config.message || 'Too many requests, please try again later.',
       handler: config.handler || this.defaultHandler,
       skip: config.skip || (() => false),
-      requestWasSuccessful: config.requestWasSuccessful || ((req, res) => res.statusCode < 400),
+      requestWasSuccessful:
+        config.requestWasSuccessful || ((req, res) => res.statusCode < 400),
       weight: config.weight || (() => 1),
       groupBy: config.groupBy || (() => ''),
       costFunction: config.costFunction || (() => 1),
       tokensPerInterval: config.tokensPerInterval || 10,
       interval: config.interval || 1000,
-      maxTokens: config.maxTokens || 100
+      maxTokens: config.maxTokens || 100,
     };
 
-    this.store = this.config.store === 'redis' ? new RedisStore() : new MemoryStore();
+    this.store =
+      this.config.store === 'redis' ? new RedisStore() : new MemoryStore();
   }
 
   middleware() {
@@ -299,40 +346,61 @@ export class AdvancedRateLimiter {
         const effectiveCost = cost * weight;
 
         // Increment counter
-        const { count, resetTime } = await this.store.increment(fullKey, this.config.windowMs, this.config.strategy);
+        const { count, resetTime } = await this.store.increment(
+          fullKey,
+          this.config.windowMs,
+          this.config.strategy
+        );
 
         // Set headers
         if (this.config.standardHeaders) {
           res.setHeader('RateLimit-Limit', this.config.max);
-          res.setHeader('RateLimit-Remaining', Math.max(0, this.config.max - count));
+          res.setHeader(
+            'RateLimit-Remaining',
+            Math.max(0, this.config.max - count)
+          );
           res.setHeader('RateLimit-Reset', new Date(resetTime).toISOString());
-          res.setHeader('RateLimit-Reset-After', Math.ceil((resetTime - Date.now()) / 1000));
+          res.setHeader(
+            'RateLimit-Reset-After',
+            Math.ceil((resetTime - Date.now()) / 1000)
+          );
         }
 
         if (this.config.legacyHeaders) {
           res.setHeader('X-RateLimit-Limit', this.config.max);
-          res.setHeader('X-RateLimit-Remaining', Math.max(0, this.config.max - count));
+          res.setHeader(
+            'X-RateLimit-Remaining',
+            Math.max(0, this.config.max - count)
+          );
           res.setHeader('X-RateLimit-Reset', resetTime);
         }
 
         // Check if limit exceeded
         if (count > this.config.max) {
-          res.setHeader('Retry-After', Math.ceil((resetTime - Date.now()) / 1000));
+          res.setHeader(
+            'Retry-After',
+            Math.ceil((resetTime - Date.now()) / 1000)
+          );
           return this.config.handler(req, res, next);
         }
 
         // Track response to potentially not count it
-        if (this.config.skipSuccessfulRequests || this.config.skipFailedRequests) {
+        if (
+          this.config.skipSuccessfulRequests ||
+          this.config.skipFailedRequests
+        ) {
           const originalEnd = res.end;
           res.end = (...args: any[]) => {
             const wasSuccessful = this.config.requestWasSuccessful(req, res);
-            
-            if ((wasSuccessful && this.config.skipSuccessfulRequests) ||
-                (!wasSuccessful && this.config.skipFailedRequests)) {
+
+            if (
+              (wasSuccessful && this.config.skipSuccessfulRequests) ||
+              (!wasSuccessful && this.config.skipFailedRequests)
+            ) {
               // Decrement the counter
               this.store.reset(fullKey);
             }
-            
+
             return originalEnd.apply(res, args);
           };
         }
@@ -357,7 +425,7 @@ export class AdvancedRateLimiter {
       case KeyGenerator.USER:
         return (req as any).user?.id || this.getIP(req);
       case KeyGenerator.API_KEY:
-        return req.headers['x-api-key'] as string || this.getIP(req);
+        return (req.headers['x-api-key'] as string) || this.getIP(req);
       case KeyGenerator.ENDPOINT:
         return `${req.method}:${req.path}`;
       default:
@@ -374,14 +442,15 @@ export class AdvancedRateLimiter {
   }
 
   private defaultHandler(req: Request, res: Response, next: NextFunction) {
-    const message = typeof this.config.message === 'function' 
-      ? this.config.message(req, res)
-      : this.config.message;
+    const message =
+      typeof this.config.message === 'function'
+        ? this.config.message(req, res)
+        : this.config.message;
 
     res.status(429).json({
       error: 'Too Many Requests',
       message,
-      retryAfter: res.getHeader('Retry-After')
+      retryAfter: res.getHeader('Retry-After'),
     });
   }
 
@@ -400,7 +469,7 @@ export const RateLimitPresets = {
     max: 60,
     strategy: RateLimitStrategy.SLIDING_WINDOW,
     store: 'redis',
-    message: 'API rate limit exceeded. Please retry after some time.'
+    message: 'API rate limit exceeded. Please retry after some time.',
   }),
 
   // Authentication endpoints
@@ -410,7 +479,7 @@ export const RateLimitPresets = {
     strategy: RateLimitStrategy.FIXED_WINDOW,
     keyGenerator: KeyGenerator.IP,
     skipSuccessfulRequests: true,
-    message: 'Too many authentication attempts. Please try again later.'
+    message: 'Too many authentication attempts. Please try again later.',
   }),
 
   // File upload endpoints
@@ -420,11 +489,11 @@ export const RateLimitPresets = {
     strategy: RateLimitStrategy.TOKEN_BUCKET,
     tokensPerInterval: 2,
     maxTokens: 10,
-    costFunction: (req) => {
+    costFunction: req => {
       // Cost based on file size
       const size = parseInt(req.headers['content-length'] || '0');
       return Math.ceil(size / (1024 * 1024)); // 1 token per MB
-    }
+    },
   }),
 
   // Public API endpoints
@@ -432,10 +501,14 @@ export const RateLimitPresets = {
     windowMs: 60 * 1000,
     max: 30,
     strategy: RateLimitStrategy.SLIDING_WINDOW,
-    keyGenerator: (req) => {
+    keyGenerator: req => {
       // Rate limit by API key if provided, otherwise by IP
-      return req.headers['x-api-key'] as string || req.socket.remoteAddress || 'unknown';
-    }
+      return (
+        (req.headers['x-api-key'] as string) ||
+        req.socket.remoteAddress ||
+        'unknown'
+      );
+    },
   }),
 
   // Websocket connections
@@ -443,8 +516,8 @@ export const RateLimitPresets = {
     windowMs: 60 * 1000,
     max: 5,
     strategy: RateLimitStrategy.FIXED_WINDOW,
-    message: 'Too many websocket connection attempts'
-  })
+    message: 'Too many websocket connection attempts',
+  }),
 };
 
 // Helper to create custom rate limiters

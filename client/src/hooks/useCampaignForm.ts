@@ -70,7 +70,12 @@ interface CampaignFormData {
     handoverKeywords: string[];
     dailyLimit: number;
     timezone: string;
-    templateLibrary: 'custom' | 'welcome' | 'followup' | 'nurture' | 'reengagement';
+    templateLibrary:
+      | 'custom'
+      | 'welcome'
+      | 'followup'
+      | 'nurture'
+      | 'reengagement';
     handoverFollowUp: {
       enabled: boolean;
       daysAfterHandover: number;
@@ -96,11 +101,11 @@ const getInitialFormData = (): CampaignFormData => ({
     timeThreshold: 300,
     keywordTriggers: [],
     goalCompletionRequired: [],
-    handoverRecipients: []
+    handoverRecipients: [],
   },
   audience: {
     filters: [],
-    targetCount: 0
+    targetCount: 0,
   },
   settings: {
     sendTimeOptimization: true,
@@ -115,13 +120,14 @@ const getInitialFormData = (): CampaignFormData => ({
       enabled: false,
       daysAfterHandover: 7,
       maxAttempts: 2,
-      daysBetweenAttempts: 3
-    }
-  }
+      daysBetweenAttempts: 3,
+    },
+  },
 });
 
 export function useCampaignForm(campaign?: any) {
-  const [formData, setFormData] = useState<CampaignFormData>(getInitialFormData());
+  const [formData, setFormData] =
+    useState<CampaignFormData>(getInitialFormData());
   const [templates, setTemplates] = useState<Template[]>([]);
   const [availableSchedules, setAvailableSchedules] = useState<Schedule[]>([]);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
@@ -131,12 +137,13 @@ export function useCampaignForm(campaign?: any) {
     loadData();
     if (campaign) {
       // Convert existing campaign data to new format
-      const campaignTemplates = campaign.templates?.map((templateId: string, index: number) => ({
-        templateId,
-        delay: campaign.settings?.followUpSchedule?.daysBetweenEmails || 3,
-        delayUnit: 'days' as const,
-        order: index
-      })) || [];
+      const campaignTemplates =
+        campaign.templates?.map((templateId: string, index: number) => ({
+          templateId,
+          delay: campaign.settings?.followUpSchedule?.daysBetweenEmails || 3,
+          delayUnit: 'days' as const,
+          order: index,
+        })) || [];
 
       setFormData({
         ...campaign,
@@ -151,7 +158,7 @@ export function useCampaignForm(campaign?: any) {
           timeThreshold: 300,
           keywordTriggers: [],
           goalCompletionRequired: [],
-          handoverRecipients: []
+          handoverRecipients: [],
         },
         settings: {
           sendTimeOptimization: campaign.settings?.sendTimeOptimization ?? true,
@@ -166,9 +173,9 @@ export function useCampaignForm(campaign?: any) {
             enabled: false,
             daysAfterHandover: 7,
             maxAttempts: 2,
-            daysBetweenAttempts: 3
-          }
-        }
+            daysBetweenAttempts: 3,
+          },
+        },
       });
     }
   }, [campaign]);
@@ -177,7 +184,7 @@ export function useCampaignForm(campaign?: any) {
     try {
       const [templatesRes, schedulesRes] = await Promise.all([
         fetch('/api/email/templates'),
-        fetch('/api/email/schedules')
+        fetch('/api/email/schedules'),
       ]);
 
       if (templatesRes.ok) {
@@ -202,41 +209,45 @@ export function useCampaignForm(campaign?: any) {
       templateId,
       delay: formData.templates.length === 0 ? 0 : 1,
       delayUnit: 'days',
-      order: formData.templates.length
+      order: formData.templates.length,
     };
 
     setFormData(prev => ({
       ...prev,
-      templates: [...prev.templates, newTemplate]
+      templates: [...prev.templates, newTemplate],
     }));
   };
 
   const removeTemplate = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      templates: prev.templates.filter((_, i) => i !== index)
+      templates: prev.templates.filter((_, i) => i !== index),
     }));
   };
 
-  const updateTemplateDelay = (index: number, delay: number, delayUnit: 'minutes' | 'hours' | 'days') => {
+  const updateTemplateDelay = (
+    index: number,
+    delay: number,
+    delayUnit: 'minutes' | 'hours' | 'days'
+  ) => {
     setFormData(prev => ({
       ...prev,
-      templates: prev.templates.map((t, i) => 
+      templates: prev.templates.map((t, i) =>
         i === index ? { ...t, delay, delayUnit } : t
-      )
+      ),
     }));
   };
 
   const moveTemplate = (fromIndex: number, toIndex: number) => {
     if (toIndex < 0 || toIndex >= formData.templates.length) return;
-    
+
     const newTemplates = [...formData.templates];
     const [removed] = newTemplates.splice(fromIndex, 1);
     newTemplates.splice(toIndex, 0, removed);
-    
+
     // Update order
-    newTemplates.forEach((t, i) => t.order = i);
-    
+    newTemplates.forEach((t, i) => (t.order = i));
+
     setFormData(prev => ({ ...prev, templates: newTemplates }));
   };
 
@@ -266,9 +277,11 @@ export function useCampaignForm(campaign?: any) {
       campaignName: formData.name,
       templates: formData.templates,
       scheduleType: formData.scheduleType,
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -280,18 +293,22 @@ export function useCampaignForm(campaign?: any) {
     return {
       ...formData,
       // Convert templates array back to the format expected by backend if needed
-      templates: formData.scheduleType === 'template' 
-        ? formData.templates 
-        : formData.templates.map(t => t.templateId),
+      templates:
+        formData.scheduleType === 'template'
+          ? formData.templates
+          : formData.templates.map(t => t.templateId),
       settings: {
         ...formData.settings,
         // Include schedule info in settings for backward compatibility
-        followUpSchedule: formData.scheduleType === 'fixed' ? {
-          totalEmails: formData.fixedInterval.emails,
-          daysBetweenEmails: formData.fixedInterval.days,
-          enabled: true
-        } : undefined
-      }
+        followUpSchedule:
+          formData.scheduleType === 'fixed'
+            ? {
+                totalEmails: formData.fixedInterval.emails,
+                daysBetweenEmails: formData.fixedInterval.days,
+                enabled: true,
+              }
+            : undefined,
+      },
     };
   };
 
@@ -311,8 +328,8 @@ export function useCampaignForm(campaign?: any) {
     importTemplates,
     exportTemplates,
     prepareFormData,
-    availableTemplates: templates.filter(t => 
-      !formData.templates.some(ct => ct.templateId === t.id)
-    )
+    availableTemplates: templates.filter(
+      t => !formData.templates.some(ct => ct.templateId === t.id)
+    ),
   };
 }

@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 
 interface User {
   id: string;
@@ -53,9 +59,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await fetch('/api/auth/me', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
@@ -75,19 +81,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (
+    username: string,
+    password: string
+  ): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[LOGIN DEBUG] Sending login request:', { username, password: '***' });
+      console.log('[LOGIN DEBUG] Sending login request:', {
+        username,
+        password: '***',
+      });
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       });
 
       console.log('[LOGIN DEBUG] Response status:', response.status);
@@ -99,16 +111,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Store tokens
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        
+
         // Set user
         setUser(data.user);
         setIsLoading(false);
         return true;
       } else {
         // Handle error object or string
-        const errorMessage = typeof data.error === 'object'
-          ? data.error?.message || 'Login failed'
-          : data.error || 'Login failed';
+        const errorMessage =
+          typeof data.error === 'object'
+            ? data.error?.message || 'Login failed'
+            : data.error || 'Login failed';
         setError(errorMessage);
         setIsLoading(false);
         return false;
@@ -134,12 +147,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     logout,
-    error
+    error,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-}; 
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

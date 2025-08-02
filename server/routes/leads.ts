@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
-import { leads, communications, conversations, leadCampaignEnrollments } from '../db/schema';
+import {
+  leads,
+  communications,
+  conversations,
+  leadCampaignEnrollments,
+} from '../db/schema';
 import { eq, and, or, ilike, sql, desc, inArray } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 
@@ -10,32 +15,32 @@ const router = Router();
 // Get all leads
 router.get('/', async (req, res) => {
   try {
-    const { 
-      status, 
-      source, 
+    const {
+      status,
+      source,
       assignedChannel,
-      search, 
-      limit = 50, 
-      offset = 0, 
-      sort = 'createdAt', 
-      order = 'desc' 
+      search,
+      limit = 50,
+      offset = 0,
+      sort = 'createdAt',
+      order = 'desc',
     } = req.query;
 
     // Build query conditions
     const conditions = [];
-    
+
     if (status) {
       conditions.push(eq(leads.status, status as any));
     }
-    
+
     if (source) {
       conditions.push(eq(leads.source, source as string));
     }
-    
+
     if (assignedChannel) {
       conditions.push(eq(leads.assignedChannel, assignedChannel as any));
     }
-    
+
     if (search) {
       const searchPattern = `%${search}%`;
       conditions.push(
@@ -84,7 +89,7 @@ router.get('/', async (req, res) => {
       leads: leadList,
       total: count,
       offset: Number(offset),
-      limit: Number(limit)
+      limit: Number(limit),
     });
   } catch (error) {
     console.error('Error fetching leads:', error);
@@ -93,8 +98,8 @@ router.get('/', async (req, res) => {
       error: {
         code: 'LEAD_FETCH_ERROR',
         message: 'Failed to fetch leads',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -103,7 +108,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [lead] = await db
       .select()
       .from(leads)
@@ -115,8 +120,8 @@ router.get('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
+          message: 'Lead not found',
+        },
       });
     }
 
@@ -147,8 +152,8 @@ router.get('/:id', async (req, res) => {
         ...lead,
         communications: communicationsList,
         conversations: conversationsList,
-        campaigns: enrollments
-      }
+        campaigns: enrollments,
+      },
     });
   } catch (error) {
     console.error('Error fetching lead:', error);
@@ -157,8 +162,8 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'LEAD_FETCH_ERROR',
         message: 'Failed to fetch lead details',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -170,7 +175,9 @@ const createLeadSchema = z.object({
   email: z.string().email(),
   phone: z.string().optional(),
   source: z.string().default('api'),
-  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'rejected']).default('new'),
+  status: z
+    .enum(['new', 'contacted', 'qualified', 'converted', 'rejected'])
+    .default('new'),
   qualificationScore: z.number().min(0).max(100).optional(),
   assignedChannel: z.enum(['email', 'sms', 'chat']).optional(),
   boberdooId: z.string().optional(),
@@ -180,108 +187,116 @@ const createLeadSchema = z.object({
   employer: z.string().optional(),
   jobTitle: z.string().optional(),
   metadata: z.record(z.any()).optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 
-router.post('/', validateRequest({ body: createLeadSchema }), async (req, res) => {
-  try {
-    const leadData = req.body;
-    
-    // Check for duplicate email
-    if (leadData.email) {
-      const [existing] = await db
-        .select()
-        .from(leads)
-        .where(eq(leads.email, leadData.email))
-        .limit(1);
-      
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          error: {
-            code: 'DUPLICATE_LEAD',
-            message: 'A lead with this email already exists',
-            leadId: existing.id
-          }
-        });
+router.post(
+  '/',
+  validateRequest({ body: createLeadSchema }),
+  async (req, res) => {
+    try {
+      const leadData = req.body;
+
+      // Check for duplicate email
+      if (leadData.email) {
+        const [existing] = await db
+          .select()
+          .from(leads)
+          .where(eq(leads.email, leadData.email))
+          .limit(1);
+
+        if (existing) {
+          return res.status(409).json({
+            success: false,
+            error: {
+              code: 'DUPLICATE_LEAD',
+              message: 'A lead with this email already exists',
+              leadId: existing.id,
+            },
+          });
+        }
       }
+
+      const [newLead] = await db
+        .insert(leads)
+        .values({
+          ...leadData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.status(201).json({
+        success: true,
+        lead: newLead,
+      });
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'LEAD_CREATE_ERROR',
+          message: 'Failed to create lead',
+          category: 'database',
+        },
+      });
     }
-    
-    const [newLead] = await db
-      .insert(leads)
-      .values({
-        ...leadData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-
-    res.status(201).json({
-      success: true,
-      lead: newLead
-    });
-  } catch (error) {
-    console.error('Error creating lead:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEAD_CREATE_ERROR',
-        message: 'Failed to create lead',
-        category: 'database'
-      }
-    });
   }
-});
+);
 
 // Update lead
 const updateLeadSchema = createLeadSchema.partial();
 
-router.put('/:id', validateRequest({ body: updateLeadSchema }), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    const [updatedLead] = await db
-      .update(leads)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
-      .where(eq(leads.id, id))
-      .returning();
+router.put(
+  '/:id',
+  validateRequest({ body: updateLeadSchema }),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
 
-    if (!updatedLead) {
-      return res.status(404).json({
+      const [updatedLead] = await db
+        .update(leads)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, id))
+        .returning();
+
+      if (!updatedLead) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'LEAD_NOT_FOUND',
+            message: 'Lead not found',
+          },
+        });
+      }
+
+      res.json({
+        success: true,
+        lead: updatedLead,
+      });
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      res.status(500).json({
         success: false,
         error: {
-          code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
+          code: 'LEAD_UPDATE_ERROR',
+          message: 'Failed to update lead',
+          category: 'database',
+        },
       });
     }
-
-    res.json({
-      success: true,
-      lead: updatedLead
-    });
-  } catch (error) {
-    console.error('Error updating lead:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEAD_UPDATE_ERROR',
-        message: 'Failed to update lead',
-        category: 'database'
-      }
-    });
   }
-});
+);
 
 // Delete lead
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [deletedLead] = await db
       .delete(leads)
       .where(eq(leads.id, id))
@@ -292,14 +307,14 @@ router.delete('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
+          message: 'Lead not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      message: 'Lead deleted successfully'
+      message: 'Lead deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting lead:', error);
@@ -308,8 +323,8 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'LEAD_DELETE_ERROR',
         message: 'Failed to delete lead',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -324,8 +339,8 @@ router.post('/import', async (req, res) => {
         success: false,
         error: {
           code: 'INVALID_REQUEST',
-          message: 'leads must be a non-empty array'
-        }
+          message: 'leads must be a non-empty array',
+        },
       });
     }
 
@@ -339,12 +354,12 @@ router.post('/import', async (req, res) => {
         validLeads.push({
           ...validated,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
       } catch (error) {
         errors.push({
           row: i + 1,
-          error: error instanceof Error ? error.message : 'Validation failed'
+          error: error instanceof Error ? error.message : 'Validation failed',
         });
       }
     }
@@ -355,8 +370,8 @@ router.post('/import', async (req, res) => {
         error: {
           code: 'ALL_LEADS_INVALID',
           message: 'All leads failed validation',
-          errors
-        }
+          errors,
+        },
       });
     }
 
@@ -371,7 +386,7 @@ router.post('/import', async (req, res) => {
       success: true,
       imported: insertedLeads.length,
       failed: errors.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error('Error importing leads:', error);
@@ -380,8 +395,8 @@ router.post('/import', async (req, res) => {
       error: {
         code: 'LEAD_IMPORT_ERROR',
         message: 'Failed to import leads',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -392,15 +407,21 @@ router.patch('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
+    const validStatuses = [
+      'new',
+      'contacted',
+      'qualified',
+      'converted',
+      'rejected',
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_STATUS',
           message: 'Invalid lead status',
-          validStatuses
-        }
+          validStatuses,
+        },
       });
     }
 
@@ -408,7 +429,7 @@ router.patch('/:id/status', async (req, res) => {
       .update(leads)
       .set({
         status: status as any,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(leads.id, id))
       .returning();
@@ -418,14 +439,14 @@ router.patch('/:id/status', async (req, res) => {
         success: false,
         error: {
           code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
+          message: 'Lead not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      lead: updatedLead
+      lead: updatedLead,
     });
   } catch (error) {
     console.error('Error updating lead status:', error);
@@ -434,8 +455,8 @@ router.patch('/:id/status', async (req, res) => {
       error: {
         code: 'LEAD_STATUS_UPDATE_ERROR',
         message: 'Failed to update lead status',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });

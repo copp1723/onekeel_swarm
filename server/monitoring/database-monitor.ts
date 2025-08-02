@@ -1,6 +1,6 @@
 /**
  * Database Monitor Component
- * 
+ *
  * Monitors database performance, connection health, query performance,
  * and integrates with existing database health checks.
  */
@@ -66,31 +66,53 @@ export interface DatabaseMonitorOptions {
 
 export class DatabaseMonitor {
   private readonly defaultTimeout = 10000; // 10 seconds
-  private queryHistory: Array<{ timestamp: number; duration: number; query: string }> = [];
+  private queryHistory: Array<{
+    timestamp: number;
+    duration: number;
+    query: string;
+  }> = [];
   private readonly maxHistorySize = 1000;
 
   /**
    * Comprehensive database health check
    */
-  async checkHealth(options: DatabaseMonitorOptions = {}): Promise<DatabaseHealthStatus> {
+  async checkHealth(
+    options: DatabaseMonitorOptions = {}
+  ): Promise<DatabaseHealthStatus> {
     const startTime = Date.now();
-    
+
     logger.debug('Starting database health check');
 
     try {
       // Run health checks in parallel
-      const [connectionInfo, performanceMetrics, storageInfo] = await Promise.allSettled([
-        this.getConnectionInfo(),
-        this.getPerformanceMetrics(options),
-        options.includeStorageInfo ? this.getStorageInfo() : Promise.resolve(this.getDefaultStorageInfo())
-      ]);
+      const [connectionInfo, performanceMetrics, storageInfo] =
+        await Promise.allSettled([
+          this.getConnectionInfo(),
+          this.getPerformanceMetrics(options),
+          options.includeStorageInfo
+            ? this.getStorageInfo()
+            : Promise.resolve(this.getDefaultStorageInfo()),
+        ]);
 
-      const connections = connectionInfo.status === 'fulfilled' ? connectionInfo.value : this.getDefaultConnectionInfo();
-      const performance = performanceMetrics.status === 'fulfilled' ? performanceMetrics.value : this.getDefaultPerformanceMetrics();
-      const storage = storageInfo.status === 'fulfilled' ? storageInfo.value : this.getDefaultStorageInfo();
+      const connections =
+        connectionInfo.status === 'fulfilled'
+          ? connectionInfo.value
+          : this.getDefaultConnectionInfo();
+      const performance =
+        performanceMetrics.status === 'fulfilled'
+          ? performanceMetrics.value
+          : this.getDefaultPerformanceMetrics();
+      const storage =
+        storageInfo.status === 'fulfilled'
+          ? storageInfo.value
+          : this.getDefaultStorageInfo();
 
       // Determine overall health status
-      const status = this.determineHealthStatus(connections, performance, storage);
+      const status = this.determineHealthStatus(
+        connections,
+        performance,
+        storage
+      );
 
       const healthStatus: DatabaseHealthStatus = {
         status,
@@ -98,20 +120,20 @@ export class DatabaseMonitor {
         responseTime: Date.now() - startTime,
         connections,
         performance,
-        storage
+        storage,
       };
 
       logger.debug('Database health check completed', {
         status,
         duration: Date.now() - startTime,
         connectionUtilization: connections.connectionUtilization,
-        avgQueryTime: performance.averageQueryTime
+        avgQueryTime: performance.averageQueryTime,
       });
 
       return healthStatus;
     } catch (error) {
       logger.error('Database health check failed:', error);
-      
+
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
@@ -119,7 +141,10 @@ export class DatabaseMonitor {
         connections: this.getDefaultConnectionInfo(),
         performance: this.getDefaultPerformanceMetrics(),
         storage: this.getDefaultStorageInfo(),
-        error: error instanceof Error ? error.message : 'Database health check failed'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Database health check failed',
       };
     }
   }
@@ -152,7 +177,7 @@ export class DatabaseMonitor {
         idle,
         waiting,
         maxConnections,
-        connectionUtilization: Math.round((total / maxConnections) * 100)
+        connectionUtilization: Math.round((total / maxConnections) * 100),
       };
     } catch (error) {
       logger.warn('Failed to get connection info, using defaults:', error);
@@ -163,7 +188,9 @@ export class DatabaseMonitor {
   /**
    * Get database performance metrics
    */
-  async getPerformanceMetrics(options: DatabaseMonitorOptions = {}): Promise<DatabasePerformanceMetrics> {
+  async getPerformanceMetrics(
+    options: DatabaseMonitorOptions = {}
+  ): Promise<DatabasePerformanceMetrics> {
     try {
       // Check if pg_stat_statements extension is available
       const [extensionCheck] = await db.execute(sql`
@@ -172,7 +199,11 @@ export class DatabaseMonitor {
         ) as has_pg_stat_statements
       `);
 
-      let performanceStats: any = { avg_query_time: 0, total_queries: 0, slow_queries: 0 };
+      let performanceStats: any = {
+        avg_query_time: 0,
+        total_queries: 0,
+        slow_queries: 0,
+      };
 
       if ((extensionCheck as any).has_pg_stat_statements) {
         // Get performance statistics from pg_stat_statements if available
@@ -187,16 +218,20 @@ export class DatabaseMonitor {
         performanceStats = stats;
       } else {
         // Fallback: Use basic database statistics
-        logger.warn('pg_stat_statements extension not available, using basic metrics');
+        logger.warn(
+          'pg_stat_statements extension not available, using basic metrics'
+        );
         performanceStats = {
           avg_query_time: 0,
           total_queries: 0,
-          slow_queries: 0
+          slow_queries: 0,
         };
       }
 
       // Calculate queries per second from recent history
-      const recentQueries = this.queryHistory.filter(q => Date.now() - q.timestamp < 60000);
+      const recentQueries = this.queryHistory.filter(
+        q => Date.now() - q.timestamp < 60000
+      );
       const queriesPerSecond = recentQueries.length / 60;
 
       // Get cache hit ratio with error handling
@@ -228,7 +263,7 @@ export class DatabaseMonitor {
         cacheHitRatio: parseFloat(cache.cache_hit_ratio) || 0,
         indexUsage: 95, // Placeholder - would calculate from pg_stat_user_indexes
         lockWaits: 0, // Placeholder - would get from pg_locks
-        deadlocks: 0 // Placeholder - would get from pg_stat_database
+        deadlocks: 0, // Placeholder - would get from pg_stat_database
       };
     } catch (error) {
       logger.warn('Failed to get performance metrics, using defaults:', error);
@@ -266,7 +301,10 @@ export class DatabaseMonitor {
       const totalSizeBytes = parseInt(size.total_size_bytes) || 0;
 
       // Estimate free space (simplified)
-      const utilizationPercent = Math.min(Math.round((totalSizeBytes / (1024 * 1024 * 1024)) * 10), 100); // Rough estimate
+      const utilizationPercent = Math.min(
+        Math.round((totalSizeBytes / (1024 * 1024 * 1024)) * 10),
+        100
+      ); // Rough estimate
 
       return {
         totalSize: size.total_size || '0 bytes',
@@ -276,8 +314,8 @@ export class DatabaseMonitor {
         largestTables: (largestTables as any[]).map(table => ({
           name: table.table_name,
           size: table.size,
-          rows: parseInt(table.total_rows) || 0
-        }))
+          rows: parseInt(table.total_rows) || 0,
+        })),
       };
     } catch (error) {
       logger.warn('Failed to get storage info, using defaults:', error);
@@ -292,7 +330,7 @@ export class DatabaseMonitor {
     this.queryHistory.push({
       timestamp: Date.now(),
       duration,
-      query: query.substring(0, 100) // Truncate for storage
+      query: query.substring(0, 100), // Truncate for storage
     });
 
     // Keep history size manageable
@@ -312,7 +350,7 @@ export class DatabaseMonitor {
       .map(q => ({
         query: q.query,
         duration: q.duration,
-        timestamp: new Date(q.timestamp).toISOString()
+        timestamp: new Date(q.timestamp).toISOString(),
       }));
   }
 
@@ -320,15 +358,15 @@ export class DatabaseMonitor {
    * Get query performance statistics
    */
   getQueryStats(minutes: number = 60) {
-    const cutoff = Date.now() - (minutes * 60 * 1000);
+    const cutoff = Date.now() - minutes * 60 * 1000;
     const recentQueries = this.queryHistory.filter(q => q.timestamp > cutoff);
-    
+
     if (recentQueries.length === 0) {
       return {
         totalQueries: 0,
         averageDuration: 0,
         slowQueries: 0,
-        queriesPerMinute: 0
+        queriesPerMinute: 0,
       };
     }
 
@@ -339,7 +377,7 @@ export class DatabaseMonitor {
       totalQueries: recentQueries.length,
       averageDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
       slowQueries,
-      queriesPerMinute: recentQueries.length / minutes
+      queriesPerMinute: recentQueries.length / minutes,
     };
   }
 
@@ -369,7 +407,7 @@ export class DatabaseMonitor {
       idle: 0,
       waiting: 0,
       maxConnections: 100,
-      connectionUtilization: 0
+      connectionUtilization: 0,
     };
   }
 
@@ -381,7 +419,7 @@ export class DatabaseMonitor {
       cacheHitRatio: 0,
       indexUsage: 0,
       lockWaits: 0,
-      deadlocks: 0
+      deadlocks: 0,
     };
   }
 
@@ -391,7 +429,7 @@ export class DatabaseMonitor {
       usedSize: '0 bytes',
       freeSize: 'Unknown',
       utilizationPercent: 0,
-      largestTables: []
+      largestTables: [],
     };
   }
 }

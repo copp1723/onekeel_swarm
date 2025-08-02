@@ -46,7 +46,9 @@ describe('OpenRouter Integration Tests', () => {
       const validation = await openRouterHealthChecker.validateConfiguration();
 
       expect(validation.valid).toBe(false);
-      expect(validation.issues).toContain('OPENROUTER_API_KEY environment variable not set');
+      expect(validation.issues).toContain(
+        'OPENROUTER_API_KEY environment variable not set'
+      );
     });
 
     it('should validate API key length', async () => {
@@ -55,7 +57,9 @@ describe('OpenRouter Integration Tests', () => {
       const validation = await openRouterHealthChecker.validateConfiguration();
 
       expect(validation.valid).toBe(false);
-      expect(validation.issues).toContain('OPENROUTER_API_KEY appears to be too short');
+      expect(validation.issues).toContain(
+        'OPENROUTER_API_KEY appears to be too short'
+      );
     });
 
     it('should pass validation with correct API key', async () => {
@@ -171,7 +175,7 @@ describe('OpenRouter Integration Tests', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 429,
-        statusText: 'Too Many Requests'
+        statusText: 'Too Many Requests',
       });
 
       const result = await openRouterHealthChecker.testGenerationCapability();
@@ -220,7 +224,7 @@ describe('OpenRouter Integration Tests', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
-        statusText: 'Unauthorized'
+        statusText: 'Unauthorized',
       });
 
       const result = await openRouterHealthChecker.getAvailableModels();
@@ -281,7 +285,7 @@ describe('OpenRouter Integration Tests', () => {
       const originalFetch = global.fetch;
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: vi.fn().mockRejectedValue(new Error('Invalid JSON'))
+        json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
       });
 
       const health = await openRouterHealthChecker.checkHealth();
@@ -302,7 +306,7 @@ describe('OpenRouter Integration Tests', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
-        statusText: 'Unauthorized'
+        statusText: 'Unauthorized',
       });
 
       const health = await openRouterHealthChecker.checkHealth();
@@ -321,9 +325,9 @@ describe('OpenRouter Integration Tests', () => {
       process.env.OPENROUTER_API_KEY = 'sk-or-test-key-1234567890abcdef';
 
       // Test multiple rapid calls to simulate circuit breaker scenarios
-      const promises = Array(5).fill(null).map(() => 
-        openRouterHealthChecker.checkHealth()
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => openRouterHealthChecker.checkHealth());
 
       const results = await Promise.allSettled(promises);
 

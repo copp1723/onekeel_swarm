@@ -118,6 +118,7 @@ curl -X POST http://localhost:5000/api/email/test \
 ### Checking Email Service Status
 
 The test panel will show:
+
 - Whether the service is configured
 - The configured domain
 - If the API key is present

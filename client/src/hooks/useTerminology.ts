@@ -15,7 +15,9 @@ export interface TerminologyLabels {
 }
 
 export const useTerminology = (): TerminologyLabels => {
-  const { enabled: useContactsTerminology } = useFeatureFlag('ui.contacts-terminology');
+  const { enabled: useContactsTerminology } = useFeatureFlag(
+    'ui.contacts-terminology'
+  );
 
   const labels = useMemo(() => {
     if (useContactsTerminology) {
@@ -28,7 +30,7 @@ export const useTerminology = (): TerminologyLabels => {
         viewAll: 'View All Contacts',
         importBulk: 'Import Contacts',
         noItemsFound: 'No contacts found',
-        totalCount: 'Total Contacts'
+        totalCount: 'Total Contacts',
       };
     }
 
@@ -41,7 +43,7 @@ export const useTerminology = (): TerminologyLabels => {
       viewAll: 'View All Leads',
       importBulk: 'Import Leads',
       noItemsFound: 'No leads found',
-      totalCount: 'Total Leads'
+      totalCount: 'Total Leads',
     };
   }, [useContactsTerminology]);
 
@@ -50,16 +52,29 @@ export const useTerminology = (): TerminologyLabels => {
 
 // Hook to get API endpoint based on terminology
 export const useApiEndpoint = () => {
-  const { enabled: useContactsTerminology } = useFeatureFlag('ui.contacts-terminology');
-  
-  return useMemo(() => ({
-    base: useContactsTerminology ? '/api/contacts' : '/api/leads',
-    getAll: useContactsTerminology ? '/api/contacts' : '/api/leads',
-    getById: (id: string) => useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
-    create: useContactsTerminology ? '/api/contacts' : '/api/leads',
-    update: (id: string) => useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
-    delete: (id: string) => useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
-    import: useContactsTerminology ? '/api/contacts/import' : '/api/leads/import',
-    updateStatus: (id: string) => useContactsTerminology ? `/api/contacts/${id}/status` : `/api/leads/${id}/status`
-  }), [useContactsTerminology]);
+  const { enabled: useContactsTerminology } = useFeatureFlag(
+    'ui.contacts-terminology'
+  );
+
+  return useMemo(
+    () => ({
+      base: useContactsTerminology ? '/api/contacts' : '/api/leads',
+      getAll: useContactsTerminology ? '/api/contacts' : '/api/leads',
+      getById: (id: string) =>
+        useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
+      create: useContactsTerminology ? '/api/contacts' : '/api/leads',
+      update: (id: string) =>
+        useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
+      delete: (id: string) =>
+        useContactsTerminology ? `/api/contacts/${id}` : `/api/leads/${id}`,
+      import: useContactsTerminology
+        ? '/api/contacts/import'
+        : '/api/leads/import',
+      updateStatus: (id: string) =>
+        useContactsTerminology
+          ? `/api/contacts/${id}/status`
+          : `/api/leads/${id}/status`,
+    }),
+    [useContactsTerminology]
+  );
 };

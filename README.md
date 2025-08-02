@@ -53,7 +53,7 @@ Open [http://localhost:5173](http://localhost:5173) to view the dashboard.
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - PostgreSQL 14+
 - Redis (optional, for caching)
 

@@ -10,11 +10,9 @@ export const ClientSwitcher: React.FC = () => {
   }
 
   return (
-    <div className="flex items-center space-x-2">
-      <Building className="h-4 w-4 text-gray-500" />
-      <span className="text-sm text-gray-600">
-        {activeClient.name}
-      </span>
+    <div className='flex items-center space-x-2'>
+      <Building className='h-4 w-4 text-gray-500' />
+      <span className='text-sm text-gray-600'>{activeClient.name}</span>
     </div>
   );
-}; 
+};

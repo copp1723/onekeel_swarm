@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
@@ -24,7 +30,7 @@ export const CampaignsView: React.FC = () => {
       setLoading(true);
       const [agentsRes, campaignsRes] = await Promise.all([
         fetch('/api/agents'),
-        fetch('/api/campaigns')
+        fetch('/api/campaigns'),
       ]);
 
       if (agentsRes.ok) {
@@ -73,13 +79,13 @@ export const CampaignsView: React.FC = () => {
         offer: wizardData.offer,
         templates: wizardData.templates,
         schedule: wizardData.schedule,
-        handoverRules: wizardData.handoverRules
+        handoverRules: wizardData.handoverRules,
       },
       audience: wizardData.audience,
       startDate: wizardData.schedule.startDate || new Date().toISOString(),
       targetCriteria: {
-        filters: wizardData.audience.filters
-      }
+        filters: wizardData.audience.filters,
+      },
     };
   };
 
@@ -111,7 +117,9 @@ export const CampaignsView: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('Failed to create campaign:', errorData);
-        setError(`Failed to create campaign: ${errorData.error?.message || 'Unknown error'}`);
+        setError(
+          `Failed to create campaign: ${errorData.error?.message || 'Unknown error'}`
+        );
       }
     } catch (err) {
       console.error('Error creating campaign:', err);
@@ -142,29 +150,29 @@ export const CampaignsView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading campaigns...</p>
+      <div className='p-6 flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto'></div>
+          <p className='mt-2 text-gray-600'>Loading campaigns...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className='p-6 space-y-6'>
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+        <div className='bg-red-50 border border-red-200 rounded-md p-4'>
+          <div className='flex'>
+            <div className='ml-3'>
+              <h3 className='text-sm font-medium text-red-800'>Error</h3>
+              <div className='mt-2 text-sm text-red-700'>
                 <p>{error}</p>
               </div>
-              <div className="mt-4">
+              <div className='mt-4'>
                 <button
-                  type="button"
-                  className="bg-red-100 px-2 py-1 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
+                  type='button'
+                  className='bg-red-100 px-2 py-1 rounded-md text-sm font-medium text-red-800 hover:bg-red-200'
                   onClick={() => setError(null)}
                 >
                   Dismiss
@@ -202,7 +210,6 @@ export const CampaignsView: React.FC = () => {
           onOpenClassicEditor={() => setShowCreateForm(true)}
         />
       )}
-
     </div>
   );
-}; 
+};

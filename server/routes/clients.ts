@@ -10,27 +10,25 @@ const router = Router();
 // Get all clients
 router.get('/', async (req, res) => {
   try {
-    const { 
+    const {
       active,
       search,
-      limit = 50, 
-      offset = 0, 
-      sort = 'createdAt', 
-      order = 'desc' 
+      limit = 50,
+      offset = 0,
+      sort = 'createdAt',
+      order = 'desc',
     } = req.query;
 
     // Build query conditions
     const conditions = [];
-    
+
     if (active !== undefined) {
       conditions.push(eq(clients.active, active === 'true'));
     }
-    
+
     if (search) {
       const searchPattern = `%${search}%`;
-      conditions.push(
-        ilike(clients.name, searchPattern)
-      );
+      conditions.push(ilike(clients.name, searchPattern));
     }
 
     // Execute query
@@ -66,36 +64,42 @@ router.get('/', async (req, res) => {
 
     // Get stats for each client
     const clientIds = clientList.map(c => c.id);
-    
-    const leadStats = clientIds.length > 0 ? await db
-      .select({
-        clientId: leads.clientId,
-        totalLeads: sql<number>`count(*)::int`
-      })
-      .from(leads)
-      .where(sql`client_id = ANY(${clientIds})`)
-      .groupBy(leads.clientId) : [];
 
-    const campaignStats = clientIds.length > 0 ? await db
-      .select({
-        clientId: campaigns.clientId,
-        totalCampaigns: sql<number>`count(*)::int`
-      })
-      .from(campaigns)
-      .where(sql`client_id = ANY(${clientIds})`)
-      .groupBy(campaigns.clientId) : [];
+    const leadStats =
+      clientIds.length > 0
+        ? await db
+            .select({
+              clientId: leads.clientId,
+              totalLeads: sql<number>`count(*)::int`,
+            })
+            .from(leads)
+            .where(sql`client_id = ANY(${clientIds})`)
+            .groupBy(leads.clientId)
+        : [];
+
+    const campaignStats =
+      clientIds.length > 0
+        ? await db
+            .select({
+              clientId: campaigns.clientId,
+              totalCampaigns: sql<number>`count(*)::int`,
+            })
+            .from(campaigns)
+            .where(sql`client_id = ANY(${clientIds})`)
+            .groupBy(campaigns.clientId)
+        : [];
 
     // Merge stats with clients
     const clientsWithStats = clientList.map(client => {
       const leadStat = leadStats.find(s => s.clientId === client.id);
       const campaignStat = campaignStats.find(s => s.clientId === client.id);
-      
+
       return {
         ...client,
         stats: {
           totalLeads: leadStat?.totalLeads || 0,
-          totalCampaigns: campaignStat?.totalCampaigns || 0
-        }
+          totalCampaigns: campaignStat?.totalCampaigns || 0,
+        },
       };
     });
 
@@ -104,7 +108,7 @@ router.get('/', async (req, res) => {
       data: clientsWithStats,
       total: count,
       offset: Number(offset),
-      limit: Number(limit)
+      limit: Number(limit),
     });
   } catch (error) {
     console.error('Error fetching clients:', error);
@@ -113,8 +117,8 @@ router.get('/', async (req, res) => {
       error: {
         code: 'CLIENT_FETCH_ERROR',
         message: 'Failed to fetch clients',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -123,7 +127,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [client] = await db
       .select()
       .from(clients)
@@ -135,8 +139,8 @@ router.get('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          message: 'Client not found',
+        },
       });
     }
 
@@ -157,9 +161,9 @@ router.get('/:id', async (req, res) => {
         ...client,
         stats: {
           totalLeads: leadCount[0]?.count || 0,
-          totalCampaigns: campaignCount[0]?.count || 0
-        }
-      }
+          totalCampaigns: campaignCount[0]?.count || 0,
+        },
+      },
     });
   } catch (error) {
     console.error('Error fetching client:', error);
@@ -168,8 +172,8 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'CLIENT_FETCH_ERROR',
         message: 'Failed to fetch client',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -179,153 +183,160 @@ const createClientSchema = z.object({
   name: z.string().min(1).max(255),
   industry: z.string().optional(),
   domain: z.string().optional(),
-  settings: z.object({
-    branding: z.record(z.any()).optional(),
-    preferences: z.record(z.any()).optional()
-  }).optional(),
+  settings: z
+    .object({
+      branding: z.record(z.any()).optional(),
+      preferences: z.record(z.any()).optional(),
+    })
+    .optional(),
   brand_config: z.record(z.any()).optional(), // Legacy support
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 
-router.post('/', validateRequest({ body: createClientSchema }), async (req, res) => {
-  try {
-    const clientData = req.body;
-    
-    // Check for duplicate name
-    const [existing] = await db
-      .select()
-      .from(clients)
-      .where(eq(clients.name, clientData.name))
-      .limit(1);
-    
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        error: {
-          code: 'DUPLICATE_CLIENT',
-          message: 'A client with this name already exists'
-        }
-      });
-    }
-    
-    // Handle legacy brand_config
-    if (clientData.brand_config && !clientData.settings?.branding) {
-      clientData.settings = {
-        ...clientData.settings,
-        branding: clientData.brand_config
-      };
-    }
-    
-    const [newClient] = await db
-      .insert(clients)
-      .values({
-        name: clientData.name,
-        industry: clientData.industry,
-        domain: clientData.domain,
-        settings: clientData.settings || {},
-        metadata: clientData.metadata || {},
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+router.post(
+  '/',
+  validateRequest({ body: createClientSchema }),
+  async (req, res) => {
+    try {
+      const clientData = req.body;
 
-    res.status(201).json({
-      success: true,
-      data: newClient
-    });
-  } catch (error) {
-    console.error('Error creating client:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CLIENT_CREATE_ERROR',
-        message: 'Failed to create client',
-        category: 'database'
-      }
-    });
-  }
-});
-
-// Update a client
-const updateClientSchema = createClientSchema.partial();
-
-router.put('/:id', validateRequest({ body: updateClientSchema }), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    // Check if name is being updated and if it's already taken
-    if (updates.name) {
+      // Check for duplicate name
       const [existing] = await db
         .select()
         .from(clients)
-        .where(and(
-          eq(clients.name, updates.name),
-          sql`id != ${id}`
-        ))
+        .where(eq(clients.name, clientData.name))
         .limit(1);
-      
+
       if (existing) {
         return res.status(409).json({
           success: false,
           error: {
-            code: 'DUPLICATE_NAME',
-            message: 'A client with this name already exists'
-          }
+            code: 'DUPLICATE_CLIENT',
+            message: 'A client with this name already exists',
+          },
         });
       }
-    }
-    
-    // Handle legacy brand_config
-    if (updates.brand_config && !updates.settings?.branding) {
-      updates.settings = {
-        ...updates.settings,
-        branding: updates.brand_config
-      };
-    }
-    
-    const [updatedClient] = await db
-      .update(clients)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
-      .where(eq(clients.id, id))
-      .returning();
 
-    if (!updatedClient) {
-      return res.status(404).json({
+      // Handle legacy brand_config
+      if (clientData.brand_config && !clientData.settings?.branding) {
+        clientData.settings = {
+          ...clientData.settings,
+          branding: clientData.brand_config,
+        };
+      }
+
+      const [newClient] = await db
+        .insert(clients)
+        .values({
+          name: clientData.name,
+          industry: clientData.industry,
+          domain: clientData.domain,
+          settings: clientData.settings || {},
+          metadata: clientData.metadata || {},
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.status(201).json({
+        success: true,
+        data: newClient,
+      });
+    } catch (error) {
+      console.error('Error creating client:', error);
+      res.status(500).json({
         success: false,
         error: {
-          code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          code: 'CLIENT_CREATE_ERROR',
+          message: 'Failed to create client',
+          category: 'database',
+        },
       });
     }
-
-    res.json({
-      success: true,
-      data: updatedClient
-    });
-  } catch (error) {
-    console.error('Error updating client:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CLIENT_UPDATE_ERROR',
-        message: 'Failed to update client',
-        category: 'database'
-      }
-    });
   }
-});
+);
+
+// Update a client
+const updateClientSchema = createClientSchema.partial();
+
+router.put(
+  '/:id',
+  validateRequest({ body: updateClientSchema }),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      // Check if name is being updated and if it's already taken
+      if (updates.name) {
+        const [existing] = await db
+          .select()
+          .from(clients)
+          .where(and(eq(clients.name, updates.name), sql`id != ${id}`))
+          .limit(1);
+
+        if (existing) {
+          return res.status(409).json({
+            success: false,
+            error: {
+              code: 'DUPLICATE_NAME',
+              message: 'A client with this name already exists',
+            },
+          });
+        }
+      }
+
+      // Handle legacy brand_config
+      if (updates.brand_config && !updates.settings?.branding) {
+        updates.settings = {
+          ...updates.settings,
+          branding: updates.brand_config,
+        };
+      }
+
+      const [updatedClient] = await db
+        .update(clients)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(clients.id, id))
+        .returning();
+
+      if (!updatedClient) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'CLIENT_NOT_FOUND',
+            message: 'Client not found',
+          },
+        });
+      }
+
+      res.json({
+        success: true,
+        data: updatedClient,
+      });
+    } catch (error) {
+      console.error('Error updating client:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'CLIENT_UPDATE_ERROR',
+          message: 'Failed to update client',
+          category: 'database',
+        },
+      });
+    }
+  }
+);
 
 // Toggle client active status
 router.patch('/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get current status
     const [client] = await db
       .select()
@@ -338,8 +349,8 @@ router.patch('/:id/toggle', async (req, res) => {
         success: false,
         error: {
           code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          message: 'Client not found',
+        },
       });
     }
 
@@ -348,7 +359,7 @@ router.patch('/:id/toggle', async (req, res) => {
       .update(clients)
       .set({
         active: !client.active,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(clients.id, id))
       .returning();
@@ -356,7 +367,7 @@ router.patch('/:id/toggle', async (req, res) => {
     res.json({
       success: true,
       data: updatedClient,
-      message: `Client ${updatedClient.active ? 'activated' : 'deactivated'} successfully`
+      message: `Client ${updatedClient.active ? 'activated' : 'deactivated'} successfully`,
     });
   } catch (error) {
     console.error('Error toggling client status:', error);
@@ -365,8 +376,8 @@ router.patch('/:id/toggle', async (req, res) => {
       error: {
         code: 'CLIENT_TOGGLE_ERROR',
         message: 'Failed to toggle client status',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -375,7 +386,7 @@ router.patch('/:id/toggle', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if client has associated data
     const [leadCount] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -395,9 +406,9 @@ router.delete('/:id', async (req, res) => {
           message: 'Cannot delete client with associated leads or campaigns',
           details: {
             leads: leadCount.count,
-            campaigns: campaignCount.count
-          }
-        }
+            campaigns: campaignCount.count,
+          },
+        },
       });
     }
 
@@ -411,14 +422,14 @@ router.delete('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          message: 'Client not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      message: 'Client deleted successfully'
+      message: 'Client deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting client:', error);
@@ -427,8 +438,8 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'CLIENT_DELETE_ERROR',
         message: 'Failed to delete client',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -437,10 +448,10 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id/settings', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [client] = await db
       .select({
-        settings: clients.settings
+        settings: clients.settings,
       })
       .from(clients)
       .where(eq(clients.id, id))
@@ -451,14 +462,14 @@ router.get('/:id/settings', async (req, res) => {
         success: false,
         error: {
           code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          message: 'Client not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      data: client.settings || {}
+      data: client.settings || {},
     });
   } catch (error) {
     console.error('Error fetching client settings:', error);
@@ -467,8 +478,8 @@ router.get('/:id/settings', async (req, res) => {
       error: {
         code: 'SETTINGS_FETCH_ERROR',
         message: 'Failed to fetch client settings',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -478,10 +489,10 @@ router.patch('/:id/settings', async (req, res) => {
   try {
     const { id } = req.params;
     const newSettings = req.body;
-    
+
     const [client] = await db
       .select({
-        settings: clients.settings
+        settings: clients.settings,
       })
       .from(clients)
       .where(eq(clients.id, id))
@@ -492,29 +503,29 @@ router.patch('/:id/settings', async (req, res) => {
         success: false,
         error: {
           code: 'CLIENT_NOT_FOUND',
-          message: 'Client not found'
-        }
+          message: 'Client not found',
+        },
       });
     }
 
     // Merge settings
     const mergedSettings = {
       ...client.settings,
-      ...newSettings
+      ...newSettings,
     };
 
     const [updatedClient] = await db
       .update(clients)
       .set({
         settings: mergedSettings,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(clients.id, id))
       .returning();
 
     res.json({
       success: true,
-      data: updatedClient.settings
+      data: updatedClient.settings,
     });
   } catch (error) {
     console.error('Error updating client settings:', error);
@@ -523,8 +534,8 @@ router.patch('/:id/settings', async (req, res) => {
       error: {
         code: 'SETTINGS_UPDATE_ERROR',
         message: 'Failed to update client settings',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });

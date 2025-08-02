@@ -17,7 +17,7 @@ export class ExecutionScheduler {
     scheduledFor: Date
   ): Promise<string> {
     const executionId = this.generateExecutionId();
-    
+
     const execution: CampaignExecution = {
       id: executionId,
       campaignId,
@@ -25,17 +25,17 @@ export class ExecutionScheduler {
       templateId,
       scheduledFor,
       status: 'scheduled',
-      attempts: 0
+      attempts: 0,
     };
 
     executionStorage.set(executionId, execution);
-    
+
     logger.info('Email campaign scheduled', {
       executionId,
       campaignId,
       leadId,
       templateId,
-      scheduledFor
+      scheduledFor,
     });
 
     return executionId;
@@ -45,17 +45,17 @@ export class ExecutionScheduler {
    * Schedule campaign execution for a specific lead with template sequence
    */
   async scheduleLeadCampaign(
-    leadId: string, 
-    campaignId: string, 
+    leadId: string,
+    campaignId: string,
     templates: string[]
   ): Promise<string[]> {
     const executionIds: string[] = [];
     let delayMinutes = 0;
-    
+
     for (let i = 0; i < templates.length; i++) {
       const templateId = templates[i];
       const executionId = this.generateExecutionId();
-      
+
       const scheduledFor = new Date();
       scheduledFor.setMinutes(scheduledFor.getMinutes() + delayMinutes);
 
@@ -66,7 +66,7 @@ export class ExecutionScheduler {
         templateId,
         scheduledFor,
         status: 'scheduled',
-        attempts: 0
+        attempts: 0,
       };
 
       executionStorage.set(executionId, execution);
@@ -83,11 +83,11 @@ export class ExecutionScheduler {
       delayMinutes += 24 * 60;
     }
 
-    logger.info('Lead campaign scheduled', { 
-      leadId, 
-      campaignId, 
+    logger.info('Lead campaign scheduled', {
+      leadId,
+      campaignId,
       steps: templates.length,
-      executionIds 
+      executionIds,
     });
 
     return executionIds;
@@ -99,11 +99,11 @@ export class ExecutionScheduler {
   scheduleRetry(execution: CampaignExecution, retryDelayMs: number): void {
     execution.status = 'scheduled';
     execution.scheduledFor = new Date(Date.now() + retryDelayMs);
-    
+
     logger.info('Execution retry scheduled', {
       executionId: execution.id,
       attempts: execution.attempts,
-      scheduledFor: execution.scheduledFor
+      scheduledFor: execution.scheduledFor,
     });
   }
 
@@ -126,13 +126,13 @@ export class ExecutionScheduler {
   cancelExecutions(campaignId?: string, leadId?: string): number {
     let cancelledCount = 0;
     const executions = executionStorage.getAll();
-    
+
     for (const execution of executions) {
       if (execution.status === 'scheduled') {
-        const shouldCancel = 
+        const shouldCancel =
           (campaignId && execution.campaignId === campaignId) ||
           (leadId && execution.leadId === leadId);
-          
+
         if (shouldCancel) {
           execution.status = 'failed';
           execution.errorMessage = 'Cancelled by user';
@@ -141,10 +141,10 @@ export class ExecutionScheduler {
       }
     }
 
-    logger.info('Cancelled campaign executions', { 
+    logger.info('Cancelled campaign executions', {
       count: cancelledCount,
       campaignId,
-      leadId 
+      leadId,
     });
 
     return cancelledCount;

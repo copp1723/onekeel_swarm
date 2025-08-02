@@ -24,13 +24,10 @@ export function CampaignIntelligenceView() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading campaigns...</div>;
+    return <div className='flex justify-center p-8'>Loading campaigns...</div>;
   }
 
   return (
-    <CampaignIntelligenceHub 
-      campaigns={campaigns} 
-      onUpdate={fetchCampaigns}
-    />
+    <CampaignIntelligenceHub campaigns={campaigns} onUpdate={fetchCampaigns} />
   );
 }

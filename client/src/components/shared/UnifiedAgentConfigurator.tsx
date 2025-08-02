@@ -17,5 +17,3 @@ export { AgentConfiguratorContainer as UnifiedAgentConfigurator } from './agent-
 
 // Export types for backward compatibility
 export type { AgentConfiguratorProps as UnifiedAgentConfiguratorProps } from './agent-configurator/types';
-
-

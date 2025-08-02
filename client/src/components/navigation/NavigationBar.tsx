@@ -12,7 +12,7 @@ import {
   Flag,
   Sparkles,
   Mail,
-  Palette
+  Palette,
 } from 'lucide-react';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,19 +37,21 @@ interface NavigationItem {
   }[];
 }
 
-export const NavigationBar: React.FC<NavigationBarProps> = ({ 
-  activeView, 
-  setActiveView, 
-  brandingColor = '#3B82F6' 
+export const NavigationBar: React.FC<NavigationBarProps> = ({
+  activeView,
+  setActiveView,
+  brandingColor = '#3B82F6',
 }) => {
   const { user } = useAuth();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showAgentsDropdown, setShowAgentsDropdown] = useState(false);
-  
+
   // Feature flags
   const { enabled: useNewNavigation } = useFeatureFlag('ui.new-navigation');
-  const { enabled: useContactsTerminology } = useFeatureFlag('ui.contacts-terminology');
-  
+  const { enabled: useContactsTerminology } = useFeatureFlag(
+    'ui.contacts-terminology'
+  );
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,20 +59,26 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
       const settingsButton = document.getElementById('settings-button');
       const agentsDropdown = document.getElementById('agents-dropdown');
       const agentsButton = document.getElementById('agents-button');
-      
-      if (settingsDropdown && settingsButton && 
-          !settingsDropdown.contains(event.target as Node) && 
-          !settingsButton.contains(event.target as Node)) {
+
+      if (
+        settingsDropdown &&
+        settingsButton &&
+        !settingsDropdown.contains(event.target as Node) &&
+        !settingsButton.contains(event.target as Node)
+      ) {
         setShowSettingsDropdown(false);
       }
-      
-      if (agentsDropdown && agentsButton && 
-          !agentsDropdown.contains(event.target as Node) && 
-          !agentsButton.contains(event.target as Node)) {
+
+      if (
+        agentsDropdown &&
+        agentsButton &&
+        !agentsDropdown.contains(event.target as Node) &&
+        !agentsButton.contains(event.target as Node)
+      ) {
         setShowAgentsDropdown(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -88,9 +96,14 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
       children: [
         { id: 'branding', label: 'Branding', icon: Palette },
         { id: 'users', label: 'Users', icon: Users, adminOnly: true },
-        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
-      ]
-    }
+        {
+          id: 'feature-flags',
+          label: 'Feature Flags',
+          icon: Flag,
+          adminOnly: true,
+        },
+      ],
+    },
   ];
 
   const modernNavigation: NavigationItem[] = [
@@ -106,13 +119,18 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
       children: [
         { id: 'branding', label: 'Branding', icon: Palette },
         { id: 'users', label: 'Users', icon: Users, adminOnly: true },
-        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
-      ]
-    }
+        {
+          id: 'feature-flags',
+          label: 'Feature Flags',
+          icon: Flag,
+          adminOnly: true,
+        },
+      ],
+    },
   ];
 
   const navigation = useNewNavigation ? modernNavigation : legacyNavigation;
-  
+
   // Helper to check if a navigation item is active
   const isActive = (item: NavigationItem): boolean => {
     if (item.views) {
@@ -138,18 +156,24 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   };
 
   return (
-    <div className="bg-white border-b">
-      <div className="max-w-7xl mx-auto px-6">
-        <nav className="flex space-x-8" role="navigation" aria-label="Main navigation">
-          {navigation.map((item) => {
+    <div className='bg-white border-b'>
+      <div className='max-w-7xl mx-auto px-6'>
+        <nav
+          className='flex space-x-8'
+          role='navigation'
+          aria-label='Main navigation'
+        >
+          {navigation.map(item => {
             const Icon = item.icon;
             const active = isActive(item);
-            
+
             return (
-              <div key={item.id} className="relative">
+              <div key={item.id} className='relative'>
                 <button
-                  id={item.id === 'settings-group' ? 'settings-button' : undefined}
-                  onClick={(e) => {
+                  id={
+                    item.id === 'settings-group' ? 'settings-button' : undefined
+                  }
+                  onClick={e => {
                     e.stopPropagation();
                     handleNavigationClick(item);
                   }}
@@ -158,48 +182,64 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                       ? 'border-current text-gray-800'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
-                  style={active ? {
-                    color: '#556677',
-                    borderColor: '#556677',
-                    borderBottomWidth: '1px'
-                  } : {}}
+                  style={
+                    active
+                      ? {
+                          color: '#556677',
+                          borderColor: '#556677',
+                          borderBottomWidth: '1px',
+                        }
+                      : {}
+                  }
                   aria-label={`${item.label}${item.children ? ' menu' : ''}`}
-                  aria-expanded={item.id === 'settings-group' ? showSettingsDropdown : undefined}
-                  aria-haspopup={item.children ? "menu" : undefined}
+                  aria-expanded={
+                    item.id === 'settings-group'
+                      ? showSettingsDropdown
+                      : undefined
+                  }
+                  aria-haspopup={item.children ? 'menu' : undefined}
                 >
-                  <Icon className="h-4 w-4 text-gray-500" />
-                  <span className="font-normal text-sm">{item.label}</span>
-                  {item.children && <ChevronDown className="h-3 w-3 text-gray-400" />}
+                  <Icon className='h-4 w-4 text-gray-500' />
+                  <span className='font-normal text-sm'>{item.label}</span>
+                  {item.children && (
+                    <ChevronDown className='h-3 w-3 text-gray-400' />
+                  )}
                 </button>
-                
+
                 {/* Dropdown for settings */}
                 {item.id === 'settings-group' && showSettingsDropdown && (
-                  <div 
-                    id="settings-dropdown"
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-100 rounded shadow-sm z-50"
-                    role="menu"
-                    aria-labelledby="settings-button"
+                  <div
+                    id='settings-dropdown'
+                    onClick={e => e.stopPropagation()}
+                    className='absolute top-full left-0 mt-1 w-48 bg-white border border-gray-100 rounded shadow-sm z-50'
+                    role='menu'
+                    aria-labelledby='settings-button'
                   >
-                    {item.children?.filter(child => !child.adminOnly || user?.role === 'admin').map((child) => {
-                      const ChildIcon = child.icon;
-                      return (
-                        <button
-                          key={child.id}
-                          onClick={() => {
-                            setActiveView(child.id);
-                            setShowSettingsDropdown(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center space-x-2 ${
-                            activeView === child.id ? 'bg-gray-50 text-gray-700' : 'text-gray-600'
-                          }`}
-                          role="menuitem"
-                        >
-                          <ChildIcon className="h-3.5 w-3.5 text-gray-400" />
-                          <span>{child.label}</span>
-                        </button>
-                      );
-                    })}
+                    {item.children
+                      ?.filter(
+                        child => !child.adminOnly || user?.role === 'admin'
+                      )
+                      .map(child => {
+                        const ChildIcon = child.icon;
+                        return (
+                          <button
+                            key={child.id}
+                            onClick={() => {
+                              setActiveView(child.id);
+                              setShowSettingsDropdown(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center space-x-2 ${
+                              activeView === child.id
+                                ? 'bg-gray-50 text-gray-700'
+                                : 'text-gray-600'
+                            }`}
+                            role='menuitem'
+                          >
+                            <ChildIcon className='h-3.5 w-3.5 text-gray-400' />
+                            <span>{child.label}</span>
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </div>

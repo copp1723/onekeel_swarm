@@ -1,5 +1,5 @@
-import { emailTemplateManager } from "./templates";
-import { mailgunService } from "./mailgun";
+import { emailTemplateManager } from './templates';
+import { mailgunService } from './mailgun';
 
 export interface AttemptConfig {
   attemptNumber: number;
@@ -27,7 +27,7 @@ export interface ScheduledAttempt {
   attemptNumber: number;
   templateId: string;
   scheduledFor: Date;
-  status: "scheduled" | "sent" | "failed" | "skipped";
+  status: 'scheduled' | 'sent' | 'failed' | 'skipped';
   variables: Record<string, any>;
   sentAt?: Date;
   messageId?: string;
@@ -64,7 +64,7 @@ export class EmailScheduler {
     const schedule: CampaignSchedule = {
       id: scheduleId,
       name: config.name,
-      description: config.description || "",
+      description: config.description || '',
       isActive: config.isActive ?? true,
       attempts: config.attempts,
       createdAt: now,
@@ -91,7 +91,7 @@ export class EmailScheduler {
     const schedule = this.schedules.get(scheduleId);
 
     if (!schedule || !schedule.isActive) {
-      throw new Error("Campaign schedule not found or inactive");
+      throw new Error('Campaign schedule not found or inactive');
     }
 
     const now = new Date();
@@ -111,7 +111,7 @@ export class EmailScheduler {
         attemptNumber: attempt.attemptNumber,
         templateId: attempt.templateId,
         scheduledFor,
-        status: "scheduled",
+        status: 'scheduled',
         variables,
       };
 
@@ -135,9 +135,9 @@ export class EmailScheduler {
 
       // Get all scheduled attempts that are due
       const dueAttempts = Array.from(this.scheduledAttempts.values())
-        .filter(attempt => 
-          attempt.status === "scheduled" && 
-          attempt.scheduledFor <= now
+        .filter(
+          attempt =>
+            attempt.status === 'scheduled' && attempt.scheduledFor <= now
         )
         .slice(0, 50); // Process in batches
 
@@ -148,8 +148,9 @@ export class EmailScheduler {
           console.error(`Failed to process attempt ${attempt.id}:`, error);
 
           // Mark attempt as failed
-          attempt.status = "failed";
-          attempt.errorMessage = error instanceof Error ? error.message : "Unknown error";
+          attempt.status = 'failed';
+          attempt.errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
           this.scheduledAttempts.set(attempt.id, attempt);
         }
       }
@@ -165,7 +166,7 @@ export class EmailScheduler {
     // Check if we should skip this attempt based on conditions
     const shouldSkip = await this.shouldSkipAttempt(attempt);
     if (shouldSkip) {
-      attempt.status = "skipped";
+      attempt.status = 'skipped';
       this.scheduledAttempts.set(attempt.id, attempt);
       return;
     }
@@ -173,13 +174,16 @@ export class EmailScheduler {
     // Get template and render email
     const variables = {
       ...attempt.variables,
-      firstName: attempt.variables.firstName || "",
-      lastName: attempt.variables.lastName || "",
-      teamName: attempt.variables.teamName || "your team",
+      firstName: attempt.variables.firstName || '',
+      lastName: attempt.variables.lastName || '',
+      teamName: attempt.variables.teamName || 'your team',
       ...attempt.variables,
     };
 
-    const rendered = emailTemplateManager.renderTemplate(attempt.templateId, variables);
+    const rendered = emailTemplateManager.renderTemplate(
+      attempt.templateId,
+      variables
+    );
     if (!rendered) {
       throw new Error(`Template ${attempt.templateId} not found`);
     }
@@ -199,7 +203,7 @@ export class EmailScheduler {
     });
 
     // Update attempt status
-    attempt.status = emailResult.success ? "sent" : "failed";
+    attempt.status = emailResult.success ? 'sent' : 'failed';
     attempt.sentAt = emailResult.success ? new Date() : undefined;
     attempt.messageId = emailResult.messageId || undefined;
     attempt.errorMessage = emailResult.error || undefined;
@@ -207,7 +211,7 @@ export class EmailScheduler {
     this.scheduledAttempts.set(attempt.id, attempt);
 
     console.log(
-      `Multi-attempt email ${emailResult.success ? "sent" : "failed"} to ${email} (Attempt ${attempt.attemptNumber})`
+      `Multi-attempt email ${emailResult.success ? 'sent' : 'failed'} to ${email} (Attempt ${attempt.attemptNumber})`
     );
   }
 
@@ -218,16 +222,16 @@ export class EmailScheduler {
     const schedule = this.schedules.get(attempt.scheduleId);
     if (!schedule) return true;
 
-    const attemptConfig = schedule.attempts.find(a => a.attemptNumber === attempt.attemptNumber);
+    const attemptConfig = schedule.attempts.find(
+      a => a.attemptNumber === attempt.attemptNumber
+    );
     if (!attemptConfig?.conditions) return false;
 
     // Check max attempts
     if (attemptConfig.conditions.maxAttempts) {
-      const sentCount = Array.from(this.scheduledAttempts.values())
-        .filter(a => 
-          a.leadId === attempt.leadId && 
-          a.status === "sent"
-        ).length;
+      const sentCount = Array.from(this.scheduledAttempts.values()).filter(
+        a => a.leadId === attempt.leadId && a.status === 'sent'
+      ).length;
 
       if (sentCount >= attemptConfig.conditions.maxAttempts) {
         return true;
@@ -246,19 +250,20 @@ export class EmailScheduler {
   async getScheduleStatus(scheduleId: string): Promise<any> {
     const schedule = this.schedules.get(scheduleId);
     if (!schedule) {
-      throw new Error("Schedule not found");
+      throw new Error('Schedule not found');
     }
 
     // Get attempt statistics
-    const attempts = Array.from(this.scheduledAttempts.values())
-      .filter(a => a.scheduleId === scheduleId);
+    const attempts = Array.from(this.scheduledAttempts.values()).filter(
+      a => a.scheduleId === scheduleId
+    );
 
     const stats = {
       total: attempts.length,
-      scheduled: attempts.filter(a => a.status === "scheduled").length,
-      sent: attempts.filter(a => a.status === "sent").length,
-      failed: attempts.filter(a => a.status === "failed").length,
-      skipped: attempts.filter(a => a.status === "skipped").length,
+      scheduled: attempts.filter(a => a.status === 'scheduled').length,
+      sent: attempts.filter(a => a.status === 'sent').length,
+      failed: attempts.filter(a => a.status === 'failed').length,
+      skipped: attempts.filter(a => a.status === 'skipped').length,
     };
 
     return {
@@ -275,12 +280,12 @@ export class EmailScheduler {
     const now = new Date();
     const until = new Date(now.getTime() + hours * 60 * 60 * 1000);
 
-    return Array.from(this.scheduledAttempts.values())
-      .filter(attempt => 
-        attempt.status === "scheduled" &&
+    return Array.from(this.scheduledAttempts.values()).filter(
+      attempt =>
+        attempt.status === 'scheduled' &&
         attempt.scheduledFor >= now &&
         attempt.scheduledFor <= until
-      );
+    );
   }
 
   /**
@@ -295,7 +300,7 @@ export class EmailScheduler {
       5 * 60 * 1000
     );
 
-    console.log("Email scheduler started");
+    console.log('Email scheduler started');
   }
 
   /**
@@ -305,7 +310,7 @@ export class EmailScheduler {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log("Email scheduler stopped");
+      console.log('Email scheduler stopped');
     }
   }
 
@@ -322,14 +327,14 @@ export class EmailScheduler {
   async toggleSchedule(scheduleId: string, isActive: boolean): Promise<void> {
     const schedule = this.schedules.get(scheduleId);
     if (!schedule) {
-      throw new Error("Schedule not found");
+      throw new Error('Schedule not found');
     }
 
     schedule.isActive = isActive;
     schedule.updatedAt = new Date();
     this.schedules.set(scheduleId, schedule);
 
-    console.log(`Email schedule ${isActive ? "activated" : "paused"}`);
+    console.log(`Email schedule ${isActive ? 'activated' : 'paused'}`);
   }
 
   /**
@@ -354,9 +359,10 @@ export class EmailScheduler {
     if (!schedule) return false;
 
     // Remove all scheduled attempts for this schedule
-    const attemptsToRemove = Array.from(this.scheduledAttempts.values())
-      .filter(a => a.scheduleId === scheduleId);
-    
+    const attemptsToRemove = Array.from(this.scheduledAttempts.values()).filter(
+      a => a.scheduleId === scheduleId
+    );
+
     attemptsToRemove.forEach(attempt => {
       this.scheduledAttempts.delete(attempt.id);
     });
@@ -372,8 +378,9 @@ export class EmailScheduler {
    * Get attempts for a specific lead
    */
   getLeadAttempts(leadId: string): ScheduledAttempt[] {
-    return Array.from(this.scheduledAttempts.values())
-      .filter(a => a.leadId === leadId);
+    return Array.from(this.scheduledAttempts.values()).filter(
+      a => a.leadId === leadId
+    );
   }
 
   /**
@@ -384,14 +391,16 @@ export class EmailScheduler {
     let canceledCount = 0;
 
     attempts.forEach(attempt => {
-      if (attempt.status === "scheduled") {
-        attempt.status = "skipped";
+      if (attempt.status === 'scheduled') {
+        attempt.status = 'skipped';
         this.scheduledAttempts.set(attempt.id, attempt);
         canceledCount++;
       }
     });
 
-    console.log(`Canceled ${canceledCount} scheduled attempts for lead ${leadId}`);
+    console.log(
+      `Canceled ${canceledCount} scheduled attempts for lead ${leadId}`
+    );
     return canceledCount;
   }
 }

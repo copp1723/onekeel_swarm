@@ -2,7 +2,10 @@
 export { AgentCard } from './AgentCard';
 export { UnifiedAgentConfigurator } from './UnifiedAgentConfigurator';
 export { AgentStatusBadge } from './AgentStatusBadge';
-export { AgentCapabilitySelector, AgentCapabilityIcons } from './AgentCapabilitySelector';
+export {
+  AgentCapabilitySelector,
+  AgentCapabilityIcons,
+} from './AgentCapabilitySelector';
 export { AgentManagementDashboard } from './AgentManagementDashboard';
 
 // Agent Type-Specific Modules

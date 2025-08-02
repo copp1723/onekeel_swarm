@@ -13,28 +13,39 @@ const missingImports = {
   'client/src/views/CampaignsView.tsx': ['Wand2', 'Plus', 'Target'],
   'client/src/views/ClientManagementView.tsx': ['Building'],
   'client/src/views/ConversationsView.tsx': ['MessageSquare'],
-  'client/src/views/DashboardView.tsx': ['Users', 'Target', 'Mail', 'BarChart3'],
+  'client/src/views/DashboardView.tsx': [
+    'Users',
+    'Target',
+    'Mail',
+    'BarChart3',
+  ],
   'client/src/views/LeadsView.tsx': ['Plus', 'Users'],
   'client/src/views/TemplateLibraryView.tsx': ['FileText'],
-  'client/src/views/UsersView.tsx': ['User', 'Mail', 'Shield', 'Calendar', 'ToggleLeft'],
+  'client/src/views/UsersView.tsx': [
+    'User',
+    'Mail',
+    'Shield',
+    'Calendar',
+    'ToggleLeft',
+  ],
 };
 
 function addMissingImports(filePath, icons) {
   console.log(`Adding missing imports to ${filePath}: ${icons.join(', ')}`);
-  
+
   if (!fs.existsSync(filePath)) {
     console.log(`File not found: ${filePath}`);
     return;
   }
-  
+
   let content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
-  
+
   // Find the first import line
   let firstImportIndex = -1;
   let hasLucideImport = false;
   let lucideImportIndex = -1;
-  
+
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].trim().startsWith('import')) {
       if (firstImportIndex === -1) firstImportIndex = i;
@@ -45,15 +56,21 @@ function addMissingImports(filePath, icons) {
       }
     }
   }
-  
+
   if (hasLucideImport) {
     // Update existing lucide import
     const existingImport = lines[lucideImportIndex];
-    const match = existingImport.match(/import\s*\{\s*([^}]*)\s*\}\s*from\s*['"]lucide-react['"]/);
+    const match = existingImport.match(
+      /import\s*\{\s*([^}]*)\s*\}\s*from\s*['"]lucide-react['"]/
+    );
     if (match) {
-      const existingIcons = match[1].split(',').map(icon => icon.trim()).filter(Boolean);
+      const existingIcons = match[1]
+        .split(',')
+        .map(icon => icon.trim())
+        .filter(Boolean);
       const allIcons = [...new Set([...existingIcons, ...icons])];
-      lines[lucideImportIndex] = `import { ${allIcons.join(', ')} } from 'lucide-react';`;
+      lines[lucideImportIndex] =
+        `import { ${allIcons.join(', ')} } from 'lucide-react';`;
     }
   } else {
     // Add new lucide import after first import
@@ -64,7 +81,7 @@ function addMissingImports(filePath, icons) {
       lines.unshift(newImport);
     }
   }
-  
+
   fs.writeFileSync(filePath, lines.join('\n'));
   console.log(`Updated ${filePath}`);
 }

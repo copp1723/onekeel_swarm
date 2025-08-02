@@ -13,7 +13,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging'],
     category: 'ui-progressive' as const,
     complexity: 'basic' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
   {
     key: 'ui.contacts-terminology',
@@ -25,7 +25,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging'],
     category: 'ui-progressive' as const,
     complexity: 'basic' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
   {
     key: 'ui.enhanced-dashboard',
@@ -37,7 +37,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging'],
     category: 'ui-progressive' as const,
     complexity: 'basic' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
 
   // Agent Advanced Settings
@@ -51,19 +51,20 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'agent-tuning' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'high' as const
+    riskLevel: 'high' as const,
   },
   {
     key: 'agent.custom-models',
     name: 'Custom Model Selection',
-    description: 'Allow selection of specific AI models (GPT-4, Claude variants)',
+    description:
+      'Allow selection of specific AI models (GPT-4, Claude variants)',
     enabled: false,
     rolloutPercentage: 0,
     userRoles: ['admin'],
     environments: ['development'],
     category: 'agent-tuning' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
   {
     key: 'agent.debug-mode',
@@ -75,7 +76,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'debugging' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
   {
     key: 'agent.working-hours',
@@ -87,7 +88,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging'],
     category: 'agent-tuning' as const,
     complexity: 'intermediate' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
 
   // Campaign Advanced Features
@@ -101,7 +102,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging', 'production'],
     category: 'campaign-advanced' as const,
     complexity: 'intermediate' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
   {
     key: 'campaign.advanced-scheduling',
@@ -113,7 +114,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'campaign-advanced' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
   {
     key: 'campaign.ab-testing',
@@ -125,7 +126,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'campaign-advanced' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
 
   // System Configuration
@@ -139,7 +140,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'system-config' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'high' as const
+    riskLevel: 'high' as const,
   },
   {
     key: 'system.external-apis',
@@ -151,7 +152,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'system-config' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'high' as const
+    riskLevel: 'high' as const,
   },
   {
     key: 'system.monitoring-advanced',
@@ -163,7 +164,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging', 'production'],
     category: 'system-config' as const,
     complexity: 'intermediate' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
 
   // Integration Features
@@ -177,7 +178,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'integrations' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
+    riskLevel: 'medium' as const,
   },
   {
     key: 'integration.custom-fields',
@@ -189,7 +190,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging'],
     category: 'integrations' as const,
     complexity: 'intermediate' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
 
   // Role-Based Access
@@ -203,7 +204,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging', 'production'],
     category: 'ui-progressive' as const,
     complexity: 'basic' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
   {
     key: 'role.manager-access',
@@ -215,7 +216,7 @@ const DEFAULT_FLAGS = [
     environments: ['development', 'staging', 'production'],
     category: 'ui-progressive' as const,
     complexity: 'basic' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
 
   // Experimental Features
@@ -229,7 +230,7 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'experimental' as const,
     complexity: 'intermediate' as const,
-    riskLevel: 'low' as const
+    riskLevel: 'low' as const,
   },
   {
     key: 'experimental.ai-insights',
@@ -241,14 +242,14 @@ const DEFAULT_FLAGS = [
     environments: ['development'],
     category: 'experimental' as const,
     complexity: 'advanced' as const,
-    riskLevel: 'medium' as const
-  }
+    riskLevel: 'medium' as const,
+  },
 ];
 
 // Function to set up default feature flags
 export async function setupDefaultFeatureFlags(): Promise<void> {
   console.log('Setting up default feature flags...');
-  
+
   try {
     let created = 0;
     let skipped = 0;
@@ -273,7 +274,6 @@ export async function setupDefaultFeatureFlags(): Promise<void> {
     console.log(`   Created: ${created} flags`);
     console.log(`   Skipped: ${skipped} existing flags`);
     console.log(`   Total: ${DEFAULT_FLAGS.length} flags processed`);
-
   } catch (error) {
     console.error('❌ Failed to setup default feature flags:', error);
     throw error;
@@ -287,13 +287,16 @@ export { DEFAULT_FLAGS };
 import { fileURLToPath } from 'url';
 import { argv } from 'process';
 
-if (import.meta.url === `file://${argv[1]}` || fileURLToPath(import.meta.url) === argv[1]) {
+if (
+  import.meta.url === `file://${argv[1]}` ||
+  fileURLToPath(import.meta.url) === argv[1]
+) {
   setupDefaultFeatureFlags()
     .then(() => {
       console.log('Default feature flags setup completed successfully.');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('Failed to setup default feature flags:', error);
       process.exit(1);
     });

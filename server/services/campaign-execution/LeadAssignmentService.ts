@@ -13,12 +13,15 @@ export class LeadAssignmentService {
    * Manually trigger a campaign for specific leads
    */
   async triggerCampaign(
-    campaignId: string, 
-    leadIds: string[], 
+    campaignId: string,
+    leadIds: string[],
     templateSequence?: string[]
   ): Promise<void> {
     try {
-      logger.info('Manually triggering campaign', { campaignId, leadCount: leadIds.length });
+      logger.info('Manually triggering campaign', {
+        campaignId,
+        leadCount: leadIds.length,
+      });
 
       // Get campaign details
       const campaign = await this.getCampaign(campaignId);
@@ -31,19 +34,19 @@ export class LeadAssignmentService {
       }
 
       // Get template sequence
-      const templates = templateSequence || await this.getTemplateSequence(campaign);
+      const templates =
+        templateSequence || (await this.getTemplateSequence(campaign));
 
       // Schedule executions for each lead
       for (const leadId of leadIds) {
         await this.assignLeadToCampaign(leadId, campaignId, templates);
       }
 
-      logger.info('Campaign triggered successfully', { 
-        campaignId, 
+      logger.info('Campaign triggered successfully', {
+        campaignId,
         leadCount: leadIds.length,
-        templateCount: templates.length 
+        templateCount: templates.length,
       });
-
     } catch (error) {
       logger.error('Failed to trigger campaign:', error as Error);
       throw error;
@@ -76,11 +79,10 @@ export class LeadAssignmentService {
       const leadIds = unassignedLeads.map(lead => lead.id);
       await this.triggerCampaign(defaultCampaign.id, leadIds);
 
-      logger.info('Auto-assigned leads to campaigns', { 
+      logger.info('Auto-assigned leads to campaigns', {
         leadCount: unassignedLeads.length,
-        campaignId: defaultCampaign.id 
+        campaignId: defaultCampaign.id,
       });
-
     } catch (error) {
       logger.error('Failed to auto-assign leads:', error as Error);
     }
@@ -90,25 +92,32 @@ export class LeadAssignmentService {
    * Assign a single lead to a campaign with template sequence
    */
   private async assignLeadToCampaign(
-    leadId: string, 
-    campaignId: string, 
+    leadId: string,
+    campaignId: string,
     templates: string[]
   ): Promise<void> {
     try {
       // Update lead's campaign assignment
       await db
         .update(leads)
-        .set({ 
+        .set({
           campaignId,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(leads.id, leadId));
 
       // Schedule template executions
-      await executionScheduler.scheduleLeadCampaign(leadId, campaignId, templates);
+      await executionScheduler.scheduleLeadCampaign(
+        leadId,
+        campaignId,
+        templates
+      );
 
-      logger.debug('Lead assigned to campaign', { leadId, campaignId, templateCount: templates.length });
-
+      logger.debug('Lead assigned to campaign', {
+        leadId,
+        campaignId,
+        templateCount: templates.length,
+      });
     } catch (error) {
       logger.error('Failed to assign lead to campaign:', error as Error);
       throw error;
@@ -125,10 +134,13 @@ export class LeadAssignmentService {
         .from(campaigns)
         .where(eq(campaigns.id, campaignId))
         .limit(1);
-      
+
       return result[0] || null;
     } catch (error) {
-      logger.error('Failed to get campaign', { campaignId, error: (error as Error).message });
+      logger.error('Failed to get campaign', {
+        campaignId,
+        error: (error as Error).message,
+      });
       return null;
     }
   }
@@ -141,12 +153,11 @@ export class LeadAssignmentService {
       return await db
         .select()
         .from(leads)
-        .where(and(
-          isNull(leads.campaignId),
-          eq(leads.status, 'new')
-        ));
+        .where(and(isNull(leads.campaignId), eq(leads.status, 'new')));
     } catch (error) {
-      logger.error('Failed to get unassigned leads', { error: (error as Error).message });
+      logger.error('Failed to get unassigned leads', {
+        error: (error as Error).message,
+      });
       return [];
     }
   }
@@ -161,7 +172,9 @@ export class LeadAssignmentService {
         .from(campaigns)
         .where(eq(campaigns.active, true));
     } catch (error) {
-      logger.error('Failed to get active campaigns', { error: (error as Error).message });
+      logger.error('Failed to get active campaigns', {
+        error: (error as Error).message,
+      });
       return [];
     }
   }
@@ -172,7 +185,9 @@ export class LeadAssignmentService {
   private async getTemplateSequence(campaign: any): Promise<string[]> {
     // Check if campaign has touchSequence in settings
     if (campaign.settings?.touchSequence) {
-      return campaign.settings.touchSequence.map((touch: any) => touch.templateId);
+      return campaign.settings.touchSequence.map(
+        (touch: any) => touch.templateId
+      );
     }
 
     // Fallback to default sequence
@@ -186,9 +201,9 @@ export class LeadAssignmentService {
     try {
       await db
         .update(leads)
-        .set({ 
+        .set({
           campaignId: null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(leads.id, leadId));
 
@@ -197,7 +212,10 @@ export class LeadAssignmentService {
 
       logger.info('Lead removed from campaign', { leadId });
     } catch (error) {
-      logger.error('Failed to remove lead from campaign', { leadId, error: (error as Error).message });
+      logger.error('Failed to remove lead from campaign', {
+        leadId,
+        error: (error as Error).message,
+      });
       throw error;
     }
   }

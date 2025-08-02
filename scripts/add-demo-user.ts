@@ -10,7 +10,9 @@ import { eq } from 'drizzle-orm';
 // Load environment variables
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/onekeel_swarm';
+const connectionString =
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:password@localhost:5432/onekeel_swarm';
 const sql = postgres(connectionString);
 const db = drizzle(sql);
 
@@ -45,7 +47,7 @@ async function addDemoUser() {
       role: 'admin',
       active: true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     console.log('✅ Demo user created successfully!');
@@ -53,7 +55,6 @@ async function addDemoUser() {
     console.log('🔑 Password: testpassword');
 
     await sql.end();
-
   } catch (error) {
     console.error('❌ Failed to create demo user:', error);
     process.exit(1);

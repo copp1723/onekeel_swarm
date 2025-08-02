@@ -6,8 +6,10 @@
 import { z } from 'zod';
 
 // UUID validation regex patterns
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // Numeric ID validation
 const NUMERIC_ID_REGEX = /^\d+$/;
@@ -21,16 +23,19 @@ const POSITIVE_ID_REGEX = /^[1-9]\d*$/;
  */
 export function isValidUUID(id: string, version?: number): boolean {
   if (!id || typeof id !== 'string') return false;
-  
+
   if (version === 4) {
     return UUID_V4_REGEX.test(id);
   }
-  
+
   if (version && version >= 1 && version <= 5) {
-    const versionRegex = new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-${version}[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, 'i');
+    const versionRegex = new RegExp(
+      `^[0-9a-f]{8}-[0-9a-f]{4}-${version}[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
+      'i'
+    );
     return versionRegex.test(id);
   }
-  
+
   return UUID_REGEX.test(id);
 }
 
@@ -49,13 +54,16 @@ export function isValidUUIDv4(id: string): boolean {
  * @param positiveOnly - Whether to only accept positive integers
  * @returns boolean indicating if the string is a valid numeric ID
  */
-export function isValidNumericId(id: string, positiveOnly: boolean = false): boolean {
+export function isValidNumericId(
+  id: string,
+  positiveOnly: boolean = false
+): boolean {
   if (!id || typeof id !== 'string') return false;
-  
+
   if (positiveOnly) {
     return POSITIVE_ID_REGEX.test(id);
   }
-  
+
   return NUMERIC_ID_REGEX.test(id);
 }
 
@@ -76,17 +84,23 @@ export const uuidSchema = z.string().regex(UUID_REGEX, 'Invalid UUID format');
 /**
  * Zod schema for UUID v4 validation
  */
-export const uuidV4Schema = z.string().regex(UUID_V4_REGEX, 'Invalid UUID v4 format');
+export const uuidV4Schema = z
+  .string()
+  .regex(UUID_V4_REGEX, 'Invalid UUID v4 format');
 
 /**
  * Zod schema for numeric ID validation
  */
-export const numericIdSchema = z.string().regex(NUMERIC_ID_REGEX, 'Invalid numeric ID format');
+export const numericIdSchema = z
+  .string()
+  .regex(NUMERIC_ID_REGEX, 'Invalid numeric ID format');
 
 /**
  * Zod schema for positive integer ID validation
  */
-export const positiveIdSchema = z.string().regex(POSITIVE_ID_REGEX, 'Invalid positive integer ID format');
+export const positiveIdSchema = z
+  .string()
+  .regex(POSITIVE_ID_REGEX, 'Invalid positive integer ID format');
 
 /**
  * Validates and sanitizes an ID based on expected type
@@ -94,7 +108,10 @@ export const positiveIdSchema = z.string().regex(POSITIVE_ID_REGEX, 'Invalid pos
  * @param expectedType - The expected type ('uuid', 'uuid-v4', 'numeric', 'positive-numeric')
  * @returns The sanitized ID or null if invalid
  */
-export function sanitizeId(id: string, expectedType: 'uuid' | 'uuid-v4' | 'numeric' | 'positive-numeric'): string | null {
+export function sanitizeId(
+  id: string,
+  expectedType: 'uuid' | 'uuid-v4' | 'numeric' | 'positive-numeric'
+): string | null {
   const trimmedId = id?.toString().trim();
   if (!trimmedId) return null;
 

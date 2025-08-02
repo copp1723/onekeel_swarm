@@ -1,6 +1,6 @@
 /**
  * Secure WebSocket Service
- * 
+ *
  * Always-on secure WebSocket implementation that enforces:
  * - Authentication for all connections
  * - Rate limiting
@@ -21,7 +21,7 @@ const WebSocketMessageSchema = z.object({
   type: z.string().min(1).max(50),
   payload: z.any(),
   timestamp: z.number().optional(),
-  id: z.string().optional()
+  id: z.string().optional(),
 });
 
 // Connection metadata
@@ -37,7 +37,10 @@ interface SecureWebSocketClient extends WebSocket {
 export class SecureWebSocketService {
   private wss: WebSocketServer;
   private clients: Map<string, SecureWebSocketClient> = new Map();
-  private messageHandlers: Map<string, (client: SecureWebSocketClient, payload: any) => Promise<void>> = new Map();
+  private messageHandlers: Map<
+    string,
+    (client: SecureWebSocketClient, payload: any) => Promise<void>
+  > = new Map();
   private broadcastHandler?: (data: any) => void;
 
   constructor(wss: WebSocketServer) {
@@ -61,14 +64,14 @@ export class SecureWebSocketService {
       // Log new connection
       logger.info('New WebSocket connection', {
         connectionId: client.connectionId,
-        ip: req.socket.remoteAddress
+        ip: req.socket.remoteAddress,
       });
 
       // Set connection timeout
       const authTimeout = setTimeout(() => {
         if (!client.isAuthenticated) {
           logger.warn('WebSocket authentication timeout', {
-            connectionId: client.connectionId
+            connectionId: client.connectionId,
           });
           this.closeConnection(client, 1008, 'Authentication timeout');
         }
@@ -93,10 +96,10 @@ export class SecureWebSocketService {
         this.handleDisconnection(client, code, reason.toString());
       });
 
-      client.on('error', (error) => {
+      client.on('error', error => {
         logger.error('WebSocket client error', {
           connectionId: client.connectionId,
-          error: error.message
+          error: error.message,
         });
       });
 
@@ -104,8 +107,8 @@ export class SecureWebSocketService {
       this.sendMessage(client, {
         type: 'auth_required',
         payload: {
-          message: 'Please authenticate within 30 seconds'
-        }
+          message: 'Please authenticate within 30 seconds',
+        },
       });
 
       // Store client
@@ -124,7 +127,7 @@ export class SecureWebSocketService {
     if (!this.checkRateLimit(client)) {
       logger.warn('WebSocket rate limit exceeded', {
         connectionId: client.connectionId,
-        userId: client.userId
+        userId: client.userId,
       });
       this.sendError(client, 'Rate limit exceeded');
       return;
@@ -164,7 +167,7 @@ export class SecureWebSocketService {
     logger.debug('WebSocket message received', {
       connectionId: client.connectionId,
       userId: client.userId,
-      type: message.type
+      type: message.type,
     });
 
     // Handle message based on type
@@ -179,7 +182,10 @@ export class SecureWebSocketService {
   /**
    * Handle authentication
    */
-  private async handleAuthentication(client: SecureWebSocketClient, payload: any) {
+  private async handleAuthentication(
+    client: SecureWebSocketClient,
+    payload: any
+  ) {
     try {
       // Validate token
       if (!payload.token) {
@@ -199,7 +205,7 @@ export class SecureWebSocketService {
 
       logger.info('WebSocket client authenticated', {
         connectionId: client.connectionId,
-        userId: client.userId
+        userId: client.userId,
       });
 
       // Send success message
@@ -207,8 +213,8 @@ export class SecureWebSocketService {
         type: 'auth_success',
         payload: {
           userId: client.userId,
-          connectionId: client.connectionId
-        }
+          connectionId: client.connectionId,
+        },
       });
 
       // Notify handlers of new authenticated connection
@@ -230,7 +236,7 @@ export class SecureWebSocketService {
   private checkRateLimit(client: SecureWebSocketClient): boolean {
     const now = Date.now();
     const windowMs = 60000; // 1 minute window
-    
+
     // Reset window if needed
     if (now - client.messageWindow > windowMs) {
       client.messageCount = 0;
@@ -238,7 +244,7 @@ export class SecureWebSocketService {
     }
 
     client.messageCount++;
-    
+
     const maxMessages = securityConfig.websocket.rateLimit.maxMessagesPerMinute;
     return client.messageCount <= maxMessages;
   }
@@ -249,11 +255,13 @@ export class SecureWebSocketService {
   private sendMessage(client: SecureWebSocketClient, message: any) {
     if (client.readyState === WebSocket.OPEN) {
       try {
-        client.send(JSON.stringify({
-          ...message,
-          timestamp: message.timestamp || Date.now(),
-          id: message.id || crypto.randomUUID()
-        }));
+        client.send(
+          JSON.stringify({
+            ...message,
+            timestamp: message.timestamp || Date.now(),
+            id: message.id || crypto.randomUUID(),
+          })
+        );
       } catch (error) {
         logger.error('Failed to send WebSocket message', error as Error);
       }
@@ -266,14 +274,18 @@ export class SecureWebSocketService {
   private sendError(client: SecureWebSocketClient, error: string) {
     this.sendMessage(client, {
       type: 'error',
-      payload: { error }
+      payload: { error },
     });
   }
 
   /**
    * Close connection
    */
-  private closeConnection(client: SecureWebSocketClient, code: number, reason: string) {
+  private closeConnection(
+    client: SecureWebSocketClient,
+    code: number,
+    reason: string
+  ) {
     try {
       client.close(code, reason);
     } catch (error) {
@@ -285,12 +297,16 @@ export class SecureWebSocketService {
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(client: SecureWebSocketClient, code: number, reason: string) {
+  private handleDisconnection(
+    client: SecureWebSocketClient,
+    code: number,
+    reason: string
+  ) {
     logger.info('WebSocket client disconnected', {
       connectionId: client.connectionId,
       userId: client.userId,
       code,
-      reason
+      reason,
     });
 
     this.clients.delete(client.connectionId);
@@ -311,13 +327,15 @@ export class SecureWebSocketService {
       type: 'broadcast',
       payload: data,
       timestamp: Date.now(),
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
     };
 
-    this.clients.forEach((client) => {
-      if (client.isAuthenticated && 
-          client.connectionId !== excludeClient &&
-          client.readyState === WebSocket.OPEN) {
+    this.clients.forEach(client => {
+      if (
+        client.isAuthenticated &&
+        client.connectionId !== excludeClient &&
+        client.readyState === WebSocket.OPEN
+      ) {
         this.sendMessage(client, message);
       }
     });
@@ -331,13 +349,15 @@ export class SecureWebSocketService {
       type: 'direct',
       payload: data,
       timestamp: Date.now(),
-      id: crypto.randomUUID()
+      id: crypto.randomUUID(),
     };
 
-    this.clients.forEach((client) => {
-      if (client.isAuthenticated && 
-          client.userId === userId &&
-          client.readyState === WebSocket.OPEN) {
+    this.clients.forEach(client => {
+      if (
+        client.isAuthenticated &&
+        client.userId === userId &&
+        client.readyState === WebSocket.OPEN
+      ) {
         this.sendMessage(client, message);
       }
     });
@@ -346,7 +366,10 @@ export class SecureWebSocketService {
   /**
    * Register message handler
    */
-  public registerHandler(type: string, handler: (client: SecureWebSocketClient, payload: any) => Promise<void>) {
+  public registerHandler(
+    type: string,
+    handler: (client: SecureWebSocketClient, payload: any) => Promise<void>
+  ) {
     this.messageHandlers.set(type, handler);
   }
 
@@ -358,11 +381,11 @@ export class SecureWebSocketService {
       const now = Date.now();
       const timeout = 300000; // 5 minutes
 
-      this.clients.forEach((client) => {
+      this.clients.forEach(client => {
         if (now - client.lastActivity > timeout) {
           logger.info('Closing inactive WebSocket connection', {
             connectionId: client.connectionId,
-            userId: client.userId
+            userId: client.userId,
           });
           this.closeConnection(client, 1001, 'Idle timeout');
         } else {
@@ -384,7 +407,7 @@ export class SecureWebSocketService {
     let authenticated = 0;
     let unauthenticated = 0;
 
-    this.clients.forEach((client) => {
+    this.clients.forEach(client => {
       if (client.isAuthenticated) {
         authenticated++;
       } else {
@@ -396,7 +419,7 @@ export class SecureWebSocketService {
       total: this.clients.size,
       authenticated,
       unauthenticated,
-      uptime: process.uptime()
+      uptime: process.uptime(),
     };
   }
 }

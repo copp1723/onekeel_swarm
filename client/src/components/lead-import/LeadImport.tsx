@@ -1,13 +1,40 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, X, Check, AlertCircle, FileSpreadsheet, ArrowRight } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Check,
+  AlertCircle,
+  FileSpreadsheet,
+  ArrowRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
 interface FieldMapping {
@@ -41,12 +68,14 @@ const LEAD_FIELDS = [
   { value: 'phone', label: 'Phone' },
   { value: 'source', label: 'Source' },
   { value: 'campaign', label: 'Campaign' },
-  { value: 'metadata', label: 'Custom Field' }
+  { value: 'metadata', label: 'Custom Field' },
 ];
 
 export function LeadImport() {
   const [file, setFile] = useState<File | null>(null);
-  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(
+    null
+  );
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<string>('');
   const [importing, setImporting] = useState(false);
@@ -58,7 +87,7 @@ export function LeadImport() {
   const campaigns: Campaign[] = [
     { id: '1', name: 'Spring 2025 Campaign' },
     { id: '2', name: 'Summer Promo' },
-    { id: '3', name: 'New Customer Outreach' }
+    { id: '3', name: 'New Customer Outreach' },
   ];
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -76,7 +105,7 @@ export function LeadImport() {
     try {
       const response = await fetch('/api/import/analyze', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
@@ -96,12 +125,16 @@ export function LeadImport() {
     onDrop,
     accept: {
       'text/csv': ['.csv'],
-      'application/vnd.ms-excel': ['.csv']
+      'application/vnd.ms-excel': ['.csv'],
     },
-    maxFiles: 1
+    maxFiles: 1,
   });
 
-  const updateMapping = (index: number, field: keyof FieldMapping, value: string) => {
+  const updateMapping = (
+    index: number,
+    field: keyof FieldMapping,
+    value: string
+  ) => {
     const newMappings = [...mappings];
     newMappings[index] = { ...newMappings[index], [field]: value };
     setMappings(newMappings);
@@ -129,7 +162,7 @@ export function LeadImport() {
 
       const response = await fetch('/api/import/leads', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       clearInterval(progressInterval);
@@ -159,19 +192,20 @@ export function LeadImport() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className='container mx-auto p-6 max-w-6xl'>
       <Card>
         <CardHeader>
           <CardTitle>Import Leads from CSV</CardTitle>
           <CardDescription>
-            Upload a CSV file to import leads into the system. Map your CSV columns to lead fields.
+            Upload a CSV file to import leads into the system. Map your CSV
+            columns to lead fields.
           </CardDescription>
         </CardHeader>
-        
-        <CardContent className="space-y-6">
+
+        <CardContent className='space-y-6'>
           {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+            <Alert variant='destructive'>
+              <AlertCircle className='h-4 w-4' />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -180,77 +214,97 @@ export function LeadImport() {
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-gray-400'
+                isDragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-300 hover:border-gray-400'
               }`}
             >
               <input {...getInputProps()} />
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-lg mb-2">
-                {isDragActive ? 'Drop the CSV file here' : 'Drag & drop a CSV file here'}
+              <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+              <p className='text-lg mb-2'>
+                {isDragActive
+                  ? 'Drop the CSV file here'
+                  : 'Drag & drop a CSV file here'}
               </p>
-              <p className="text-sm text-gray-500">or click to select a file</p>
-              <p className="text-xs text-gray-400 mt-2">Maximum file size: 10MB</p>
+              <p className='text-sm text-gray-500'>or click to select a file</p>
+              <p className='text-xs text-gray-400 mt-2'>
+                Maximum file size: 10MB
+              </p>
             </div>
           )}
 
           {file && analyzeResult && !importResult && (
             <>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <FileSpreadsheet className="h-8 w-8 text-green-600" />
+              <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
+                <div className='flex items-center space-x-3'>
+                  <FileSpreadsheet className='h-8 w-8 text-green-600' />
                   <div>
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {analyzeResult.totalRows} rows • {analyzeResult.headers.length} columns
+                    <p className='font-medium'>{file.name}</p>
+                    <p className='text-sm text-gray-500'>
+                      {analyzeResult.totalRows} rows •{' '}
+                      {analyzeResult.headers.length} columns
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={reset}>
-                  <X className="h-4 w-4" />
+                <Button variant='ghost' size='sm' onClick={reset}>
+                  <X className='h-4 w-4' />
                 </Button>
               </div>
 
-              <div className="space-y-4">
+              <div className='space-y-4'>
                 <div>
-                  <Label htmlFor="campaign">Campaign (Optional)</Label>
-                  <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-                    <SelectTrigger id="campaign">
-                      <SelectValue placeholder="Select a campaign" />
+                  <Label htmlFor='campaign'>Campaign (Optional)</Label>
+                  <Select
+                    value={selectedCampaign}
+                    onValueChange={setSelectedCampaign}
+                  >
+                    <SelectTrigger id='campaign'>
+                      <SelectValue placeholder='Select a campaign' />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No campaign</SelectItem>
-                      {campaigns?.map((campaign) => (
+                      <SelectItem value=''>No campaign</SelectItem>
+                      {campaigns?.map(campaign => (
                         <SelectItem key={campaign.id} value={campaign.id}>
                           {campaign.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className='text-sm text-gray-500 mt-1'>
                     Campaign defaults will be applied to imported leads
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-3">Field Mappings</h3>
-                  <div className="space-y-2">
+                  <h3 className='font-medium mb-3'>Field Mappings</h3>
+                  <div className='space-y-2'>
                     {mappings.map((mapping, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <Badge variant="outline" className="bg-white">{mapping.csvColumn}</Badge>
+                      <div
+                        key={index}
+                        className='flex items-center space-x-3 p-3 bg-gray-50 rounded-lg'
+                      >
+                        <div className='flex-1'>
+                          <Badge variant='outline' className='bg-white'>
+                            {mapping.csvColumn}
+                          </Badge>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
-                        <div className="flex-1">
+                        <ArrowRight className='h-4 w-4 text-gray-400' />
+                        <div className='flex-1'>
                           <Select
                             value={mapping.leadField}
-                            onValueChange={(value) => updateMapping(index, 'leadField', value)}
+                            onValueChange={value =>
+                              updateMapping(index, 'leadField', value)
+                            }
                           >
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className='bg-white'>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {LEAD_FIELDS.map((field) => (
-                                <SelectItem key={field.value} value={field.value}>
+                              {LEAD_FIELDS.map(field => (
+                                <SelectItem
+                                  key={field.value}
+                                  value={field.value}
+                                >
                                   {field.label}
                                 </SelectItem>
                               ))}
@@ -263,8 +317,8 @@ export function LeadImport() {
                 </div>
 
                 <div>
-                  <h3 className="font-medium mb-3">Preview</h3>
-                  <div className="overflow-x-auto">
+                  <h3 className='font-medium mb-3'>Preview</h3>
+                  <div className='overflow-x-auto'>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -278,7 +332,9 @@ export function LeadImport() {
                           <TableRow key={rowIndex}>
                             {analyzeResult.headers.map((header, colIndex) => (
                               <TableCell key={colIndex}>
-                                {row[header] || <span className="text-gray-400">—</span>}
+                                {row[header] || (
+                                  <span className='text-gray-400'>—</span>
+                                )}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -292,56 +348,70 @@ export function LeadImport() {
           )}
 
           {importing && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">Importing leads...</p>
+            <div className='space-y-3'>
+              <p className='text-sm text-gray-600'>Importing leads...</p>
               <Progress value={progress} />
             </div>
           )}
 
           {importResult && (
-            <div className="space-y-4">
-              <Alert variant={importResult.failed > 0 ? 'destructive' : 'default'}>
-                <Check className="h-4 w-4" />
+            <div className='space-y-4'>
+              <Alert
+                variant={importResult.failed > 0 ? 'destructive' : 'default'}
+              >
+                <Check className='h-4 w-4' />
                 <AlertDescription>
-                  Import completed: {importResult.successful} successful, {importResult.failed} failed
+                  Import completed: {importResult.successful} successful,{' '}
+                  {importResult.failed} failed
                 </AlertDescription>
               </Alert>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className='grid grid-cols-3 gap-4'>
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Total Rows</CardTitle>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-sm font-medium'>
+                      Total Rows
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">{importResult.total}</p>
+                    <p className='text-2xl font-bold'>{importResult.total}</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Successful</CardTitle>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-sm font-medium'>
+                      Successful
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-green-600">{importResult.successful}</p>
+                    <p className='text-2xl font-bold text-green-600'>
+                      {importResult.successful}
+                    </p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Failed</CardTitle>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-sm font-medium'>
+                      Failed
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-red-600">{importResult.failed}</p>
+                    <p className='text-2xl font-bold text-red-600'>
+                      {importResult.failed}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
 
               {importResult.errors.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-2">Errors</h3>
-                  <div className="max-h-40 overflow-y-auto space-y-1">
+                  <h3 className='font-medium mb-2'>Errors</h3>
+                  <div className='max-h-40 overflow-y-auto space-y-1'>
                     {importResult.errors.map((error, index) => (
-                      <Alert key={index} variant="destructive" className="py-2">
-                        <AlertDescription className="text-sm">
-                          {error.row && `Row ${error.row}: `}{error.error}
+                      <Alert key={index} variant='destructive' className='py-2'>
+                        <AlertDescription className='text-sm'>
+                          {error.row && `Row ${error.row}: `}
+                          {error.error}
                         </AlertDescription>
                       </Alert>
                     ))}
@@ -352,18 +422,22 @@ export function LeadImport() {
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className='flex justify-between'>
           {importResult ? (
-            <Button onClick={reset} className="w-full">
+            <Button onClick={reset} className='w-full'>
               Import More Leads
             </Button>
           ) : (
             <>
-              <Button variant="outline" onClick={reset} disabled={!file || importing}>
+              <Button
+                variant='outline'
+                onClick={reset}
+                disabled={!file || importing}
+              >
                 Cancel
               </Button>
-              <Button 
-                onClick={handleImport} 
+              <Button
+                onClick={handleImport}
                 disabled={!file || !analyzeResult || importing}
               >
                 Import Leads

@@ -12,7 +12,7 @@ We've simplified the Agent Configuration UI by removing complex advanced setting
    - Added a user-friendly explanation about AI technology
 
 2. **Default Configuration**
-   - Set default temperature to 70% 
+   - Set default temperature to 70%
    - Set default max tokens to 500
    - Set API model to 'openrouter-auto' to use OpenRouter's automatic model selection
 

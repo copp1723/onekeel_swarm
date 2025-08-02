@@ -3,7 +3,7 @@ import { logger } from './logger';
 export enum CircuitState {
   CLOSED = 'closed',
   OPEN = 'open',
-  HALF_OPEN = 'half-open'
+  HALF_OPEN = 'half-open',
 }
 
 export interface CircuitBreakerOptions {
@@ -18,13 +18,13 @@ export class CircuitBreaker {
   private failureCount = 0;
   private lastFailureTime = 0;
   private successCount = 0;
-  
+
   constructor(
     private serviceName: string,
     private options: CircuitBreakerOptions = {
       failureThreshold: 5,
       resetTimeout: 60000, // 1 minute
-      monitoringPeriod: 60000 // 1 minute
+      monitoringPeriod: 60000, // 1 minute
     }
   ) {}
 
@@ -50,12 +50,12 @@ export class CircuitBreaker {
 
   private onSuccess(): void {
     this.successCount++;
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.CLOSED;
       this.failureCount = 0;
-      logger.info('Circuit breaker closed after successful test', { 
-        service: this.serviceName 
+      logger.info('Circuit breaker closed after successful test', {
+        service: this.serviceName,
       });
     }
   }
@@ -66,9 +66,9 @@ export class CircuitBreaker {
 
     if (this.failureCount >= this.options.failureThreshold) {
       this.state = CircuitState.OPEN;
-      logger.warn('Circuit breaker opened', { 
+      logger.warn('Circuit breaker opened', {
         service: this.serviceName,
-        failureCount: this.failureCount 
+        failureCount: this.failureCount,
       });
     }
   }
@@ -79,10 +79,12 @@ export class CircuitBreaker {
 
   private async handleOpenCircuit<T>(): Promise<T> {
     if (this.options.fallbackFunction) {
-      logger.info('Circuit breaker executing fallback', { service: this.serviceName });
+      logger.info('Circuit breaker executing fallback', {
+        service: this.serviceName,
+      });
       return await this.options.fallbackFunction();
     }
-    
+
     throw new Error(`Circuit breaker is open for service: ${this.serviceName}`);
   }
 
@@ -100,7 +102,7 @@ export class CircuitBreaker {
       state: this.state,
       failureCount: this.failureCount,
       successCount: this.successCount,
-      lastFailureTime: this.lastFailureTime
+      lastFailureTime: this.lastFailureTime,
     };
   }
 
@@ -109,7 +111,9 @@ export class CircuitBreaker {
     this.failureCount = 0;
     this.successCount = 0;
     this.lastFailureTime = 0;
-    logger.info('Circuit breaker manually reset', { service: this.serviceName });
+    logger.info('Circuit breaker manually reset', {
+      service: this.serviceName,
+    });
   }
 }
 
@@ -121,7 +125,7 @@ export const twilioCircuitBreaker = new CircuitBreaker('twilio', {
   fallbackFunction: async () => {
     logger.warn('Twilio circuit breaker fallback triggered');
     return { success: false, message: 'SMS service temporarily unavailable' };
-  }
+  },
 });
 
 export const mailgunCircuitBreaker = new CircuitBreaker('mailgun', {
@@ -131,7 +135,7 @@ export const mailgunCircuitBreaker = new CircuitBreaker('mailgun', {
   fallbackFunction: async () => {
     logger.warn('Mailgun circuit breaker fallback triggered');
     return { success: false, message: 'Email service temporarily unavailable' };
-  }
+  },
 });
 
 export const openrouterCircuitBreaker = new CircuitBreaker('openrouter', {
@@ -141,18 +145,24 @@ export const openrouterCircuitBreaker = new CircuitBreaker('openrouter', {
   fallbackFunction: async () => {
     logger.warn('OpenRouter circuit breaker fallback triggered');
     return 'I apologize, but I am unable to process your request at this time.';
-  }
+  },
 });
 
 // Helper functions for easy usage
-export async function executeWithTwilioBreaker<T>(operation: () => Promise<T>): Promise<T> {
+export async function executeWithTwilioBreaker<T>(
+  operation: () => Promise<T>
+): Promise<T> {
   return await twilioCircuitBreaker.execute(operation);
 }
 
-export async function executeWithMailgunBreaker<T>(operation: () => Promise<T>): Promise<T> {
+export async function executeWithMailgunBreaker<T>(
+  operation: () => Promise<T>
+): Promise<T> {
   return await mailgunCircuitBreaker.execute(operation);
 }
 
-export async function executeWithOpenRouterBreaker<T>(operation: () => Promise<T>): Promise<T> {
+export async function executeWithOpenRouterBreaker<T>(
+  operation: () => Promise<T>
+): Promise<T> {
   return await openrouterCircuitBreaker.execute(operation);
 }

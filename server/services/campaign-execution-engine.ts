@@ -19,8 +19,11 @@ export { CampaignOrchestrator as CampaignExecutionEngine } from './campaign-exec
 export { campaignOrchestrator as campaignExecutionEngine } from './campaign-execution/CampaignOrchestrator';
 
 // Export types for backward compatibility
-export type { CampaignTrigger, CampaignExecution, ExecutionStats } from './campaign-execution/types';
+export type {
+  CampaignTrigger,
+  CampaignExecution,
+  ExecutionStats,
+} from './campaign-execution/types';
 
 // Default export
 export { campaignOrchestrator as default } from './campaign-execution/CampaignOrchestrator';
-

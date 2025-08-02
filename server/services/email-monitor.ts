@@ -50,8 +50,14 @@ class EmailMonitor {
 
   async start() {
     // Check if IMAP configuration is available
-    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASSWORD) {
-      logger.info('Email monitor not started - IMAP configuration missing (IMAP_HOST, IMAP_USER, IMAP_PASSWORD)');
+    if (
+      !process.env.IMAP_HOST ||
+      !process.env.IMAP_USER ||
+      !process.env.IMAP_PASSWORD
+    ) {
+      logger.info(
+        'Email monitor not started - IMAP configuration missing (IMAP_HOST, IMAP_USER, IMAP_PASSWORD)'
+      );
       return;
     }
 
@@ -71,10 +77,10 @@ class EmailMonitor {
       this.connection = await imaps.connect(config);
       await this.connection.openBox('INBOX');
       logger.info('Email monitor connected and listening');
-      
+
       // Start periodic checking for new emails
       this.startPeriodicCheck();
-      
+
       // Also set up real-time monitoring if supported
       if (this.connection.imap) {
         this.connection.imap.on('mail', (numNewMails: number) => {
@@ -99,14 +105,17 @@ class EmailMonitor {
 
     try {
       const searchCriteria = ['UNSEEN'];
-      const fetchOptions = { 
-        bodies: ['HEADER', 'TEXT', ''], 
+      const fetchOptions = {
+        bodies: ['HEADER', 'TEXT', ''],
         markSeen: false,
-        struct: true 
+        struct: true,
       };
-      
-      const messages = await this.connection.search(searchCriteria, fetchOptions);
-      
+
+      const messages = await this.connection.search(
+        searchCriteria,
+        fetchOptions
+      );
+
       if (messages.length > 0) {
         logger.info(`Found ${messages.length} new emails to process`);
         await this.processEmails(messages);
@@ -129,7 +138,7 @@ class EmailMonitor {
 
         const parsed = await simpleParser(all.body);
         const processResult = await this.processEmail(parsed);
-        
+
         if (processResult.processed) {
           // Mark as seen after successful processing
           const uid = message.attributes.uid;
@@ -141,7 +150,9 @@ class EmailMonitor {
     }
   }
 
-  private async processEmail(email: ParsedMail): Promise<{ processed: boolean; leadId?: string }> {
+  private async processEmail(
+    email: ParsedMail
+  ): Promise<{ processed: boolean; leadId?: string }> {
     const fromAddress = email.from?.value[0]?.address || '';
     const fromName = email.from?.value[0]?.name || '';
     const subject = email.subject || '';
@@ -152,7 +163,7 @@ class EmailMonitor {
     logger.info('Processing email', {
       from: fromAddress,
       subject: subject.substring(0, 50),
-      hasAttachments
+      hasAttachments,
     });
 
     // Check if this is a reply to an existing conversation
@@ -164,22 +175,24 @@ class EmailMonitor {
         to: email.to?.value[0]?.address || '',
         subject,
         content: textBody,
-        timestamp: email.date || new Date()
+        timestamp: email.date || new Date(),
       });
       return { processed: true };
     }
 
     // Check trigger rules
     const matchedRule = this.findMatchingRule(email);
-    
+
     if (!matchedRule) {
-      logger.debug('No matching trigger rule found for email', { from: fromAddress });
+      logger.debug('No matching trigger rule found for email', {
+        from: fromAddress,
+      });
       return { processed: false };
     }
 
-    logger.info('Email matched trigger rule', { 
+    logger.info('Email matched trigger rule', {
       rule: matchedRule.name,
-      from: fromAddress 
+      from: fromAddress,
     });
 
     // Extract lead data
@@ -187,20 +200,20 @@ class EmailMonitor {
 
     // Check if lead already exists
     let lead = await this.findExistingLead(leadData.email);
-    
+
     if (!lead && matchedRule.actions.createLead) {
       // Create new lead
       lead = await this.createLead(leadData);
-      logger.info('Created new lead from email', { 
+      logger.info('Created new lead from email', {
         leadId: lead.id,
-        email: lead.email 
+        email: lead.email,
       });
     } else if (lead) {
       // Update existing lead
       await this.updateLead(lead.id, leadData);
-      logger.info('Updated existing lead from email', { 
+      logger.info('Updated existing lead from email', {
         leadId: lead.id,
-        email: lead.email 
+        email: lead.email,
       });
     }
 
@@ -210,7 +223,10 @@ class EmailMonitor {
 
     // Apply rule actions
     if (matchedRule.actions.assignCampaign) {
-      await this.assignLeadToCampaign(lead.id, matchedRule.actions.assignCampaign);
+      await this.assignLeadToCampaign(
+        lead.id,
+        matchedRule.actions.assignCampaign
+      );
     }
 
     if (matchedRule.actions.addTags) {
@@ -239,14 +255,14 @@ class EmailMonitor {
 
       // Check from condition
       if (rule.conditions.from) {
-        const fromPatterns = Array.isArray(rule.conditions.from) 
-          ? rule.conditions.from 
+        const fromPatterns = Array.isArray(rule.conditions.from)
+          ? rule.conditions.from
           : [rule.conditions.from];
-        
-        matches = fromPatterns.some(pattern => 
+
+        matches = fromPatterns.some(pattern =>
           fromAddress.toLowerCase().includes(pattern.toLowerCase())
         );
-        
+
         if (!matches) continue;
       }
 
@@ -255,9 +271,11 @@ class EmailMonitor {
         if (rule.conditions.subject instanceof RegExp) {
           matches = rule.conditions.subject.test(subject);
         } else {
-          matches = subject.toLowerCase().includes(rule.conditions.subject.toLowerCase());
+          matches = subject
+            .toLowerCase()
+            .includes(rule.conditions.subject.toLowerCase());
         }
-        
+
         if (!matches) continue;
       }
 
@@ -266,9 +284,11 @@ class EmailMonitor {
         if (rule.conditions.body instanceof RegExp) {
           matches = rule.conditions.body.test(body);
         } else {
-          matches = body.toLowerCase().includes(rule.conditions.body.toLowerCase());
+          matches = body
+            .toLowerCase()
+            .includes(rule.conditions.body.toLowerCase());
         }
-        
+
         if (!matches) continue;
       }
 
@@ -276,7 +296,7 @@ class EmailMonitor {
       if (rule.conditions.hasAttachment !== undefined) {
         const hasAttachments = (email.attachments?.length || 0) > 0;
         matches = rule.conditions.hasAttachment === hasAttachments;
-        
+
         if (!matches) continue;
       }
 
@@ -290,7 +310,7 @@ class EmailMonitor {
   private extractLeadData(email: ParsedMail, rule: EmailTriggerRule): LeadData {
     const fromAddress = email.from?.value[0]?.address || '';
     const fromName = email.from?.value[0]?.name || '';
-    
+
     // Try to extract phone number from email body
     const phoneRegex = /(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/g;
     const phoneMatch = (email.text || '').match(phoneRegex);
@@ -307,8 +327,8 @@ class EmailMonitor {
         source: rule.actions.setSource || 'email-monitor',
         triggerRule: rule.name,
         hasAttachments: (email.attachments?.length || 0) > 0,
-        messageId: email.messageId
-      }
+        messageId: email.messageId,
+      },
     };
   }
 
@@ -341,13 +361,13 @@ class EmailMonitor {
 
     await db.insert(leads).values(newLead);
     logger.info(`Created new lead from email: ${newLead.id}`);
-    
+
     return newLead;
   }
 
   private async updateLead(leadId: string, data: LeadData) {
     const updates: any = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     if (data.phone) {
@@ -361,25 +381,24 @@ class EmailMonitor {
         updates.metadata = {
           ...lead.metadata,
           ...data.metadata,
-          lastEmailReceived: new Date()
+          lastEmailReceived: new Date(),
         };
       }
     }
 
-    await db.update(leads)
-      .set(updates)
-      .where(eq(leads.id, leadId));
+    await db.update(leads).set(updates).where(eq(leads.id, leadId));
   }
 
   private async assignLeadToCampaign(leadId: string, campaignId: string) {
     try {
-      await db.update(leads)
-        .set({ 
+      await db
+        .update(leads)
+        .set({
           campaignId,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(leads.id, leadId));
-      
+
       logger.info('Assigned lead to campaign', { leadId, campaignId });
     } catch (error) {
       logger.error('Failed to assign lead to campaign', error as Error);
@@ -392,17 +411,18 @@ class EmailMonitor {
       if (lead) {
         const existingTags = lead.metadata?.tags || [];
         const newTags = [...new Set([...existingTags, ...tags])];
-        
-        await db.update(leads)
-          .set({ 
+
+        await db
+          .update(leads)
+          .set({
             metadata: {
               ...lead.metadata,
-              tags: newTags
+              tags: newTags,
             },
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(leads.id, leadId));
-        
+
         logger.info('Added tags to lead', { leadId, tags });
       }
     } catch (error) {
@@ -414,16 +434,17 @@ class EmailMonitor {
     try {
       const lead = await LeadsRepository.findById(leadId);
       if (lead) {
-        await db.update(leads)
-          .set({ 
+        await db
+          .update(leads)
+          .set({
             metadata: {
               ...lead.metadata,
-              priority
+              priority,
             },
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(leads.id, leadId));
-        
+
         logger.info('Set lead priority', { leadId, priority });
       }
     } catch (error) {
@@ -450,8 +471,8 @@ class EmailMonitor {
           createLead: true,
           assignCampaign: 'auto-loan-campaign',
           setSource: 'email-inquiry',
-          setPriority: 'high'
-        }
+          setPriority: 'high',
+        },
       },
       {
         id: 'contact-form',
@@ -459,13 +480,13 @@ class EmailMonitor {
         enabled: true,
         conditions: {
           from: ['noreply@', 'contact@', 'form@'],
-          subject: /contact form|inquiry|submission/i
+          subject: /contact form|inquiry|submission/i,
         },
         actions: {
           createLead: true,
           setSource: 'contact-form',
-          addTags: ['website-lead']
-        }
+          addTags: ['website-lead'],
+        },
       },
       {
         id: 'general-inquiry',
@@ -477,9 +498,9 @@ class EmailMonitor {
         actions: {
           createLead: true,
           setSource: 'email',
-          setPriority: 'normal'
-        }
-      }
+          setPriority: 'normal',
+        },
+      },
     ];
   }
 
@@ -512,16 +533,16 @@ class EmailMonitor {
     const subject = email.subject || '';
     const inReplyTo = email.inReplyTo;
     const references = email.references;
-    
+
     // Check for common reply indicators
     const replyIndicators = ['re:', 'reply:', 'response:', 'answer:'];
-    const hasReplyIndicator = replyIndicators.some(indicator => 
+    const hasReplyIndicator = replyIndicators.some(indicator =>
       subject.toLowerCase().startsWith(indicator)
     );
-    
+
     // Check for email headers that indicate a reply
     const hasReplyHeaders = !!(inReplyTo || references);
-    
+
     return hasReplyIndicator || hasReplyHeaders;
   }
 

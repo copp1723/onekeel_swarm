@@ -20,54 +20,66 @@ AgentConfiguratorContainer (Main Entry Point)
 ## Components
 
 ### 🎯 AgentConfiguratorContainer
+
 **File:** `AgentConfiguratorContainer.tsx`
 **Purpose:** Main form container that orchestrates all sections
 **Responsibilities:**
+
 - Manages overall form state and submission
 - Coordinates between all sections
 - Handles form validation and error display
 - Provides backward compatibility
 
 ### 🧠 BasicInfoSection
+
 **File:** `sections/BasicInfoSection.tsx`
 **Purpose:** Handles basic agent information
 **Responsibilities:**
+
 - Agent name and type selection
 - Role and status configuration
 - End goal definition
 - Type change handling with validation
 
 ### 👤 PersonalitySection
+
 **File:** `sections/PersonalitySection.tsx`
 **Purpose:** Manages personality and behavior settings
 **Responsibilities:**
+
 - Personality type selection
 - Tone configuration
 - Response length settings
 - Behavior preview
 
 ### 📚 InstructionsSection
+
 **File:** `sections/InstructionsSection.tsx`
 **Purpose:** Handles do's and don'ts management
 **Responsibilities:**
+
 - Dynamic instruction list management
 - Add/remove/edit instructions
 - Separate do's and don'ts handling
 - Instruction validation
 
 ### 🎯 DomainExpertiseSection
+
 **File:** `sections/DomainExpertiseSection.tsx`
 **Purpose:** Manages expertise areas
 **Responsibilities:**
+
 - Dynamic expertise list management
 - Add/remove/edit expertise areas
 - Expertise templates and suggestions
 - Duplicate detection
 
 ### ⚙️ AdvancedSettingsSection
+
 **File:** `sections/AdvancedSettingsSection.tsx`
 **Purpose:** Handles AI model parameters
 **Responsibilities:**
+
 - Temperature and token settings
 - API model selection
 - Capability display
@@ -76,9 +88,11 @@ AgentConfiguratorContainer (Main Entry Point)
 ## Custom Hooks
 
 ### 🔧 useAgentConfig
+
 **File:** `hooks/useAgentConfig.ts`
 **Purpose:** Main form state management
 **Features:**
+
 - Form data state management
 - Validation handling
 - Submission logic
@@ -86,18 +100,22 @@ AgentConfiguratorContainer (Main Entry Point)
 - Change tracking
 
 ### 📝 useInstructions
+
 **File:** `hooks/useInstructions.ts`
 **Purpose:** Instructions management
 **Features:**
+
 - Add/update/remove instructions
 - Separate do's and don'ts handling
 - Instruction validation
 - Template support
 
 ### 🎓 useDomainExpertise
+
 **File:** `hooks/useDomainExpertise.ts`
 **Purpose:** Expertise management
 **Features:**
+
 - Add/update/remove expertise areas
 - Duplicate detection
 - Template support
@@ -106,7 +124,9 @@ AgentConfiguratorContainer (Main Entry Point)
 ## Types and Interfaces
 
 ### 📋 types.ts
+
 Contains all shared types and interfaces:
+
 - `AgentConfiguratorProps` - Main component props
 - `AgentFormData` - Form data structure
 - `ValidationErrors` - Error handling
@@ -126,6 +146,7 @@ The refactored system maintains 100% backward compatibility with the original `U
 ## Usage Examples
 
 ### Using the Container (Backward Compatible)
+
 ```typescript
 import { UnifiedAgentConfigurator } from '@/components/shared/UnifiedAgentConfigurator';
 
@@ -139,16 +160,17 @@ import { UnifiedAgentConfigurator } from '@/components/shared/UnifiedAgentConfig
 ```
 
 ### Using Individual Sections (New Approach)
+
 ```typescript
-import { 
-  BasicInfoSection, 
-  PersonalitySection, 
-  useAgentConfig 
+import {
+  BasicInfoSection,
+  PersonalitySection,
+  useAgentConfig
 } from '@/components/shared/agent-configurator';
 
 function CustomAgentForm({ agent, onSave }) {
   const { formData, setFormData, errors, handleSubmit } = useAgentConfig(agent, onSave);
-  
+
   return (
     <form onSubmit={handleSubmit}>
       <BasicInfoSection formData={formData} setFormData={setFormData} errors={errors} />
@@ -161,26 +183,31 @@ function CustomAgentForm({ agent, onSave }) {
 ## Benefits of Refactoring
 
 ### 🔧 Maintainability
+
 - **Smaller components:** Each section is focused and manageable (50-150 lines)
 - **Clear responsibilities:** Single Responsibility Principle
 - **Easier debugging:** Issues are isolated to specific sections
 
 ### 🧪 Testability
+
 - **Unit testing:** Each section can be tested in isolation
 - **Hook testing:** Custom hooks can be tested independently
 - **Better coverage:** Focused tests for specific functionality
 
 ### 🔄 Reusability
+
 - **Component composition:** Sections can be used independently
 - **Custom forms:** Build custom agent forms using specific sections
 - **Hook reuse:** Custom hooks can be used in other components
 
 ### 🚀 Performance
+
 - **Code splitting:** Sections can be lazy loaded
 - **Smaller bundles:** Only load needed sections
 - **Better rendering:** Isolated re-renders
 
 ### 👥 Team Collaboration
+
 - **Parallel development:** Multiple developers can work on different sections
 - **Clear ownership:** Each section has defined responsibilities
 - **Reduced conflicts:** Fewer merge conflicts
@@ -235,6 +262,7 @@ tests/
 ## Contributing
 
 When adding new features:
+
 1. Identify the appropriate section for the functionality
 2. If no section fits, consider creating a new focused section
 3. Maintain backward compatibility in the container

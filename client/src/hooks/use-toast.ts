@@ -13,7 +13,7 @@ interface ToastState {
 }
 
 const toastState: ToastState = {
-  toasts: []
+  toasts: [],
 };
 
 const listeners: Array<(state: ToastState) => void> = [];
@@ -24,22 +24,29 @@ function dispatch(action: { type: string; payload?: any }) {
       toastState.toasts.push(action.payload);
       break;
     case 'REMOVE_TOAST':
-      toastState.toasts = toastState.toasts.filter(t => t.id !== action.payload);
+      toastState.toasts = toastState.toasts.filter(
+        t => t.id !== action.payload
+      );
       break;
     case 'CLEAR_TOASTS':
       toastState.toasts = [];
       break;
   }
-  
+
   listeners.forEach(listener => listener(toastState));
 }
 
-export function toast({ title, description, variant = 'default', duration = 5000 }: Omit<Toast, 'id'>) {
+export function toast({
+  title,
+  description,
+  variant = 'default',
+  duration = 5000,
+}: Omit<Toast, 'id'>) {
   const id = Math.random().toString(36).substr(2, 9);
-  
+
   dispatch({
     type: 'ADD_TOAST',
-    payload: { id, title, description, variant, duration }
+    payload: { id, title, description, variant, duration },
   });
 
   // Auto remove after duration
@@ -78,6 +85,6 @@ export function useToast() {
     toast,
     dismiss,
     clear,
-    subscribe
+    subscribe,
   };
 }

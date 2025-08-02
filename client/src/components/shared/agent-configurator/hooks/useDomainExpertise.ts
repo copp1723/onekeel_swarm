@@ -8,38 +8,45 @@ export function useDomainExpertise(
   formData: AgentFormData,
   setFormData: React.Dispatch<React.SetStateAction<AgentFormData>>
 ) {
-  
   /**
    * Add a new domain expertise area
    */
   const addDomainExpertise = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      domainExpertise: [...(prev.domainExpertise || []), '']
+      domainExpertise: [...(prev.domainExpertise || []), ''],
     }));
   }, [setFormData]);
 
   /**
    * Update an existing domain expertise area
    */
-  const updateDomainExpertise = useCallback((index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: prev.domainExpertise?.map((item, i) => 
-        i === index ? value : item
-      ) || []
-    }));
-  }, [setFormData]);
+  const updateDomainExpertise = useCallback(
+    (index: number, value: string) => {
+      setFormData(prev => ({
+        ...prev,
+        domainExpertise:
+          prev.domainExpertise?.map((item, i) =>
+            i === index ? value : item
+          ) || [],
+      }));
+    },
+    [setFormData]
+  );
 
   /**
    * Remove a domain expertise area
    */
-  const removeDomainExpertise = useCallback((index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: prev.domainExpertise?.filter((_, i) => i !== index) || []
-    }));
-  }, [setFormData]);
+  const removeDomainExpertise = useCallback(
+    (index: number) => {
+      setFormData(prev => ({
+        ...prev,
+        domainExpertise:
+          prev.domainExpertise?.filter((_, i) => i !== index) || [],
+      }));
+    },
+    [setFormData]
+  );
 
   /**
    * Get current domain expertise areas
@@ -62,14 +69,16 @@ export function useDomainExpertise(
     }
 
     // Check for duplicates
-    const uniqueAreas = new Set(expertise.map(item => item.trim().toLowerCase()));
+    const uniqueAreas = new Set(
+      expertise.map(item => item.trim().toLowerCase())
+    );
     if (uniqueAreas.size !== expertise.length) {
       errors.push('Duplicate expertise areas found');
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }, [getCurrentExpertise]);
 
@@ -79,29 +88,35 @@ export function useDomainExpertise(
   const clearExpertise = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      domainExpertise: []
+      domainExpertise: [],
     }));
   }, [setFormData]);
 
   /**
    * Set expertise from predefined list
    */
-  const setExpertiseFromTemplate = useCallback((expertiseList: string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: [...expertiseList]
-    }));
-  }, [setFormData]);
+  const setExpertiseFromTemplate = useCallback(
+    (expertiseList: string[]) => {
+      setFormData(prev => ({
+        ...prev,
+        domainExpertise: [...expertiseList],
+      }));
+    },
+    [setFormData]
+  );
 
   /**
    * Add multiple expertise areas at once
    */
-  const addMultipleExpertise = useCallback((expertiseList: string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      domainExpertise: [...(prev.domainExpertise || []), ...expertiseList]
-    }));
-  }, [setFormData]);
+  const addMultipleExpertise = useCallback(
+    (expertiseList: string[]) => {
+      setFormData(prev => ({
+        ...prev,
+        domainExpertise: [...(prev.domainExpertise || []), ...expertiseList],
+      }));
+    },
+    [setFormData]
+  );
 
   /**
    * Get expertise count
@@ -113,11 +128,14 @@ export function useDomainExpertise(
   /**
    * Check if expertise area exists
    */
-  const hasExpertise = useCallback((expertise: string) => {
-    return getCurrentExpertise().some(item => 
-      item.trim().toLowerCase() === expertise.trim().toLowerCase()
-    );
-  }, [getCurrentExpertise]);
+  const hasExpertise = useCallback(
+    (expertise: string) => {
+      return getCurrentExpertise().some(
+        item => item.trim().toLowerCase() === expertise.trim().toLowerCase()
+      );
+    },
+    [getCurrentExpertise]
+  );
 
   return {
     getCurrentExpertise,
@@ -129,6 +147,6 @@ export function useDomainExpertise(
     setExpertiseFromTemplate,
     addMultipleExpertise,
     getExpertiseCount,
-    hasExpertise
+    hasExpertise,
   };
 }

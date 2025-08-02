@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 const expectedMigrationFiles = [
   '001-add-missing-tables.sql',
   '002-add-missing-columns.sql',
-  '003-create-indexes.sql'
+  '003-create-indexes.sql',
 ];
 
 // Define expected tables and columns
@@ -25,23 +25,25 @@ const expectedSchema = {
   campaigns: ['id', 'name', 'createdBy', 'updatedBy'],
   lead_campaign_enrollments: ['id', 'enrolledBy', 'enrolledAt'],
   communications: ['id', 'conversationId'],
-  conversations: ['id', 'lead_id', 'channel', 'status']
+  conversations: ['id', 'lead_id', 'channel', 'status'],
 };
 
 // Function to validate migration files exist
 function validateMigrationFiles() {
   console.log('🔍 Validating migration files...');
-  
+
   const migrationsDir = __dirname;
   const files = fs.readdirSync(migrationsDir);
-  
-  const missingFiles = expectedMigrationFiles.filter(file => !files.includes(file));
-  
+
+  const missingFiles = expectedMigrationFiles.filter(
+    file => !files.includes(file)
+  );
+
   if (missingFiles.length > 0) {
     console.error(`❌ Missing migration files: ${missingFiles.join(', ')}`);
     return false;
   }
-  
+
   console.log('✅ All migration files present');
   return true;
 }
@@ -49,56 +51,81 @@ function validateMigrationFiles() {
 // Function to validate SQL syntax (basic check)
 function validateSQLSyntax() {
   console.log('🔍 Validating SQL syntax...');
-  
+
   const migrationsDir = __dirname;
   let valid = true;
-  
+
   for (const file of expectedMigrationFiles) {
     const filePath = path.join(migrationsDir, file);
     try {
       const content = fs.readFileSync(filePath, 'utf8');
-      
+
       // Basic SQL syntax checks
       if (!content.includes('ALTER TABLE') && !content.includes('CREATE')) {
         console.warn(`⚠️  ${file}: No ALTER TABLE or CREATE statements found`);
       }
-      
+
       // Check for IF NOT EXISTS patterns
       if (file.includes('missing') && !content.includes('IF NOT EXISTS')) {
-        console.warn(`⚠️  ${file}: Missing IF NOT EXISTS pattern for safe migrations`);
+        console.warn(
+          `⚠️  ${file}: Missing IF NOT EXISTS pattern for safe migrations`
+        );
       }
-      
     } catch (error) {
       console.error(`❌ Error reading ${file}: ${error.message}`);
       valid = false;
     }
   }
-  
+
   if (valid) {
     console.log('✅ SQL syntax validation passed');
   }
-  
+
   return valid;
 }
 
 // Function to validate schema structure
 function validateSchemaStructure() {
   console.log('🔍 Validating schema structure...');
-  
+
   // This would normally connect to the database and check the actual schema
   // For now, we'll just verify the migration files contain expected patterns
-  
+
   const columnChecks = [
-    { file: '002-add-missing-columns.sql', pattern: 'score INTEGER', description: 'Lead score column' },
-    { file: '002-add-missing-columns.sql', pattern: 'name TEXT', description: 'Lead computed name column' },
-    { file: '002-add-missing-columns.sql', pattern: 'created_by UUID REFERENCES users', description: 'Campaign created_by column' },
-    { file: '002-add-missing-columns.sql', pattern: 'updated_by UUID REFERENCES users', description: 'Campaign updated_by column' },
-    { file: '002-add-missing-columns.sql', pattern: 'enrolled_by UUID REFERENCES users', description: 'Enrollment enrolled_by column' },
-    { file: '002-add-missing-columns.sql', pattern: 'conversation_id UUID REFERENCES conversations', description: 'Communication conversation_id column' }
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'score INTEGER',
+      description: 'Lead score column',
+    },
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'name TEXT',
+      description: 'Lead computed name column',
+    },
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'created_by UUID REFERENCES users',
+      description: 'Campaign created_by column',
+    },
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'updated_by UUID REFERENCES users',
+      description: 'Campaign updated_by column',
+    },
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'enrolled_by UUID REFERENCES users',
+      description: 'Enrollment enrolled_by column',
+    },
+    {
+      file: '002-add-missing-columns.sql',
+      pattern: 'conversation_id UUID REFERENCES conversations',
+      description: 'Communication conversation_id column',
+    },
   ];
-  
+
   let valid = true;
-  
+
   for (const check of columnChecks) {
     const filePath = path.join(__dirname, check.file);
     try {
@@ -114,7 +141,7 @@ function validateSchemaStructure() {
       valid = false;
     }
   }
-  
+
   return valid;
 }
 
@@ -122,18 +149,18 @@ function validateSchemaStructure() {
 async function validateSchema() {
   console.log('🧪 Schema Validation Script');
   console.log('============================\n');
-  
+
   try {
     // Run all validation checks
     const migrationFilesValid = validateMigrationFiles();
     const sqlSyntaxValid = validateSQLSyntax();
     const schemaStructureValid = validateSchemaStructure();
-    
+
     console.log('\n📋 Validation Summary:');
     console.log(`📁 Migration Files: ${migrationFilesValid ? '✅' : '❌'}`);
     console.log(`🔍 SQL Syntax: ${sqlSyntaxValid ? '✅' : '❌'}`);
     console.log(`🏗️  Schema Structure: ${schemaStructureValid ? '✅' : '❌'}`);
-    
+
     if (migrationFilesValid && sqlSyntaxValid && schemaStructureValid) {
       console.log('\n🎉 All schema validations passed!');
       process.exit(0);
@@ -156,5 +183,5 @@ export {
   validateMigrationFiles,
   validateSQLSyntax,
   validateSchemaStructure,
-  validateSchema
+  validateSchema,
 };

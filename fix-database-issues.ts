@@ -91,7 +91,6 @@ async function fixDatabaseIssues() {
 
     console.log('\n🎉 Database issues fixed successfully!');
     console.log('Campaign launches should now work properly.');
-
   } catch (error) {
     console.error('❌ Error fixing database issues:', error);
     process.exit(1);

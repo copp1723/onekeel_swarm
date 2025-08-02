@@ -31,13 +31,14 @@ export class HandoverService {
     newMessage?: { role: 'agent' | 'lead'; content: string }
   ): Promise<HandoverEvaluation> {
     try {
-      const conversation = await ConversationsRepository.findById(conversationId);
+      const conversation =
+        await ConversationsRepository.findById(conversationId);
       if (!conversation) {
         throw new Error('Conversation not found');
       }
 
       // Get campaign criteria
-      const campaign = conversation.campaignId 
+      const campaign = conversation.campaignId
         ? await CampaignsRepository.findById(conversation.campaignId)
         : await CampaignsRepository.getDefaultCampaign();
 
@@ -47,18 +48,20 @@ export class HandoverService {
 
       const criteria = campaign?.handoverCriteria;
       const analysis = await this.analyzeConversation(conversation, newMessage);
-      
+
       const evaluation: HandoverEvaluation = {
         shouldHandover: false,
         reason: '',
         score: analysis.qualificationScore,
         triggeredCriteria: [],
-        nextActions: []
+        nextActions: [],
       };
 
       // If no criteria available, use defaults
       if (!criteria) {
-        logger.warn('No handover criteria found, using defaults', { conversationId });
+        logger.warn('No handover criteria found, using defaults', {
+          conversationId,
+        });
         return evaluation;
       }
 
@@ -79,12 +82,12 @@ export class HandoverService {
       }
 
       // Check keyword triggers
-      const triggeredKeywords = analysis.keywordMatches.filter(keyword => 
-        criteria.keywordTriggers.some(trigger => 
+      const triggeredKeywords = analysis.keywordMatches.filter(keyword =>
+        criteria.keywordTriggers.some(trigger =>
           keyword.toLowerCase().includes(trigger.toLowerCase())
         )
       );
-      
+
       if (triggeredKeywords.length > 0) {
         evaluation.shouldHandover = true;
         evaluation.triggeredCriteria.push('keyword_triggers');
@@ -96,12 +99,15 @@ export class HandoverService {
       const completedGoals = Object.entries(analysis.goalProgress)
         .filter(([_, completed]) => completed)
         .map(([goal, _]) => goal);
-      
-      const requiredGoalsCompleted = criteria.goalCompletionRequired.every(goal =>
-        completedGoals.includes(goal)
+
+      const requiredGoalsCompleted = criteria.goalCompletionRequired.every(
+        goal => completedGoals.includes(goal)
       );
 
-      if (requiredGoalsCompleted && criteria.goalCompletionRequired.length > 0) {
+      if (
+        requiredGoalsCompleted &&
+        criteria.goalCompletionRequired.length > 0
+      ) {
         evaluation.shouldHandover = true;
         evaluation.triggeredCriteria.push('goal_completion');
         evaluation.reason += evaluation.reason ? ' and ' : '';
@@ -109,9 +115,10 @@ export class HandoverService {
       }
 
       // Check time threshold (conversation duration)
-      const conversationDuration = Date.now() - conversation.startedAt.getTime();
+      const conversationDuration =
+        Date.now() - conversation.startedAt.getTime();
       const timeThresholdMs = criteria.timeThreshold * 1000; // Convert seconds to milliseconds
-      
+
       if (conversationDuration >= timeThresholdMs) {
         evaluation.shouldHandover = true;
         evaluation.triggeredCriteria.push('time_threshold');
@@ -124,19 +131,22 @@ export class HandoverService {
         evaluation.nextActions = [
           'Transfer to human agent',
           'Notify sales team',
-          'Schedule follow-up call'
+          'Schedule follow-up call',
         ];
       } else {
         evaluation.nextActions = [
           'Continue AI conversation',
           'Gather more qualification info',
-          'Nurture relationship'
+          'Nurture relationship',
         ];
       }
 
       return evaluation;
     } catch (error) {
-      logger.error('Error evaluating handover', { conversationId, error: (error as Error).message });
+      logger.error('Error evaluating handover', {
+        conversationId,
+        error: (error as Error).message,
+      });
       throw error;
     }
   }
@@ -158,16 +168,16 @@ export class HandoverService {
       goalProgress: conversation.goalProgress || {},
       keywordMatches: [],
       sentimentScore: 0,
-      urgencyLevel: 'low'
+      urgencyLevel: 'low',
     };
 
     // Analyze message content for qualification indicators
     const qualificationKeywords = {
-      'budget_confirmed': ['budget', 'afford', 'payment', 'financing', 'loan'],
-      'timeline_established': ['when', 'soon', 'urgently', 'asap', 'timeline'],
-      'decision_maker': ['decision', 'decide', 'authorize', 'approve'],
-      'interest_level': ['interested', 'love', 'perfect', 'exactly', 'want'],
-      'contact_info': ['phone', 'email', 'contact', 'reach', 'call']
+      budget_confirmed: ['budget', 'afford', 'payment', 'financing', 'loan'],
+      timeline_established: ['when', 'soon', 'urgently', 'asap', 'timeline'],
+      decision_maker: ['decision', 'decide', 'authorize', 'approve'],
+      interest_level: ['interested', 'love', 'perfect', 'exactly', 'want'],
+      contact_info: ['phone', 'email', 'contact', 'reach', 'call'],
     };
 
     const urgencyKeywords = ['urgent', 'asap', 'immediately', 'now', 'today'];
@@ -180,14 +190,18 @@ export class HandoverService {
     for (const message of messages) {
       if (message.role === 'lead') {
         const content = message.content.toLowerCase();
-        
+
         // Check qualification keywords
-        for (const [category, keywords] of Object.entries(qualificationKeywords)) {
+        for (const [category, keywords] of Object.entries(
+          qualificationKeywords
+        )) {
           const found = keywords.some(keyword => content.includes(keyword));
           if (found) {
             analysis.goalProgress[category] = true;
             analysis.qualificationScore += 1;
-            analysis.keywordMatches.push(...keywords.filter(k => content.includes(k)));
+            analysis.keywordMatches.push(
+              ...keywords.filter(k => content.includes(k))
+            );
           }
         }
 
@@ -197,14 +211,18 @@ export class HandoverService {
         }
 
         // Sentiment analysis (simple)
-        positiveCount += positiveKeywords.filter(keyword => content.includes(keyword)).length;
-        negativeCount += negativeKeywords.filter(keyword => content.includes(keyword)).length;
+        positiveCount += positiveKeywords.filter(keyword =>
+          content.includes(keyword)
+        ).length;
+        negativeCount += negativeKeywords.filter(keyword =>
+          content.includes(keyword)
+        ).length;
       }
     }
 
     // Calculate sentiment score
     analysis.sentimentScore = positiveCount - negativeCount;
-    
+
     // Adjust urgency based on sentiment and qualification
     if (analysis.sentimentScore > 2 && analysis.qualificationScore > 5) {
       analysis.urgencyLevel = 'high';
@@ -225,9 +243,13 @@ export class HandoverService {
   ): Promise<boolean> {
     try {
       // Update conversation status
-      await ConversationsRepository.updateStatus(conversationId, 'handover_pending');
-      
-      const conversation = await ConversationsRepository.findById(conversationId);
+      await ConversationsRepository.updateStatus(
+        conversationId,
+        'handover_pending'
+      );
+
+      const conversation =
+        await ConversationsRepository.findById(conversationId);
       if (!conversation) return false;
 
       // Get campaign to access handover recipients
@@ -237,7 +259,7 @@ export class HandoverService {
 
       // Generate handover evaluation for dossier
       const handoverEvaluation = await this.evaluateHandover(conversationId);
-      
+
       // Generate comprehensive lead dossier
       const dossier = await LeadDossierService.generateDossier(
         conversation.leadId,
@@ -246,16 +268,20 @@ export class HandoverService {
       );
 
       // Format dossier for human consumption
-      const formattedDossier = LeadDossierService.formatDossierForHandover(dossier);
+      const formattedDossier =
+        LeadDossierService.formatDossierForHandover(dossier);
 
       // Add handover message to conversation
-      const handoverRecipients = campaign?.handoverCriteria?.handoverRecipients || [];
-      const recipientList = handoverRecipients.map(r => `${r.name} (${r.email})`).join(', ');
-      
+      const handoverRecipients =
+        campaign?.handoverCriteria?.handoverRecipients || [];
+      const recipientList = handoverRecipients
+        .map(r => `${r.name} (${r.email})`)
+        .join(', ');
+
       await ConversationsRepository.addMessage(conversationId, {
         role: 'agent',
         content: `🤝 **Handover Initiated**\n\nReason: ${reason}\n\nNotified recipients: ${recipientList || 'Default team'}\n\nA comprehensive lead dossier has been generated and sent to the human representatives. A human agent will be with you shortly to assist with your inquiry.`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Update lead qualification score
@@ -283,7 +309,7 @@ export class HandoverService {
           qualificationScore: handoverEvaluation.score,
           urgency: dossier.handoverTrigger.urgency,
           recommendedNextSteps: dossier.recommendations.nextSteps,
-          approachStrategy: dossier.recommendations.approachStrategy
+          approachStrategy: dossier.recommendations.approachStrategy,
         }
       );
 
@@ -299,7 +325,7 @@ export class HandoverService {
         if (!emailSent) {
           logger.warn('Failed to send some handover notification emails', {
             conversationId,
-            recipientCount: handoverRecipients.length
+            recipientCount: handoverRecipients.length,
           });
         }
 
@@ -312,12 +338,15 @@ export class HandoverService {
           );
         }
       } else {
-        logger.warn('No handover recipients configured, dossier generated but not sent', {
-          conversationId,
-          campaignId: conversation.campaignId
-        });
+        logger.warn(
+          'No handover recipients configured, dossier generated but not sent',
+          {
+            conversationId,
+            campaignId: conversation.campaignId,
+          }
+        );
       }
-      
+
       logger.info('Handover executed successfully with dossier', {
         conversationId,
         leadId: conversation.leadId,
@@ -326,12 +355,15 @@ export class HandoverService {
         qualificationScore: handoverEvaluation.score,
         urgency: dossier.handoverTrigger.urgency,
         emailsSent: handoverRecipients.length > 0,
-        humanAgentId
+        humanAgentId,
       });
 
       return true;
     } catch (error) {
-      logger.error('Error executing handover with dossier', { conversationId, error: (error as Error).message });
+      logger.error('Error executing handover with dossier', {
+        conversationId,
+        error: (error as Error).message,
+      });
       return false;
     }
   }
@@ -355,28 +387,36 @@ export class HandoverService {
         sharedNotes: [] as string[],
         leadPreferences: lead?.metadata || {},
         totalQualificationScore: lead?.qualificationScore || 0,
-        overallGoalProgress: {} as Record<string, boolean>
+        overallGoalProgress: {} as Record<string, boolean>,
       };
 
       // Aggregate goal progress across all conversations
       for (const conversation of conversations) {
         if (conversation.goalProgress) {
-          for (const [goal, completed] of Object.entries(conversation.goalProgress)) {
+          for (const [goal, completed] of Object.entries(
+            conversation.goalProgress
+          )) {
             if (completed) {
-              (context.overallGoalProgress as Record<string, boolean>)[goal] = true;
+              (context.overallGoalProgress as Record<string, boolean>)[goal] =
+                true;
             }
           }
         }
 
         // Extract important notes from conversations
         if (conversation.crossChannelContext?.sharedNotes) {
-          context.sharedNotes.push(...conversation.crossChannelContext.sharedNotes);
+          context.sharedNotes.push(
+            ...conversation.crossChannelContext.sharedNotes
+          );
         }
       }
 
       return context;
     } catch (error) {
-      logger.error('Error getting cross-channel context', { leadId, error: (error as Error).message });
+      logger.error('Error getting cross-channel context', {
+        leadId,
+        error: (error as Error).message,
+      });
       throw error;
     }
   }
@@ -392,7 +432,8 @@ export class HandoverService {
     }
   ): Promise<boolean> {
     try {
-      const conversation = await ConversationsRepository.findById(conversationId);
+      const conversation =
+        await ConversationsRepository.findById(conversationId);
       if (!conversation) return false;
 
       const updatedContext = {
@@ -400,20 +441,23 @@ export class HandoverService {
         ...newContext,
         sharedNotes: [
           ...(conversation.crossChannelContext?.sharedNotes || []),
-          ...(newContext.sharedNotes || [])
-        ]
+          ...(newContext.sharedNotes || []),
+        ],
       };
 
       // Update conversation with new context
       // Note: This would need a method in ConversationsRepository to update crossChannelContext
       logger.info('Cross-channel context updated', {
         conversationId,
-        leadId: conversation.leadId
+        leadId: conversation.leadId,
       });
 
       return true;
     } catch (error) {
-      logger.error('Error updating cross-channel context', { conversationId, error: (error as Error).message });
+      logger.error('Error updating cross-channel context', {
+        conversationId,
+        error: (error as Error).message,
+      });
       return false;
     }
   }

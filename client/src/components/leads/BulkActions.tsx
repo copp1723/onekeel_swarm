@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Users, 
-  Target, 
-  Edit, 
-  Trash2, 
-  Mail, 
-  Phone, 
+import {
+  Users,
+  Target,
+  Edit,
+  Trash2,
+  Mail,
+  Phone,
   MessageSquare,
   AlertTriangle,
   CheckCircle,
-  X
+  X,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -55,7 +61,12 @@ interface BulkActionsProps {
   loading?: boolean;
 }
 
-type ActionType = 'update_status' | 'assign_channel' | 'assign_campaign' | 'add_notes' | 'delete';
+type ActionType =
+  | 'update_status'
+  | 'assign_channel'
+  | 'assign_campaign'
+  | 'add_notes'
+  | 'delete';
 
 export function BulkActions({
   selectedLeads,
@@ -64,7 +75,7 @@ export function BulkActions({
   onBulkDelete,
   onAssignToCampaign,
   onClose,
-  loading = false
+  loading = false,
 }: BulkActionsProps) {
   const [selectedAction, setSelectedAction] = useState<ActionType | ''>('');
   const [updateData, setUpdateData] = useState<any>({});
@@ -76,13 +87,13 @@ export function BulkActions({
     { value: 'contacted', label: 'Contacted' },
     { value: 'qualified', label: 'Qualified' },
     { value: 'converted', label: 'Converted' },
-    { value: 'rejected', label: 'Rejected' }
+    { value: 'rejected', label: 'Rejected' },
   ];
 
   const channelOptions = [
     { value: 'email', label: 'Email', icon: Mail },
     { value: 'sms', label: 'SMS', icon: Phone },
-    { value: 'chat', label: 'Chat', icon: MessageSquare }
+    { value: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   const actionOptions = [
@@ -90,7 +101,7 @@ export function BulkActions({
     { value: 'assign_channel', label: 'Assign Channel', icon: MessageSquare },
     { value: 'assign_campaign', label: 'Assign to Campaign', icon: Target },
     { value: 'add_notes', label: 'Add Notes', icon: Edit },
-    { value: 'delete', label: 'Delete Leads', icon: Trash2, dangerous: true }
+    { value: 'delete', label: 'Delete Leads', icon: Trash2, dangerous: true },
   ];
 
   const handleActionChange = (action: ActionType) => {
@@ -141,7 +152,7 @@ export function BulkActions({
     const option = actionOptions.find(opt => opt.value === action);
     if (option) {
       const Icon = option.icon;
-      return <Icon className="h-4 w-4" />;
+      return <Icon className='h-4 w-4' />;
     }
     return null;
   };
@@ -151,13 +162,15 @@ export function BulkActions({
       case 'update_status':
         return (
           <div>
-            <Label htmlFor="status">New Status</Label>
-            <Select 
-              value={updateData.status || ''} 
-              onValueChange={(value) => setUpdateData({ ...updateData, status: value })}
+            <Label htmlFor='status'>New Status</Label>
+            <Select
+              value={updateData.status || ''}
+              onValueChange={value =>
+                setUpdateData({ ...updateData, status: value })
+              }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select status" />
+                <SelectValue placeholder='Select status' />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map(option => (
@@ -173,19 +186,21 @@ export function BulkActions({
       case 'assign_channel':
         return (
           <div>
-            <Label htmlFor="channel">Assigned Channel</Label>
-            <Select 
-              value={updateData.assignedChannel || ''} 
-              onValueChange={(value) => setUpdateData({ ...updateData, assignedChannel: value })}
+            <Label htmlFor='channel'>Assigned Channel</Label>
+            <Select
+              value={updateData.assignedChannel || ''}
+              onValueChange={value =>
+                setUpdateData({ ...updateData, assignedChannel: value })
+              }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select channel" />
+                <SelectValue placeholder='Select channel' />
               </SelectTrigger>
               <SelectContent>
                 {channelOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center space-x-2">
-                      <option.icon className="h-4 w-4" />
+                    <div className='flex items-center space-x-2'>
+                      <option.icon className='h-4 w-4' />
                       <span>{option.label}</span>
                     </div>
                   </SelectItem>
@@ -198,13 +213,15 @@ export function BulkActions({
       case 'assign_campaign':
         return (
           <div>
-            <Label htmlFor="campaign">Campaign</Label>
-            <Select 
-              value={updateData.campaignId || ''} 
-              onValueChange={(value) => setUpdateData({ ...updateData, campaignId: value })}
+            <Label htmlFor='campaign'>Campaign</Label>
+            <Select
+              value={updateData.campaignId || ''}
+              onValueChange={value =>
+                setUpdateData({ ...updateData, campaignId: value })
+              }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select campaign" />
+                <SelectValue placeholder='Select campaign' />
               </SelectTrigger>
               <SelectContent>
                 {campaigns.map(campaign => (
@@ -220,12 +237,14 @@ export function BulkActions({
       case 'add_notes':
         return (
           <div>
-            <Label htmlFor="notes">Notes to Add</Label>
+            <Label htmlFor='notes'>Notes to Add</Label>
             <Textarea
-              id="notes"
-              placeholder="Enter notes to add to all selected leads..."
+              id='notes'
+              placeholder='Enter notes to add to all selected leads...'
               value={updateData.notes || ''}
-              onChange={(e) => setUpdateData({ ...updateData, notes: e.target.value })}
+              onChange={e =>
+                setUpdateData({ ...updateData, notes: e.target.value })
+              }
               rows={3}
             />
           </div>
@@ -234,10 +253,10 @@ export function BulkActions({
       case 'delete':
         return (
           <Alert>
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className='h-4 w-4' />
             <AlertDescription>
-              This action will permanently delete {selectedLeads.length} lead(s). 
-              This cannot be undone.
+              This action will permanently delete {selectedLeads.length}{' '}
+              lead(s). This cannot be undone.
             </AlertDescription>
           </Alert>
         );
@@ -268,30 +287,34 @@ export function BulkActions({
 
   return (
     <>
-      <Card className="max-w-2xl mx-auto">
+      <Card className='max-w-2xl mx-auto'>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5" />
+          <div className='flex items-center justify-between'>
+            <CardTitle className='flex items-center space-x-2'>
+              <Users className='h-5 w-5' />
               <span>Bulk Actions</span>
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
+            <Button variant='ghost' size='sm' onClick={onClose}>
+              <X className='h-4 w-4' />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className='space-y-6'>
           {/* Selected Leads Summary */}
-          <div className="border rounded-lg p-4 bg-gray-50">
-            <h4 className="font-medium mb-2">Selected Leads ({selectedLeads.length})</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
+          <div className='border rounded-lg p-4 bg-gray-50'>
+            <h4 className='font-medium mb-2'>
+              Selected Leads ({selectedLeads.length})
+            </h4>
+            <div className='space-y-1 max-h-32 overflow-y-auto'>
               {selectedLeads.slice(0, 5).map(lead => (
-                <div key={lead.id} className="text-sm text-gray-600">
-                  {`${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'N/A'} - {lead.email}
+                <div key={lead.id} className='text-sm text-gray-600'>
+                  {`${lead.firstName || ''} ${lead.lastName || ''}`.trim() ||
+                    'N/A'}{' '}
+                  - {lead.email}
                 </div>
               ))}
               {selectedLeads.length > 5 && (
-                <div className="text-sm text-gray-500">
+                <div className='text-sm text-gray-500'>
                   ... and {selectedLeads.length - 5} more
                 </div>
               )}
@@ -300,20 +323,24 @@ export function BulkActions({
 
           {/* Action Selection */}
           <div>
-            <Label htmlFor="action">Select Action</Label>
-            <Select 
-              value={selectedAction} 
-              onValueChange={(value) => handleActionChange(value as ActionType)}
+            <Label htmlFor='action'>Select Action</Label>
+            <Select
+              value={selectedAction}
+              onValueChange={value => handleActionChange(value as ActionType)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Choose an action" />
+                <SelectValue placeholder='Choose an action' />
               </SelectTrigger>
               <SelectContent>
                 {actionOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
-                    <div className="flex items-center space-x-2">
-                      <option.icon className={`h-4 w-4 ${option.dangerous ? 'text-red-500' : ''}`} />
-                      <span className={option.dangerous ? 'text-red-600' : ''}>{option.label}</span>
+                    <div className='flex items-center space-x-2'>
+                      <option.icon
+                        className={`h-4 w-4 ${option.dangerous ? 'text-red-500' : ''}`}
+                      />
+                      <span className={option.dangerous ? 'text-red-600' : ''}>
+                        {option.label}
+                      </span>
                     </div>
                   </SelectItem>
                 ))}
@@ -323,11 +350,14 @@ export function BulkActions({
 
           {/* Action Form */}
           {selectedAction && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
+            <div className='space-y-4'>
+              <div className='flex items-center space-x-2'>
                 {getActionIcon(selectedAction)}
-                <h4 className="font-medium">
-                  {actionOptions.find(opt => opt.value === selectedAction)?.label}
+                <h4 className='font-medium'>
+                  {
+                    actionOptions.find(opt => opt.value === selectedAction)
+                      ?.label
+                  }
                 </h4>
               </div>
               {renderActionForm()}
@@ -335,11 +365,11 @@ export function BulkActions({
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+          <div className='flex items-center justify-end space-x-3 pt-4 border-t'>
+            <Button variant='outline' onClick={onClose}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 if (isDangerousAction) {
                   handleConfirmAction(handleExecuteAction);
@@ -351,13 +381,11 @@ export function BulkActions({
               variant={isDangerousAction ? 'destructive' : 'default'}
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2' />
               ) : (
                 getActionIcon(selectedAction)
               )}
-              <span className="ml-2">
-                Execute Action
-              </span>
+              <span className='ml-2'>Execute Action</span>
             </Button>
           </div>
         </CardContent>
@@ -367,21 +395,26 @@ export function BulkActions({
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+            <DialogTitle className='flex items-center space-x-2'>
+              <AlertTriangle className='h-5 w-5 text-red-500' />
               <span>Confirm Action</span>
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to {selectedAction === 'delete' ? 'delete' : 'update'} {selectedLeads.length} lead(s)? 
+              Are you sure you want to{' '}
+              {selectedAction === 'delete' ? 'delete' : 'update'}{' '}
+              {selectedLeads.length} lead(s)?
               {selectedAction === 'delete' && ' This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+            <Button
+              variant='outline'
+              onClick={() => setShowConfirmDialog(false)}
+            >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant='destructive'
               onClick={() => {
                 setShowConfirmDialog(false);
                 confirmAction();

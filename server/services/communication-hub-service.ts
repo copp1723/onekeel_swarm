@@ -112,7 +112,7 @@ export class CommunicationHubService {
       leadId,
       targetAgent: toAgent,
       reason,
-      context
+      context,
     });
   }
 
@@ -128,7 +128,7 @@ export class CommunicationHubService {
     await this.sendAgentMessage(agentId, 'hub', 'decision', {
       leadId,
       decision,
-      requiresCoordination
+      requiresCoordination,
     });
   }
 
@@ -144,7 +144,7 @@ export class CommunicationHubService {
     await this.sendAgentMessage(agentId, 'hub', 'status', {
       leadId,
       status,
-      details
+      details,
     });
   }
 }

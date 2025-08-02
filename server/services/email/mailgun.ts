@@ -1,5 +1,5 @@
-import formData from "form-data";
-import Mailgun from "mailgun.js";
+import formData from 'form-data';
+import Mailgun from 'mailgun.js';
 
 const mailgun = new Mailgun(formData);
 
@@ -12,7 +12,7 @@ function getMailgunClient() {
       throw new Error('MAILGUN_API_KEY is required but not set');
     }
     mg = mailgun.client({
-      username: "api",
+      username: 'api',
       key: apiKey,
     });
   }
@@ -44,7 +44,7 @@ export class MailgunService {
   private defaultFrom: string;
 
   constructor() {
-    this.domain = process.env.MAILGUN_DOMAIN || "mail.onekeel.com";
+    this.domain = process.env.MAILGUN_DOMAIN || 'mail.onekeel.com';
     this.defaultFrom = `Support <support@${this.domain}>`;
   }
 
@@ -66,9 +66,12 @@ export class MailgunService {
         text: emailData.text || this.stripHtml(sanitizedHtml),
       };
 
-      const result = await getMailgunClient().messages.create(this.domain, messageData);
+      const result = await getMailgunClient().messages.create(
+        this.domain,
+        messageData
+      );
       console.log(`Email sent to ${emailData.to}:`, result.id);
-      
+
       return {
         success: true,
         messageId: result.id,
@@ -77,7 +80,7 @@ export class MailgunService {
       console.error(`Failed to send email to ${emailData.to}:`, error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -116,7 +119,12 @@ export class MailgunService {
    * Send campaign emails with template
    */
   async sendCampaignEmails(
-    leads: Array<{ email: string; firstName?: string; lastName?: string; [key: string]: any }>,
+    leads: Array<{
+      email: string;
+      firstName?: string;
+      lastName?: string;
+      [key: string]: any;
+    }>,
     template: EmailTemplate
   ): Promise<{ sent: number; failed: number; errors: any[] }> {
     const emails: EmailData[] = leads.map(lead => ({
@@ -138,20 +146,32 @@ export class MailgunService {
     const sanitizedVariables: Record<string, string> = {};
     Object.entries(variables).forEach(([key, value]) => {
       // Convert to string and remove any HTML tags
-      sanitizedVariables[key] = String(value || "")
+      sanitizedVariables[key] = String(value || '')
         .replace(/<[^>]*>/g, '')
         .trim();
     });
 
     // Replace common variables
     if (sanitizedVariables.firstName) {
-      processed = processed.replace(/\{\{firstName\}\}/g, sanitizedVariables.firstName);
-      processed = processed.replace(/\{\{first_name\}\}/g, sanitizedVariables.firstName);
+      processed = processed.replace(
+        /\{\{firstName\}\}/g,
+        sanitizedVariables.firstName
+      );
+      processed = processed.replace(
+        /\{\{first_name\}\}/g,
+        sanitizedVariables.firstName
+      );
     }
 
     if (sanitizedVariables.lastName) {
-      processed = processed.replace(/\{\{lastName\}\}/g, sanitizedVariables.lastName);
-      processed = processed.replace(/\{\{last_name\}\}/g, sanitizedVariables.lastName);
+      processed = processed.replace(
+        /\{\{lastName\}\}/g,
+        sanitizedVariables.lastName
+      );
+      processed = processed.replace(
+        /\{\{last_name\}\}/g,
+        sanitizedVariables.lastName
+      );
     }
 
     if (sanitizedVariables.email) {
@@ -160,7 +180,7 @@ export class MailgunService {
 
     // Replace any other custom variables
     Object.entries(sanitizedVariables).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
       processed = processed.replace(regex, value);
     });
 

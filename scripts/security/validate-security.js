@@ -23,7 +23,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 class SecurityValidator {
@@ -63,21 +63,21 @@ class SecurityValidator {
     for (let char of str) {
       freq[char] = (freq[char] || 0) + 1;
     }
-    
+
     let entropy = 0;
     const len = str.length;
     for (let char in freq) {
       const p = freq[char] / len;
       entropy -= p * Math.log2(p);
     }
-    
+
     return entropy;
   }
 
   // Validate environment variables
   validateEnvironment() {
     this.info('Validating environment configuration...');
-    
+
     const envPath = path.join(this.projectRoot, '.env');
     if (!fs.existsSync(envPath)) {
       this.error('.env file not found');
@@ -86,7 +86,7 @@ class SecurityValidator {
 
     const envContent = fs.readFileSync(envPath, 'utf8');
     const envVars = {};
-    
+
     // Parse .env file
     envContent.split('\n').forEach(line => {
       const match = line.match(/^([^#][^=]+)=(.*)$/);
@@ -97,7 +97,9 @@ class SecurityValidator {
 
     // Check for SKIP_AUTH
     if (envVars.SKIP_AUTH) {
-      this.error('SKIP_AUTH found in environment - this is a critical security vulnerability');
+      this.error(
+        'SKIP_AUTH found in environment - this is a critical security vulnerability'
+      );
     } else {
       this.pass('No SKIP_AUTH bypass found in environment');
     }
@@ -109,7 +111,9 @@ class SecurityValidator {
     } else if (jwtSecret.length < 32) {
       this.error('JWT_SECRET is too short (minimum 32 characters)');
     } else if (this.calculateEntropy(jwtSecret) < 4.0) {
-      this.warn('JWT_SECRET has low entropy - consider using a more random string');
+      this.warn(
+        'JWT_SECRET has low entropy - consider using a more random string'
+      );
     } else {
       this.pass('JWT_SECRET is properly configured');
     }
@@ -141,8 +145,15 @@ class SecurityValidator {
     // Check DATABASE_URL for weak credentials
     const dbUrl = envVars.DATABASE_URL;
     if (dbUrl) {
-      const weakPatterns = ['postgres:postgres', 'root:root', 'admin:admin', 'password123'];
-      const hasWeakCreds = weakPatterns.some(pattern => dbUrl.includes(pattern));
+      const weakPatterns = [
+        'postgres:postgres',
+        'root:root',
+        'admin:admin',
+        'password123',
+      ];
+      const hasWeakCreds = weakPatterns.some(pattern =>
+        dbUrl.includes(pattern)
+      );
       if (hasWeakCreds) {
         this.warn('DATABASE_URL contains weak credentials');
       } else {
@@ -162,7 +173,7 @@ class SecurityValidator {
   // Validate source code for security issues
   validateSourceCode() {
     this.info('Scanning source code for security issues...');
-    
+
     const serverDir = path.join(this.projectRoot, 'server');
     if (!fs.existsSync(serverDir)) {
       this.warn('Server directory not found');
@@ -181,14 +192,16 @@ class SecurityValidator {
     const credentialPatterns = [
       /password.*=.*["'].*123.*["']/gi,
       /secret.*=.*["'].*key.*["']/gi,
-      /admin.*=.*["'].*admin.*["']/gi
+      /admin.*=.*["'].*admin.*["']/gi,
     ];
 
     let hardcodedCredsFound = false;
     credentialPatterns.forEach(pattern => {
       const matches = this.scanDirectory(serverDir, pattern);
       if (matches.length > 0) {
-        this.warn(`Potential hardcoded credentials found: ${matches.join(', ')}`);
+        this.warn(
+          `Potential hardcoded credentials found: ${matches.join(', ')}`
+        );
         hardcodedCredsFound = true;
       }
     });
@@ -201,16 +214,21 @@ class SecurityValidator {
     const authMiddlewarePath = path.join(serverDir, 'middleware', 'auth.ts');
     if (fs.existsSync(authMiddlewarePath)) {
       const authContent = fs.readFileSync(authMiddlewarePath, 'utf8');
-      
+
       // Check for proper JWT verification
       if (authContent.includes('tokenService.verifyAccessToken')) {
         this.pass('Authentication middleware uses secure token verification');
       } else {
-        this.warn('Authentication middleware may not be using secure token verification');
+        this.warn(
+          'Authentication middleware may not be using secure token verification'
+        );
       }
 
       // Check for role-based authorization
-      if (authContent.includes('authorize') && authContent.includes('allowedRoles')) {
+      if (
+        authContent.includes('authorize') &&
+        authContent.includes('allowedRoles')
+      ) {
         this.pass('Role-based authorization is implemented');
       } else {
         this.warn('Role-based authorization may not be properly implemented');
@@ -221,8 +239,8 @@ class SecurityValidator {
   // Scan directory for patterns
   scanDirectory(dir, pattern) {
     const matches = [];
-    
-    const scanFile = (filePath) => {
+
+    const scanFile = filePath => {
       if (path.extname(filePath).match(/\.(ts|js)$/)) {
         try {
           const content = fs.readFileSync(filePath, 'utf8');
@@ -236,14 +254,18 @@ class SecurityValidator {
       }
     };
 
-    const scanDir = (currentDir) => {
+    const scanDir = currentDir => {
       try {
         const items = fs.readdirSync(currentDir);
         items.forEach(item => {
           const itemPath = path.join(currentDir, item);
           const stat = fs.statSync(itemPath);
-          
-          if (stat.isDirectory() && !item.startsWith('.') && item !== 'node_modules') {
+
+          if (
+            stat.isDirectory() &&
+            !item.startsWith('.') &&
+            item !== 'node_modules'
+          ) {
             scanDir(itemPath);
           } else if (stat.isFile()) {
             scanFile(itemPath);
@@ -261,16 +283,18 @@ class SecurityValidator {
   // Validate file permissions
   validateFilePermissions() {
     this.info('Checking file permissions...');
-    
+
     const envPath = path.join(this.projectRoot, '.env');
     if (fs.existsSync(envPath)) {
       const stats = fs.statSync(envPath);
       const mode = stats.mode & parseInt('777', 8);
-      
+
       if (mode === parseInt('600', 8)) {
         this.pass('.env file has secure permissions (600)');
       } else {
-        this.warn(`.env file permissions are ${mode.toString(8)} - should be 600`);
+        this.warn(
+          `.env file permissions are ${mode.toString(8)} - should be 600`
+        );
       }
     }
   }
@@ -278,22 +302,26 @@ class SecurityValidator {
   // Validate security headers configuration
   validateSecurityHeaders() {
     this.info('Checking security headers configuration...');
-    
-    const securityHeadersPath = path.join(this.projectRoot, 'security-hardening', 'security-headers.ts');
+
+    const securityHeadersPath = path.join(
+      this.projectRoot,
+      'security-hardening',
+      'security-headers.ts'
+    );
     if (fs.existsSync(securityHeadersPath)) {
       this.pass('Security headers configuration found');
-      
+
       const content = fs.readFileSync(securityHeadersPath, 'utf8');
-      
+
       // Check for important security headers
       const requiredHeaders = [
         'X-Content-Type-Options',
         'X-Frame-Options',
         'X-XSS-Protection',
         'Strict-Transport-Security',
-        'Content-Security-Policy'
+        'Content-Security-Policy',
       ];
-      
+
       requiredHeaders.forEach(header => {
         if (content.includes(header)) {
           this.pass(`${header} security header configured`);
@@ -310,33 +338,39 @@ class SecurityValidator {
   async run() {
     this.log('\n🔒 OneKeel Swarm Security Validation', 'cyan');
     this.log('=====================================', 'cyan');
-    
+
     this.validateEnvironment();
     this.validateSourceCode();
     this.validateFilePermissions();
     this.validateSecurityHeaders();
-    
+
     // Summary
     this.log('\n📊 Security Validation Summary', 'magenta');
     this.log('==============================', 'magenta');
-    
+
     this.log(`✅ Passed: ${this.passed.length}`, 'green');
     this.log(`⚠️  Warnings: ${this.warnings.length}`, 'yellow');
     this.log(`❌ Errors: ${this.errors.length}`, 'red');
-    
+
     if (this.errors.length > 0) {
       this.log('\n🚨 Critical Issues Found:', 'red');
       this.errors.forEach(error => this.log(`  • ${error}`, 'red'));
     }
-    
+
     if (this.warnings.length > 0) {
       this.log('\n⚠️  Warnings:', 'yellow');
       this.warnings.forEach(warning => this.log(`  • ${warning}`, 'yellow'));
     }
-    
-    const securityScore = Math.max(0, 100 - (this.errors.length * 20) - (this.warnings.length * 5));
-    this.log(`\n🎯 Security Score: ${securityScore}/100`, securityScore >= 80 ? 'green' : securityScore >= 60 ? 'yellow' : 'red');
-    
+
+    const securityScore = Math.max(
+      0,
+      100 - this.errors.length * 20 - this.warnings.length * 5
+    );
+    this.log(
+      `\n🎯 Security Score: ${securityScore}/100`,
+      securityScore >= 80 ? 'green' : securityScore >= 60 ? 'yellow' : 'red'
+    );
+
     // Exit with appropriate code
     process.exit(this.errors.length > 0 ? 1 : 0);
   }

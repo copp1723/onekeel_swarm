@@ -19,8 +19,10 @@ export class ServiceIntegrationTest {
       await this.testHealthMonitoring();
       await this.testMetricsCollection();
       await this.testOrchestrationUtilities();
-      
-      logger.info('All Service Integration Manager tests completed successfully');
+
+      logger.info(
+        'All Service Integration Manager tests completed successfully'
+      );
     } catch (error) {
       logger.error('Service Integration Manager tests failed', error);
       throw error;
@@ -47,7 +49,7 @@ export class ServiceIntegrationTest {
     // Test updating a service configuration
     const originalConfig = { ...configs.mailgun };
     await this.serviceManager.updateServiceConfig('mailgun', { enabled: true });
-    
+
     // Verify update worked
     const updatedConfigs = await this.serviceManager.getAllServiceConfigs();
     if (!updatedConfigs.mailgun.enabled) {
@@ -61,10 +63,11 @@ export class ServiceIntegrationTest {
     logger.info('Testing connection testing functionality');
 
     const services = ['mailgun', 'twilio', 'openrouter'];
-    
+
     for (const service of services) {
-      const testResult = await this.serviceManager.testServiceConnection(service);
-      
+      const testResult =
+        await this.serviceManager.testServiceConnection(service);
+
       if (!testResult || !testResult.status || !testResult.timestamp) {
         throw new Error(`Connection test failed for service: ${service}`);
       }
@@ -81,16 +84,18 @@ export class ServiceIntegrationTest {
     logger.info('Testing health monitoring functionality');
 
     const services = ['mailgun', 'twilio', 'openrouter'];
-    
+
     for (const service of services) {
       const healthStatus = await this.serviceManager.getServiceHealth(service);
-      
+
       if (!healthStatus || !healthStatus.status || !healthStatus.timestamp) {
         throw new Error(`Health monitoring failed for service: ${service}`);
       }
 
       if (!['healthy', 'degraded', 'unhealthy'].includes(healthStatus.status)) {
-        throw new Error(`Invalid health status returned for service: ${service}`);
+        throw new Error(
+          `Invalid health status returned for service: ${service}`
+        );
       }
     }
 
@@ -108,14 +113,23 @@ export class ServiceIntegrationTest {
 
     // Verify metrics structure
     for (const [serviceName, metrics] of Object.entries(allMetrics)) {
-      if (!metrics.uptime || !metrics.responseTime || !metrics.successRate || 
-          !metrics.totalRequests || metrics.errorCount === undefined || !metrics.lastChecked) {
-        throw new Error(`Invalid metrics structure for service: ${serviceName}`);
+      if (
+        !metrics.uptime ||
+        !metrics.responseTime ||
+        !metrics.successRate ||
+        !metrics.totalRequests ||
+        metrics.errorCount === undefined ||
+        !metrics.lastChecked
+      ) {
+        throw new Error(
+          `Invalid metrics structure for service: ${serviceName}`
+        );
       }
     }
 
     // Test getting metrics for a specific service
-    const specificMetrics = await this.serviceManager.getServiceMetricsForService('mailgun');
+    const specificMetrics =
+      await this.serviceManager.getServiceMetricsForService('mailgun');
     if (!specificMetrics) {
       throw new Error('Failed to retrieve specific service metrics');
     }
@@ -127,10 +141,13 @@ export class ServiceIntegrationTest {
     logger.info('Testing orchestration utilities functionality');
 
     // Test service validation
-    const validationResult = await serviceOrchestrator.validateServiceConfig('mailgun', {
-      apiKey: 'test-key-1234567890',
-      domain: 'test.example.com'
-    });
+    const validationResult = await serviceOrchestrator.validateServiceConfig(
+      'mailgun',
+      {
+        apiKey: 'test-key-1234567890',
+        domain: 'test.example.com',
+      }
+    );
 
     if (!validationResult || typeof validationResult.valid !== 'boolean') {
       throw new Error('Service validation failed');

@@ -24,7 +24,7 @@ async function applyDatabaseFix() {
   // Create database connection
   const sql = postgres(connectionString, {
     ssl: 'require',
-    max: 1
+    max: 1,
   });
 
   try {
@@ -33,10 +33,10 @@ async function applyDatabaseFix() {
     const sqlContent = readFileSync(sqlFilePath, 'utf-8');
 
     console.log('📄 Executing database migration...');
-    
+
     // Execute the SQL
     await sql.unsafe(sqlContent);
-    
+
     console.log('✅ Database schema fix applied successfully!');
 
     // Verify the users table structure
@@ -50,7 +50,9 @@ async function applyDatabaseFix() {
 
     console.log('📋 Users table columns:');
     columns.forEach(col => {
-      console.log(`  - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
+      console.log(
+        `  - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`
+      );
     });
 
     // Check if admin users exist
@@ -65,7 +67,9 @@ async function applyDatabaseFix() {
       console.log('  ⚠️  No admin users found');
     } else {
       adminUsers.forEach(user => {
-        console.log(`  - ${user.email} (${user.username}) - Active: ${user.active}`);
+        console.log(
+          `  - ${user.email} (${user.username}) - Active: ${user.active}`
+        );
       });
     }
 
@@ -76,17 +80,16 @@ async function applyDatabaseFix() {
     console.log('  OR');
     console.log('  Email: josh.copp@onekeel.ai');
     console.log('  Password: password123');
-
   } catch (error) {
     console.error('❌ Failed to apply database fix:', error);
-    
+
     if (error instanceof Error) {
       console.error('Error details:', {
         message: error.message,
-        code: (error as any).code
+        code: (error as any).code,
       });
     }
-    
+
     process.exit(1);
   } finally {
     await sql.end();

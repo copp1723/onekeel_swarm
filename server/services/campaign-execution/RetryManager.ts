@@ -27,7 +27,7 @@ export class RetryManager {
       logger.warn('Execution exceeded max retry attempts', {
         executionId: execution.id,
         attempts: execution.attempts,
-        maxAttempts: this.retryConfig.maxAttempts
+        maxAttempts: this.retryConfig.maxAttempts,
       });
       return;
     }
@@ -39,7 +39,7 @@ export class RetryManager {
       executionId: execution.id,
       attempt: execution.attempts + 1,
       maxAttempts: this.retryConfig.maxAttempts,
-      retryDelayMs: retryDelay
+      retryDelayMs: retryDelay,
     });
   }
 
@@ -49,7 +49,7 @@ export class RetryManager {
   private calculateRetryDelay(attempts: number): number {
     const baseDelay = this.retryConfig.retryDelayMs;
     const backoffMultiplier = this.retryConfig.backoffMultiplier;
-    
+
     // Exponential backoff: delay * (multiplier ^ attempts)
     return Math.floor(baseDelay * Math.pow(backoffMultiplier, attempts));
   }
@@ -64,13 +64,15 @@ export class RetryManager {
     nextRetryDelay?: number;
   } {
     const canRetry = this.shouldRetry(execution);
-    const nextRetryDelay = canRetry ? this.calculateRetryDelay(execution.attempts) : undefined;
+    const nextRetryDelay = canRetry
+      ? this.calculateRetryDelay(execution.attempts)
+      : undefined;
 
     return {
       attempts: execution.attempts,
       maxAttempts: this.retryConfig.maxAttempts,
       canRetry,
-      nextRetryDelay
+      nextRetryDelay,
     };
   }
 
@@ -96,9 +98,9 @@ export class RetryManager {
     execution.attempts = 0;
     execution.errorMessage = undefined;
     execution.lastAttempt = undefined;
-    
+
     logger.info('Execution attempts reset', {
-      executionId: execution.id
+      executionId: execution.id,
     });
   }
 }

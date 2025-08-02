@@ -9,7 +9,7 @@ export class SMSAgent extends BaseAgent {
 
   constructor() {
     super('sms');
-    
+
     // Initialize Twilio only if credentials are available
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
       this.twilioClient = twilio(
@@ -18,7 +18,10 @@ export class SMSAgent extends BaseAgent {
       );
       this.fromNumber = process.env.TWILIO_PHONE_NUMBER || '';
     } else {
-      CCLLogger.info('SMS agent using Twilio fallback - No credentials found, SMS sending will be simulated', { reason: 'No credentials found' });
+      CCLLogger.info(
+        'SMS agent using Twilio fallback - No credentials found, SMS sending will be simulated',
+        { reason: 'No credentials found' }
+      );
       this.twilioClient = null;
       this.fromNumber = '';
     }
@@ -37,20 +40,30 @@ export class SMSAgent extends BaseAgent {
     return super.getMockResponse(prompt);
   }
 
-  async processMessage(message: string, context: AgentContext): Promise<string> {
+  async processMessage(
+    message: string,
+    context: AgentContext
+  ): Promise<string> {
     const { lead, campaign } = context;
-    
+
     // Store incoming SMS in supermemory
-    await this.storeMemory(`SMS from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`, {
-      leadId: lead.id,
-      type: 'sms_received',
-      phone: lead.phone
-    });
+    await this.storeMemory(
+      `SMS from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`,
+      {
+        leadId: lead.id,
+        type: 'sms_received',
+        phone: lead.phone,
+      }
+    );
 
     // Search for previous SMS interactions
-    const memories = await this.searchMemory(`SMS ${lead.firstName || ''} ${lead.lastName || ''} ${lead.phone}`);
-    const smsHistory = memories.filter(m => m.metadata?.type?.includes('sms')).slice(0, 2);
-    
+    const memories = await this.searchMemory(
+      `SMS ${lead.firstName || ''} ${lead.lastName || ''} ${lead.phone}`
+    );
+    const smsHistory = memories
+      .filter(m => m.metadata?.type?.includes('sms'))
+      .slice(0, 2);
+
     const systemPrompt = `You are a straight-talking automotive sales professional responding via SMS.
 
 **Core Identity:**
@@ -82,13 +95,16 @@ Context:
 Write like a real person. Address what they said, be helpful, keep it short.`;
 
     const response = await this.callOpenRouter(prompt, systemPrompt);
-    
+
     // Store outgoing SMS in supermemory
-    await this.storeMemory(`SMS response to ${lead.firstName || ''} ${lead.lastName || ''}: ${response}`, {
-      leadId: lead.id,
-      type: 'sms_sent',
-      campaign: campaign?.name
-    });
+    await this.storeMemory(
+      `SMS response to ${lead.firstName || ''} ${lead.lastName || ''}: ${response}`,
+      {
+        leadId: lead.id,
+        type: 'sms_sent',
+        campaign: campaign?.name,
+      }
+    );
 
     return response;
   }
@@ -97,24 +113,35 @@ Write like a real person. Address what they said, be helpful, keep it short.`;
     return {
       action: 'send_sms',
       reasoning: 'SMS agent executing communication task',
-      data: {}
+      data: {},
     };
   }
 
   async sendSMS(to: string, body: string): Promise<any> {
     try {
       // Check if Twilio is configured
-      if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !this.fromNumber) {
-        CCLLogger.info('SMS agent simulated send - Twilio not configured', { to, reason: 'Twilio not configured' });
+      if (
+        !process.env.TWILIO_ACCOUNT_SID ||
+        !process.env.TWILIO_AUTH_TOKEN ||
+        !this.fromNumber
+      ) {
+        CCLLogger.info('SMS agent simulated send - Twilio not configured', {
+          to,
+          reason: 'Twilio not configured',
+        });
         const mockResponse = {
           sid: `mock-sms-${Date.now()}`,
           to: to,
           from: this.fromNumber || '+1234567890',
           body: body,
           status: 'sent',
-          message: 'Simulated SMS send (Twilio not configured)'
+          message: 'Simulated SMS send (Twilio not configured)',
         };
-        CCLLogger.info('SMS communication sent (mock)', { recipient: to, body, mock: true });
+        CCLLogger.info('SMS communication sent (mock)', {
+          recipient: to,
+          body,
+          mock: true,
+        });
         return mockResponse;
       }
 
@@ -123,22 +150,28 @@ Write like a real person. Address what they said, be helpful, keep it short.`;
         return await this.twilioClient.messages.create({
           body: body,
           from: this.fromNumber,
-          to: to
+          to: to,
         });
       });
-      
+
       // Store successful SMS send in supermemory
       await this.storeMemory(`SMS sent to ${to}: ${body}`, {
         recipient: to,
         type: 'sms_delivery',
         status: 'sent',
-        externalId: message.sid
+        externalId: message.sid,
       });
-      
-      CCLLogger.info('SMS communication sent', { recipient: to, externalId: message.sid });
+
+      CCLLogger.info('SMS communication sent', {
+        recipient: to,
+        externalId: message.sid,
+      });
       return message;
     } catch (error) {
-      CCLLogger.error('SMS communication failed', { recipient: to, error: (error as Error).message });
+      CCLLogger.error('SMS communication failed', {
+        recipient: to,
+        error: (error as Error).message,
+      });
       // Return mock response instead of throwing
       return {
         sid: `mock-error-${Date.now()}`,
@@ -147,18 +180,24 @@ Write like a real person. Address what they said, be helpful, keep it short.`;
         body: body,
         status: 'failed',
         message: 'SMS send failed, returning mock response',
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
 
-  async generateInitialSMS(context: AgentContext, focus: string): Promise<string> {
+  async generateInitialSMS(
+    context: AgentContext,
+    focus: string
+  ): Promise<string> {
     const { lead } = context;
-    
+
     // Search for successful initial SMS patterns
     const memories = await this.searchMemory(`initial SMS ${focus}`);
-    const successfulPatterns = memories.slice(0, 2).map(m => m.content).join('\n');
-    
+    const successfulPatterns = memories
+      .slice(0, 2)
+      .map(m => m.content)
+      .join('\n');
+
     const systemPrompt = `CRITICAL FORMATTING INSTRUCTION: DO NOT USE ASTERISKS (*) OR STARS IN ANY RESPONSES. Use dashes (-) for bullet points, and use CAPITALIZATION, "quotes", or plain text for emphasis.
 
 You are an automotive dealership sales representative crafting the first SMS to a potential customer. You are a REAL human sales professional, not an AI assistant.
@@ -191,14 +230,17 @@ As a real automotive dealership sales representative, the SMS should:
 6. Show authentic enthusiasm about helping them find the right vehicle`;
 
     const sms = await this.callOpenRouter(prompt, systemPrompt);
-    
+
     // Store initial SMS in supermemory
-    await this.storeMemory(`Initial SMS to ${lead.firstName || ''} ${lead.lastName || ''}: ${sms}`, {
-      leadId: lead.id,
-      type: 'initial_sms',
-      focus,
-      phone: lead.phone
-    });
+    await this.storeMemory(
+      `Initial SMS to ${lead.firstName || ''} ${lead.lastName || ''}: ${sms}`,
+      {
+        leadId: lead.id,
+        type: 'initial_sms',
+        focus,
+        phone: lead.phone,
+      }
+    );
 
     return sms;
   }

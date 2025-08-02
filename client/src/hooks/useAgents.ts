@@ -12,8 +12,13 @@ interface UseAgentsReturn {
   loading: boolean;
   error: string | null;
   loadAgents: () => Promise<void>;
-  createAgent: (agent: Partial<UnifiedAgentConfig>) => Promise<UnifiedAgentConfig>;
-  updateAgent: (id: string, updates: Partial<UnifiedAgentConfig>) => Promise<UnifiedAgentConfig>;
+  createAgent: (
+    agent: Partial<UnifiedAgentConfig>
+  ) => Promise<UnifiedAgentConfig>;
+  updateAgent: (
+    id: string,
+    updates: Partial<UnifiedAgentConfig>
+  ) => Promise<UnifiedAgentConfig>;
   deleteAgent: (id: string) => Promise<void>;
   toggleAgent: (id: string) => Promise<void>;
   getActiveAgent: (type: AgentType) => Promise<UnifiedAgentConfig | null>;
@@ -28,22 +33,23 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
   const loadAgents = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams();
       if (type) params.append('type', type);
       if (active !== undefined) params.append('active', active.toString());
-      
+
       const response = await fetch(`/api/agents?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to load agents: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setAgents(data.agents || []);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load agents';
       setError(errorMessage);
       console.error('Error loading agents:', err);
     } finally {
@@ -51,59 +57,78 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
     }
   }, [type, active]);
 
-  const createAgent = useCallback(async (agentData: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
-    try {
-      const response = await fetch('/api/agents', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(agentData),
-      });
+  const createAgent = useCallback(
+    async (
+      agentData: Partial<UnifiedAgentConfig>
+    ): Promise<UnifiedAgentConfig> => {
+      try {
+        const response = await fetch('/api/agents', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(agentData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || 'Failed to create agent');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.details || errorData.error || 'Failed to create agent'
+          );
+        }
+
+        const data = await response.json();
+        const newAgent = data.agent;
+
+        setAgents(prev => [...prev, newAgent]);
+        return newAgent;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to create agent';
+        setError(errorMessage);
+        throw err;
       }
+    },
+    []
+  );
 
-      const data = await response.json();
-      const newAgent = data.agent;
-      
-      setAgents(prev => [...prev, newAgent]);
-      return newAgent;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create agent';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+  const updateAgent = useCallback(
+    async (
+      id: string,
+      updates: Partial<UnifiedAgentConfig>
+    ): Promise<UnifiedAgentConfig> => {
+      try {
+        const response = await fetch(`/api/agents/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updates),
+        });
 
-  const updateAgent = useCallback(async (id: string, updates: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
-    try {
-      const response = await fetch(`/api/agents/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.details || errorData.error || 'Failed to update agent'
+          );
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || 'Failed to update agent');
+        const data = await response.json();
+        const updatedAgent = data.agent;
+
+        setAgents(prev =>
+          prev.map(agent => (agent.id === id ? updatedAgent : agent))
+        );
+        return updatedAgent;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to update agent';
+        setError(errorMessage);
+        throw err;
       }
-
-      const data = await response.json();
-      const updatedAgent = data.agent;
-
-      setAgents(prev => prev.map(agent => agent.id === id ? updatedAgent : agent));
-      return updatedAgent;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update agent';
-      setError(errorMessage);
-      throw err;
-    }
-  }, []);
+    },
+    []
+  );
 
   const deleteAgent = useCallback(async (id: string): Promise<void> => {
     try {
@@ -118,7 +143,8 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
       setAgents(prev => prev.filter(agent => agent.id !== id));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete agent';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to delete agent';
       setError(errorMessage);
       throw err;
     }
@@ -137,34 +163,40 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
       const data = await response.json();
       const updatedAgent = data.agent;
-      
-      setAgents(prev => prev.map(agent => agent.id === id ? updatedAgent : agent));
+
+      setAgents(prev =>
+        prev.map(agent => (agent.id === id ? updatedAgent : agent))
+      );
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to toggle agent';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to toggle agent';
       setError(errorMessage);
       throw err;
     }
   }, []);
 
-  const getActiveAgent = useCallback(async (agentType: AgentType): Promise<UnifiedAgentConfig | null> => {
-    try {
-      const response = await fetch(`/api/agents/active/${agentType}`);
-      
-      if (response.status === 404) {
-        return null; // No active agent of this type
+  const getActiveAgent = useCallback(
+    async (agentType: AgentType): Promise<UnifiedAgentConfig | null> => {
+      try {
+        const response = await fetch(`/api/agents/active/${agentType}`);
+
+        if (response.status === 404) {
+          return null; // No active agent of this type
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to get active ${agentType} agent`);
+        }
+
+        const data = await response.json();
+        return data.agent;
+      } catch (err) {
+        console.error(`Error getting active ${agentType} agent:`, err);
+        return null;
       }
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get active ${agentType} agent`);
-      }
-      
-      const data = await response.json();
-      return data.agent;
-    } catch (err) {
-      console.error(`Error getting active ${agentType} agent:`, err);
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   // Auto-load agents on mount if enabled
   useEffect(() => {
@@ -204,21 +236,22 @@ export function useAgentConfiguration(agentId?: string) {
 
   const loadAgent = useCallback(async () => {
     if (!agentId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/agents/${agentId}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to load agent: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setAgent(data.agent);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load agent';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load agent';
       setError(errorMessage);
       console.error('Error loading agent:', err);
     } finally {

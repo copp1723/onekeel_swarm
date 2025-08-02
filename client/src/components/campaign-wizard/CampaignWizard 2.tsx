@@ -4,8 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import {
   Target,
   Users,
@@ -19,7 +31,7 @@ import {
   Clock,
   Zap,
   Plus,
-  FileText
+  FileText,
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -29,9 +41,21 @@ interface CampaignWizardProps {
   agents?: any[];
 }
 
-type WizardStep = 'basics' | 'audience' | 'agent' | 'offer' | 'templates' | 'schedule' | 'review';
+type WizardStep =
+  | 'basics'
+  | 'audience'
+  | 'agent'
+  | 'offer'
+  | 'templates'
+  | 'schedule'
+  | 'review';
 
-export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
+export function CampaignWizard({
+  isOpen,
+  onClose,
+  onComplete,
+  agents = [],
+}: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [datasets] = useState<any[]>([]);
   const [campaignData, setCampaignData] = useState({
@@ -42,7 +66,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     audience: {
       filters: [],
       targetCount: 0,
-      datasetId: ''
+      datasetId: '',
     },
     agentId: '',
     offer: {
@@ -54,8 +78,8 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
       cta: {
         primary: '',
         secondary: '',
-        link: ''
-      }
+        link: '',
+      },
     },
     templates: [],
     schedule: {
@@ -63,18 +87,38 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
       totalEmails: 5,
       daysBetweenEmails: 3,
       timezone: 'America/New_York',
-      sendTimeOptimization: true
-    }
+      sendTimeOptimization: true,
+    },
   });
 
   const steps: { id: WizardStep; label: string; icon: React.ReactNode }[] = [
-    { id: 'basics', label: 'Campaign Basics', icon: <Target className="h-4 w-4" /> },
-    { id: 'audience', label: 'Target Audience', icon: <Users className="h-4 w-4" /> },
-    { id: 'agent', label: 'Select Agent', icon: <Brain className="h-4 w-4" /> },
-    { id: 'offer', label: 'Offer Details', icon: <Sparkles className="h-4 w-4" /> },
-    { id: 'templates', label: 'Email Templates', icon: <Mail className="h-4 w-4" /> },
-    { id: 'schedule', label: 'Schedule', icon: <Clock className="h-4 w-4" /> },
-    { id: 'review', label: 'Review & Launch', icon: <Check className="h-4 w-4" /> }
+    {
+      id: 'basics',
+      label: 'Campaign Basics',
+      icon: <Target className='h-4 w-4' />,
+    },
+    {
+      id: 'audience',
+      label: 'Target Audience',
+      icon: <Users className='h-4 w-4' />,
+    },
+    { id: 'agent', label: 'Select Agent', icon: <Brain className='h-4 w-4' /> },
+    {
+      id: 'offer',
+      label: 'Offer Details',
+      icon: <Sparkles className='h-4 w-4' />,
+    },
+    {
+      id: 'templates',
+      label: 'Email Templates',
+      icon: <Mail className='h-4 w-4' />,
+    },
+    { id: 'schedule', label: 'Schedule', icon: <Clock className='h-4 w-4' /> },
+    {
+      id: 'review',
+      label: 'Review & Launch',
+      icon: <Check className='h-4 w-4' />,
+    },
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
@@ -84,12 +128,14 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     if (field === 'description') {
       setCampaignData(prev => ({
         ...prev,
-        description: prev.description + '\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences.'
+        description:
+          prev.description +
+          '\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences.',
       }));
     } else if (field === 'goal') {
       setCampaignData(prev => ({
         ...prev,
-        goal: 'Achieve 25% open rate, 10% click-through rate, and generate 50+ qualified leads through personalized multi-touch email sequences optimized by AI.'
+        goal: 'Achieve 25% open rate, 10% click-through rate, and generate 50+ qualified leads through personalized multi-touch email sequences optimized by AI.',
       }));
     } else if (field === 'context') {
       setCampaignData(prev => ({
@@ -101,7 +147,7 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
 - Focus on customer success stories
 - Emphasize limited-time offers or incentives
 
-The AI should maintain a helpful, consultative tone while gently guiding leads toward conversion.`
+The AI should maintain a helpful, consultative tone while gently guiding leads toward conversion.`,
       }));
     }
   };
@@ -128,81 +174,96 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
     switch (currentStep) {
       case 'basics':
         return (
-          <div className="space-y-4">
+          <div className='space-y-4'>
             <div>
-              <Label htmlFor="name">Campaign Name</Label>
+              <Label htmlFor='name'>Campaign Name</Label>
               <Input
-                id="name"
+                id='name'
                 value={campaignData.name}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter campaign name"
-                className="mt-1"
+                onChange={e =>
+                  setCampaignData(prev => ({ ...prev, name: e.target.value }))
+                }
+                placeholder='Enter campaign name'
+                className='mt-1'
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="description">Description</Label>
+              <div className='flex items-center justify-between mb-1'>
+                <Label htmlFor='description'>Description</Label>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant='ghost'
+                  size='sm'
                   onClick={() => enhanceWithAI('description')}
-                  className="h-7 px-2"
+                  className='h-7 px-2'
                 >
-                  <Wand2 className="h-3 w-3 mr-1" />
+                  <Wand2 className='h-3 w-3 mr-1' />
                   Enhance
                 </Button>
               </div>
               <Textarea
-                id="description"
+                id='description'
                 value={campaignData.description}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe your campaign objectives"
+                onChange={e =>
+                  setCampaignData(prev => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder='Describe your campaign objectives'
                 rows={4}
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="goal">Campaign Goal</Label>
+              <div className='flex items-center justify-between mb-1'>
+                <Label htmlFor='goal'>Campaign Goal</Label>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant='ghost'
+                  size='sm'
                   onClick={() => enhanceWithAI('goal')}
-                  className="h-7 px-2"
+                  className='h-7 px-2'
                 >
-                  <Wand2 className="h-3 w-3 mr-1" />
+                  <Wand2 className='h-3 w-3 mr-1' />
                   AI Suggest
                 </Button>
               </div>
               <Input
-                id="goal"
+                id='goal'
                 value={campaignData.goal}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, goal: e.target.value }))}
-                placeholder="e.g., Generate 50 qualified leads"
+                onChange={e =>
+                  setCampaignData(prev => ({ ...prev, goal: e.target.value }))
+                }
+                placeholder='e.g., Generate 50 qualified leads'
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="context">Campaign Context</Label>
+              <div className='flex items-center justify-between mb-1'>
+                <Label htmlFor='context'>Campaign Context</Label>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant='ghost'
+                  size='sm'
                   onClick={() => enhanceWithAI('context')}
-                  className="h-7 px-2"
+                  className='h-7 px-2'
                 >
-                  <Wand2 className="h-3 w-3 mr-1" />
+                  <Wand2 className='h-3 w-3 mr-1' />
                   Generate
                 </Button>
               </div>
               <Textarea
-                id="context"
+                id='context'
                 value={campaignData.context}
-                onChange={(e) => setCampaignData(prev => ({ ...prev, context: e.target.value }))}
+                onChange={e =>
+                  setCampaignData(prev => ({
+                    ...prev,
+                    context: e.target.value,
+                  }))
+                }
                 placeholder="Provide business context for the AI agent (e.g., 'This is a re-engagement campaign for leads who inquired about car loans but didn't complete their application. Focus on addressing common concerns about credit scores and down payments.')"
                 rows={3}
-                className="text-sm"
+                className='text-sm'
               />
-              <p className="text-xs text-gray-500 mt-1">
-                This context helps the AI understand your business goals and tailor responses appropriately
+              <p className='text-xs text-gray-500 mt-1'>
+                This context helps the AI understand your business goals and
+                tailor responses appropriately
               </p>
             </div>
           </div>
@@ -210,28 +271,29 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'audience':
         return (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Select Dataset</h4>
+          <div className='space-y-4'>
+            <div className='bg-blue-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <FileText className='h-5 w-5 text-blue-600' />
+                <h4 className='font-medium text-blue-900'>Select Dataset</h4>
               </div>
-              <p className="text-sm text-blue-700">
-                Choose the dataset from your uploads that contains your target contacts.
+              <p className='text-sm text-blue-700'>
+                Choose the dataset from your uploads that contains your target
+                contacts.
               </p>
             </div>
-            <div className="space-y-3">
+            <div className='space-y-3'>
               <select
-                className="w-full border rounded p-2"
+                className='w-full border rounded p-2'
                 value={campaignData.audience.datasetId}
-                onChange={(e) =>
+                onChange={e =>
                   setCampaignData(prev => ({
                     ...prev,
-                    audience: { ...prev.audience, datasetId: e.target.value }
+                    audience: { ...prev.audience, datasetId: e.target.value },
                   }))
                 }
               >
-                <option value="" disabled>
+                <option value='' disabled>
                   Select a dataset
                 </option>
                 {datasets.map((dataset: any) => (
@@ -241,8 +303,9 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
                 ))}
               </select>
               {!campaignData.audience.datasetId && (
-                <div className="text-center py-8 text-gray-500">
-                  No dataset selected. Please choose a dataset from your uploads.
+                <div className='text-center py-8 text-gray-500'>
+                  No dataset selected. Please choose a dataset from your
+                  uploads.
                 </div>
               )}
             </div>
@@ -251,42 +314,50 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'agent':
         return (
-          <div className="space-y-4">
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Brain className="h-5 w-5 text-purple-600" />
-                <h4 className="font-medium text-purple-900">Select AI Agent</h4>
+          <div className='space-y-4'>
+            <div className='bg-purple-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <Brain className='h-5 w-5 text-purple-600' />
+                <h4 className='font-medium text-purple-900'>Select AI Agent</h4>
               </div>
-              <p className="text-sm text-purple-700">
+              <p className='text-sm text-purple-700'>
                 Choose the AI agent that will manage this campaign.
               </p>
             </div>
-            <div className="space-y-3">
-              {agents.length > 0 ? agents.map((agent) => (
-                <div
-                  key={agent.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition ${
-                    campaignData.agentId === agent.id
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setCampaignData(prev => ({ ...prev, agentId: agent.id }))}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium">{agent.name}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{agent.role}</p>
+            <div className='space-y-3'>
+              {agents.length > 0 ? (
+                agents.map(agent => (
+                  <div
+                    key={agent.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition ${
+                      campaignData.agentId === agent.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() =>
+                      setCampaignData(prev => ({ ...prev, agentId: agent.id }))
+                    }
+                  >
+                    <div className='flex items-start justify-between'>
+                      <div>
+                        <h4 className='font-medium'>{agent.name}</h4>
+                        <p className='text-sm text-gray-600 mt-1'>
+                          {agent.role}
+                        </p>
+                      </div>
+                      {campaignData.agentId === agent.id && (
+                        <Check className='h-5 w-5 text-purple-600' />
+                      )}
                     </div>
-                    {campaignData.agentId === agent.id && (
-                      <Check className="h-5 w-5 text-purple-600" />
-                    )}
                   </div>
-                </div>
-              )) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Brain className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                ))
+              ) : (
+                <div className='text-center py-8 text-gray-500'>
+                  <Brain className='h-12 w-12 text-gray-300 mx-auto mb-3' />
                   <p>No agents available</p>
-                  <Button variant="link" className="mt-2">Create an Agent</Button>
+                  <Button variant='link' className='mt-2'>
+                    Create an Agent
+                  </Button>
                 </div>
               )}
             </div>
@@ -295,106 +366,119 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'offer':
         return (
-          <div className="space-y-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Sparkles className="h-5 w-5 text-green-600" />
-                <h4 className="font-medium text-green-900">Offer Details</h4>
+          <div className='space-y-4'>
+            <div className='bg-green-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <Sparkles className='h-5 w-5 text-green-600' />
+                <h4 className='font-medium text-green-900'>Offer Details</h4>
               </div>
-              <p className="text-sm text-green-700">
-                Provide details about your offer so AI can create compelling email templates.
+              <p className='text-sm text-green-700'>
+                Provide details about your offer so AI can create compelling
+                email templates.
               </p>
             </div>
-            
-            <div className="space-y-4">
+
+            <div className='space-y-4'>
               <div>
-                <Label htmlFor="product">Product/Service</Label>
+                <Label htmlFor='product'>Product/Service</Label>
                 <Input
-                  id="product"
+                  id='product'
                   value={campaignData.offer.product}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { ...prev.offer, product: e.target.value }
-                  }))}
-                  placeholder="e.g., Car loan refinancing, Personal loans"
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: { ...prev.offer, product: e.target.value },
+                    }))
+                  }
+                  placeholder='e.g., Car loan refinancing, Personal loans'
+                  className='mt-1'
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="pricing">Pricing/Rates</Label>
+                <Label htmlFor='pricing'>Pricing/Rates</Label>
                 <Input
-                  id="pricing"
+                  id='pricing'
                   value={campaignData.offer.pricing}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { ...prev.offer, pricing: e.target.value }
-                  }))}
-                  placeholder="e.g., Starting at 3.99% APR, No fees"
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: { ...prev.offer, pricing: e.target.value },
+                    }))
+                  }
+                  placeholder='e.g., Starting at 3.99% APR, No fees'
+                  className='mt-1'
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="urgency">Urgency/Timeline</Label>
+                <Label htmlFor='urgency'>Urgency/Timeline</Label>
                 <Input
-                  id="urgency"
+                  id='urgency'
                   value={campaignData.offer.urgency}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { ...prev.offer, urgency: e.target.value }
-                  }))}
-                  placeholder="e.g., Limited time offer, Apply by month end"
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: { ...prev.offer, urgency: e.target.value },
+                    }))
+                  }
+                  placeholder='e.g., Limited time offer, Apply by month end'
+                  className='mt-1'
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="primaryCta">Primary Call-to-Action</Label>
+                <Label htmlFor='primaryCta'>Primary Call-to-Action</Label>
                 <Input
-                  id="primaryCta"
+                  id='primaryCta'
                   value={campaignData.offer.cta.primary}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { 
-                      ...prev.offer, 
-                      cta: { ...prev.offer.cta, primary: e.target.value }
-                    }
-                  }))}
-                  placeholder="e.g., Apply Now, Get Your Rate"
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: {
+                        ...prev.offer,
+                        cta: { ...prev.offer.cta, primary: e.target.value },
+                      },
+                    }))
+                  }
+                  placeholder='e.g., Apply Now, Get Your Rate'
+                  className='mt-1'
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="ctaLink">CTA Link</Label>
+                <Label htmlFor='ctaLink'>CTA Link</Label>
                 <Input
-                  id="ctaLink"
+                  id='ctaLink'
                   value={campaignData.offer.cta.link}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { 
-                      ...prev.offer, 
-                      cta: { ...prev.offer.cta, link: e.target.value }
-                    }
-                  }))}
-                  placeholder="https://your-site.com/apply"
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: {
+                        ...prev.offer,
+                        cta: { ...prev.offer.cta, link: e.target.value },
+                      },
+                    }))
+                  }
+                  placeholder='https://your-site.com/apply'
+                  className='mt-1'
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="disclaimer">Disclaimers/Legal</Label>
+                <Label htmlFor='disclaimer'>Disclaimers/Legal</Label>
                 <Textarea
-                  id="disclaimer"
+                  id='disclaimer'
                   value={campaignData.offer.disclaimer}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    offer: { ...prev.offer, disclaimer: e.target.value }
-                  }))}
-                  placeholder="Required legal disclaimers, terms, conditions..."
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      offer: { ...prev.offer, disclaimer: e.target.value },
+                    }))
+                  }
+                  placeholder='Required legal disclaimers, terms, conditions...'
                   rows={3}
-                  className="mt-1 text-sm"
+                  className='mt-1 text-sm'
                 />
               </div>
             </div>
@@ -403,18 +487,18 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'templates':
         return (
-          <div className="space-y-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Mail className="h-5 w-5 text-green-600" />
-                <h4 className="font-medium text-green-900">Email Templates</h4>
+          <div className='space-y-4'>
+            <div className='bg-green-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <Mail className='h-5 w-5 text-green-600' />
+                <h4 className='font-medium text-green-900'>Email Templates</h4>
               </div>
-              <p className="text-sm text-green-700">
+              <p className='text-sm text-green-700'>
                 Select templates for your email sequence.
               </p>
             </div>
-            <Button variant="outline" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant='outline' className='w-full'>
+              <Plus className='h-4 w-4 mr-2' />
               Add Template
             </Button>
           </div>
@@ -422,85 +506,115 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'schedule':
         return (
-          <div className="space-y-4">
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Clock className="h-5 w-5 text-orange-600" />
-                <h4 className="font-medium text-orange-900">Campaign Schedule</h4>
+          <div className='space-y-4'>
+            <div className='bg-orange-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <Clock className='h-5 w-5 text-orange-600' />
+                <h4 className='font-medium text-orange-900'>
+                  Campaign Schedule
+                </h4>
               </div>
-              <p className="text-sm text-orange-700">
-                Configure your email sequence timing. If a lead replies, the AI takes over with personalized conversations.
+              <p className='text-sm text-orange-700'>
+                Configure your email sequence timing. If a lead replies, the AI
+                takes over with personalized conversations.
               </p>
             </div>
-            <div className="space-y-4">
+            <div className='space-y-4'>
               <div>
                 <Label>Campaign Start Date</Label>
                 <Input
-                  type="date"
+                  type='date'
                   value={campaignData.schedule.startDate}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, startDate: e.target.value }
-                  }))}
-                  className="mt-1"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      schedule: { ...prev.schedule, startDate: e.target.value },
+                    }))
+                  }
+                  className='mt-1'
                 />
               </div>
               <div>
                 <Label>Total Emails in Sequence</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  max="10"
+                  type='number'
+                  min='1'
+                  max='10'
                   value={campaignData.schedule.totalEmails}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
-                  }))}
-                  className="mt-1"
-                  placeholder="e.g., 5"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule,
+                        totalEmails: parseInt(e.target.value) || 1,
+                      },
+                    }))
+                  }
+                  className='mt-1'
+                  placeholder='e.g., 5'
                 />
-                <p className="text-xs text-gray-500 mt-1">Number of templated emails to send (if no response)</p>
+                <p className='text-xs text-gray-500 mt-1'>
+                  Number of templated emails to send (if no response)
+                </p>
               </div>
               <div>
                 <Label>Days Between Emails</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  max="30"
+                  type='number'
+                  min='1'
+                  max='30'
                   value={campaignData.schedule.daysBetweenEmails}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
-                  }))}
-                  className="mt-1"
-                  placeholder="e.g., 3"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule,
+                        daysBetweenEmails: parseInt(e.target.value) || 1,
+                      },
+                    }))
+                  }
+                  className='mt-1'
+                  placeholder='e.g., 3'
                 />
-                <p className="text-xs text-gray-500 mt-1">Wait time between each templated email</p>
+                <p className='text-xs text-gray-500 mt-1'>
+                  Wait time between each templated email
+                </p>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <Brain className="h-4 w-4 text-blue-600 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-blue-900">AI Response Mode</p>
-                    <p className="text-blue-700 mt-1">
-                      When a lead replies to any email, the remaining templated emails are cancelled. 
-                      The AI agent takes over for personalized back-and-forth conversation until handover.
+              <div className='bg-blue-50 p-3 rounded-lg'>
+                <div className='flex items-start space-x-2'>
+                  <Brain className='h-4 w-4 text-blue-600 mt-0.5' />
+                  <div className='text-sm'>
+                    <p className='font-medium text-blue-900'>
+                      AI Response Mode
+                    </p>
+                    <p className='text-blue-700 mt-1'>
+                      When a lead replies to any email, the remaining templated
+                      emails are cancelled. The AI agent takes over for
+                      personalized back-and-forth conversation until handover.
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className='flex items-center space-x-2'>
                 <input
-                  type="checkbox"
-                  id="sendTimeOptimization"
+                  type='checkbox'
+                  id='sendTimeOptimization'
                   checked={campaignData.schedule.sendTimeOptimization}
-                  onChange={(e) => setCampaignData(prev => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, sendTimeOptimization: e.target.checked }
-                  }))}
-                  className="rounded"
+                  onChange={e =>
+                    setCampaignData(prev => ({
+                      ...prev,
+                      schedule: {
+                        ...prev.schedule,
+                        sendTimeOptimization: e.target.checked,
+                      },
+                    }))
+                  }
+                  className='rounded'
                 />
-                <Label htmlFor="sendTimeOptimization" className="cursor-pointer">
+                <Label
+                  htmlFor='sendTimeOptimization'
+                  className='cursor-pointer'
+                >
                   Enable AI send time optimization
                 </Label>
               </div>
@@ -510,47 +624,59 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
 
       case 'review':
         return (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Zap className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Ready to Launch!</h4>
+          <div className='space-y-4'>
+            <div className='bg-blue-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2 mb-2'>
+                <Zap className='h-5 w-5 text-blue-600' />
+                <h4 className='font-medium text-blue-900'>Ready to Launch!</h4>
               </div>
-              <p className="text-sm text-blue-700">
+              <p className='text-sm text-blue-700'>
                 Review your campaign settings before launching.
               </p>
             </div>
-            <div className="space-y-3">
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Campaign Name</p>
-                <p className="text-sm">{campaignData.name || 'Not set'}</p>
+            <div className='space-y-3'>
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>
+                  Campaign Name
+                </p>
+                <p className='text-sm'>{campaignData.name || 'Not set'}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Goal</p>
-                <p className="text-sm">{campaignData.goal || 'Not set'}</p>
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>Goal</p>
+                <p className='text-sm'>{campaignData.goal || 'Not set'}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Campaign Context</p>
-                <p className="text-sm">{campaignData.context || 'Not set'}</p>
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>
+                  Campaign Context
+                </p>
+                <p className='text-sm'>{campaignData.context || 'Not set'}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Selected Agent</p>
-                <p className="text-sm">
-                  {agents.find(a => a.id === campaignData.agentId)?.name || 'No agent selected'}
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>
+                  Selected Agent
+                </p>
+                <p className='text-sm'>
+                  {agents.find(a => a.id === campaignData.agentId)?.name ||
+                    'No agent selected'}
                 </p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Email Sequence</p>
-                <p className="text-sm">
-                  {campaignData.schedule.totalEmails} emails, {campaignData.schedule.daysBetweenEmails} days apart
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>
+                  Email Sequence
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className='text-sm'>
+                  {campaignData.schedule.totalEmails} emails,{' '}
+                  {campaignData.schedule.daysBetweenEmails} days apart
+                </p>
+                <p className='text-xs text-gray-500 mt-1'>
                   AI takes over if lead replies to any email
                 </p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Start Date</p>
-                <p className="text-sm">{campaignData.schedule.startDate || 'Not set'}</p>
+              <div className='p-3 bg-gray-50 rounded'>
+                <p className='text-sm font-medium text-gray-600'>Start Date</p>
+                <p className='text-sm'>
+                  {campaignData.schedule.startDate || 'Not set'}
+                </p>
               </div>
             </div>
           </div>
@@ -562,8 +688,8 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-[500px] sm:max-w-[500px]">
+    <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
+      <SheetContent className='w-[500px] sm:max-w-[500px]'>
         <SheetHeader>
           <SheetTitle>Create Campaign</SheetTitle>
           <SheetDescription>
@@ -571,12 +697,15 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6">
+        <div className='mt-6'>
           {/* Progress Steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between relative">
+          <div className='mb-8'>
+            <div className='flex items-center justify-between relative'>
               {steps.map((step, index) => (
-                <div key={step.id} className="flex flex-col items-center relative z-10">
+                <div
+                  key={step.id}
+                  className='flex flex-col items-center relative z-10'
+                >
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                       index <= currentStepIndex
@@ -586,44 +715,47 @@ The AI should maintain a helpful, consultative tone while gently guiding leads t
                   >
                     {step.icon}
                   </div>
-                  <span className="text-xs mt-2 text-center max-w-[60px]">
+                  <span className='text-xs mt-2 text-center max-w-[60px]'>
                     {step.label}
                   </span>
                 </div>
               ))}
-              <div className="absolute top-5 left-0 right-0 h-[2px] bg-gray-200 -z-10">
+              <div className='absolute top-5 left-0 right-0 h-[2px] bg-gray-200 -z-10'>
                 <div
-                  className="h-full bg-purple-600 transition-all duration-300"
-                  style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+                  className='h-full bg-purple-600 transition-all duration-300'
+                  style={{
+                    width: `${(currentStepIndex / (steps.length - 1)) * 100}%`,
+                  }}
                 />
               </div>
             </div>
           </div>
 
           {/* Step Content */}
-          <div className="min-h-[300px]">
-            {renderStepContent()}
-          </div>
+          <div className='min-h-[300px]'>{renderStepContent()}</div>
 
           {/* Navigation */}
-          <div className="flex justify-between mt-8 pt-4 border-t">
+          <div className='flex justify-between mt-8 pt-4 border-t'>
             <Button
-              variant="outline"
+              variant='outline'
               onClick={handlePrevious}
               disabled={currentStepIndex === 0}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className='h-4 w-4 mr-2' />
               Previous
             </Button>
             {currentStep === 'review' ? (
-              <Button onClick={handleComplete} className="bg-purple-600 hover:bg-purple-700">
-                <Zap className="h-4 w-4 mr-2" />
+              <Button
+                onClick={handleComplete}
+                className='bg-purple-600 hover:bg-purple-700'
+              >
+                <Zap className='h-4 w-4 mr-2' />
                 Launch Campaign
               </Button>
             ) : (
               <Button onClick={handleNext}>
                 Next
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className='h-4 w-4 ml-2' />
               </Button>
             )}
           </div>

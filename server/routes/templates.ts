@@ -19,7 +19,7 @@ const templateSchema = z.object({
   variables: z.array(z.string()).optional(),
   active: z.boolean().optional(),
   clientId: z.string().uuid().nullable().optional(),
-  isShared: z.boolean().optional()
+  isShared: z.boolean().optional(),
 });
 
 // Get all templates
@@ -74,18 +74,18 @@ router.get('/', authenticate, async (req, res) => {
       ...template,
       variables: template.variables || [],
       isShared: false, // We'll implement sharing logic later
-      clientId: null // For now
+      clientId: null, // For now
     }));
 
     res.json({
       success: true,
-      data: transformedTemplates
+      data: transformedTemplates,
     });
   } catch (error) {
     console.error('Error fetching templates:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch templates'
+      error: 'Failed to fetch templates',
     });
   }
 });
@@ -104,7 +104,7 @@ router.get('/:id', authenticate, async (req, res) => {
     if (!template) {
       return res.status(404).json({
         success: false,
-        error: 'Template not found'
+        error: 'Template not found',
       });
     }
 
@@ -113,14 +113,14 @@ router.get('/:id', authenticate, async (req, res) => {
       data: {
         ...template,
         variables: template.variables || [],
-        isShared: false
-      }
+        isShared: false,
+      },
     });
   } catch (error) {
     console.error('Error fetching template:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch template'
+      error: 'Failed to fetch template',
     });
   }
 });
@@ -129,14 +129,14 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const validatedData = templateSchema.parse(req.body);
-    
+
     const newTemplate = {
       id: uuidv4(),
       ...validatedData,
       variables: validatedData.variables || [],
       active: validatedData.active ?? true,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const [created] = await db
@@ -148,8 +148,8 @@ router.post('/', authenticate, async (req, res) => {
       success: true,
       data: {
         ...created,
-        isShared: validatedData.isShared || false
-      }
+        isShared: validatedData.isShared || false,
+      },
     });
   } catch (error) {
     console.error('Error creating template:', error);
@@ -157,12 +157,12 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid template data',
-        details: error.errors
+        details: error.errors,
       });
     }
     res.status(500).json({
       success: false,
-      error: 'Failed to create template'
+      error: 'Failed to create template',
     });
   }
 });
@@ -178,7 +178,7 @@ router.put('/:id', authenticate, async (req, res) => {
       .set({
         ...validatedData,
         variables: validatedData.variables || [],
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(templates.id, id))
       .returning();
@@ -186,7 +186,7 @@ router.put('/:id', authenticate, async (req, res) => {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        error: 'Template not found'
+        error: 'Template not found',
       });
     }
 
@@ -194,8 +194,8 @@ router.put('/:id', authenticate, async (req, res) => {
       success: true,
       data: {
         ...updated,
-        isShared: validatedData.isShared || false
-      }
+        isShared: validatedData.isShared || false,
+      },
     });
   } catch (error) {
     console.error('Error updating template:', error);
@@ -203,12 +203,12 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Invalid template data',
-        details: error.errors
+        details: error.errors,
       });
     }
     res.status(500).json({
       success: false,
-      error: 'Failed to update template'
+      error: 'Failed to update template',
     });
   }
 });
@@ -226,19 +226,19 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: 'Template not found'
+        error: 'Template not found',
       });
     }
 
     res.json({
       success: true,
-      message: 'Template deleted successfully'
+      message: 'Template deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting template:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to delete template'
+      error: 'Failed to delete template',
     });
   }
 });
@@ -258,7 +258,7 @@ router.post('/:id/duplicate', authenticate, async (req, res) => {
     if (!original) {
       return res.status(404).json({
         success: false,
-        error: 'Template not found'
+        error: 'Template not found',
       });
     }
 
@@ -267,7 +267,7 @@ router.post('/:id/duplicate', authenticate, async (req, res) => {
       id: uuidv4(),
       name: name || `${original.name} (Copy)`,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const [created] = await db
@@ -277,13 +277,13 @@ router.post('/:id/duplicate', authenticate, async (req, res) => {
 
     res.json({
       success: true,
-      data: created
+      data: created,
     });
   } catch (error) {
     console.error('Error duplicating template:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to duplicate template'
+      error: 'Failed to duplicate template',
     });
   }
 });

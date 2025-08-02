@@ -93,14 +93,19 @@ export class AgentCommunicationHub extends EventEmitter {
   /**
    * Send message between agents
    */
-  async sendAgentMessage(from: string, to: string, type: AgentMessage['type'], payload: any): Promise<void> {
+  async sendAgentMessage(
+    from: string,
+    to: string,
+    type: AgentMessage['type'],
+    payload: any
+  ): Promise<void> {
     const message: AgentMessage = {
       id: crypto.randomUUID(),
       from,
       to,
       type,
       payload,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     // Store message
@@ -117,7 +122,7 @@ export class AgentCommunicationHub extends EventEmitter {
     if (this.wsHandler) {
       (this.wsHandler as any).broadcastCallback({
         type: 'agent_message',
-        data: message
+        data: message,
       });
     }
 
@@ -125,7 +130,7 @@ export class AgentCommunicationHub extends EventEmitter {
       from,
       to,
       type,
-      messageId: message.id
+      messageId: message.id,
     });
   }
 
@@ -136,19 +141,23 @@ export class AgentCommunicationHub extends EventEmitter {
     const { from, payload } = message;
     const { leadId, decision, requiresCoordination } = payload;
 
-    logger.info('Processing agent decision', { from, leadId, requiresCoordination });
+    logger.info('Processing agent decision', {
+      from,
+      leadId,
+      requiresCoordination,
+    });
 
     if (requiresCoordination) {
       // Get all active agents for this lead (simplified for now)
       const activeAgents = ['email', 'sms', 'chat'];
-      
+
       // Notify all agents of decision
       for (const agent of activeAgents) {
         if (agent !== from) {
           await this.sendAgentMessage('hub', agent, 'coordination', {
             leadId,
             decision,
-            originalDecision: decision
+            originalDecision: decision,
           });
         }
       }
@@ -168,7 +177,7 @@ export class AgentCommunicationHub extends EventEmitter {
     if (this.wsHandler) {
       (this.wsHandler as any).broadcastCallback({
         type: 'agent_status_update',
-        data: { leadId, agent: from, status, details }
+        data: { leadId, agent: from, status, details },
       });
     }
   }
@@ -184,7 +193,7 @@ export class AgentCommunicationHub extends EventEmitter {
       from,
       to: targetAgent,
       leadId,
-      reason
+      reason,
     });
 
     // Transfer context to target agent
@@ -192,7 +201,7 @@ export class AgentCommunicationHub extends EventEmitter {
       leadId,
       context,
       reason,
-      previousAgent: from
+      previousAgent: from,
     });
   }
 
@@ -205,12 +214,12 @@ export class AgentCommunicationHub extends EventEmitter {
 
     const key = `${campaignId}-${leadId}`;
     let goalData = this.goalProgress.get(key);
-    
+
     if (!goalData) {
       goalData = {
         campaignId,
         leadId,
-        goals: {}
+        goals: {},
       };
       this.goalProgress.set(key, goalData);
     }
@@ -220,12 +229,14 @@ export class AgentCommunicationHub extends EventEmitter {
       target: progress.target,
       current: progress.current,
       completed: progress.current >= progress.target,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
 
     // Check if all goals are completed
-    const allGoalsCompleted = Object.values(goalData.goals).every(g => g.completed);
-    
+    const allGoalsCompleted = Object.values(goalData.goals).every(
+      g => g.completed
+    );
+
     if (allGoalsCompleted) {
       // Trigger campaign completion logic
       await this.handleCampaignCompletion(campaignId, leadId);
@@ -238,8 +249,8 @@ export class AgentCommunicationHub extends EventEmitter {
         data: {
           campaignId,
           leadId,
-          goals: goalData.goals
-        }
+          goals: goalData.goals,
+        },
       });
     }
   }
@@ -255,12 +266,12 @@ export class AgentCommunicationHub extends EventEmitter {
   ): Promise<void> {
     const key = `${campaignId}-${leadId}`;
     let goalData = this.goalProgress.get(key);
-    
+
     if (!goalData) {
       goalData = {
         campaignId,
         leadId,
-        goals: {}
+        goals: {},
       };
       this.goalProgress.set(key, goalData);
     }
@@ -274,8 +285,8 @@ export class AgentCommunicationHub extends EventEmitter {
       goalName,
       progress: {
         target: 100, // Default target
-        current: newProgress
-      }
+        current: newProgress,
+      },
     });
   }
 
@@ -290,16 +301,19 @@ export class AgentCommunicationHub extends EventEmitter {
   /**
    * Handle campaign completion
    */
-  private async handleCampaignCompletion(campaignId: string, leadId: string): Promise<void> {
+  private async handleCampaignCompletion(
+    campaignId: string,
+    leadId: string
+  ): Promise<void> {
     logger.info('Campaign goals completed', { campaignId, leadId });
-    
+
     // Notify all agents
     const activeAgents = ['email', 'sms', 'chat'];
     for (const agent of activeAgents) {
       await this.sendAgentMessage('hub', agent, 'coordination', {
         leadId,
         event: 'campaign_completed',
-        campaignId
+        campaignId,
       });
     }
   }
@@ -345,7 +359,10 @@ export class AgentCommunicationHub extends EventEmitter {
     channel: 'email' | 'sms' | 'chat'
   ): Promise<string> {
     // Simple response for now - would integrate with actual agents
-    logger.info('Processing message', { channel, message: message.substring(0, 50) });
+    logger.info('Processing message', {
+      channel,
+      message: message.substring(0, 50),
+    });
     return `Processed ${channel} message: ${message}`;
   }
 }
@@ -374,7 +391,7 @@ export class CommunicationAgentInstance {
     logger.info(`Agent ${this.id} sent message`, {
       leadId: lead.id,
       channel,
-      campaignId: this.campaignId
+      campaignId: this.campaignId,
     });
 
     // Process through the appropriate channel agent
@@ -390,7 +407,9 @@ export class CommunicationAgentInstance {
       .map(([channel, _]) => channel as 'email' | 'sms' | 'chat');
   }
 
-  async isChannelAvailable(channel: 'email' | 'sms' | 'chat'): Promise<boolean> {
+  async isChannelAvailable(
+    channel: 'email' | 'sms' | 'chat'
+  ): Promise<boolean> {
     return this.capabilities[channel];
   }
 }

@@ -26,21 +26,22 @@ export class CampaignOrchestrator {
         type: 'email',
         conditions: {
           emailSubject: 'START CAMPAIGN',
-          emailFrom: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com'
-        }
+          emailFrom:
+            process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
+        },
       },
       {
         type: 'lead_status',
         conditions: {
-          leadStatus: 'new'
-        }
+          leadStatus: 'new',
+        },
       },
       {
         type: 'time',
         conditions: {
-          timeDelay: 60 // Check every hour
-        }
-      }
+          timeDelay: 60, // Check every hour
+        },
+      },
     ];
   }
 
@@ -55,9 +56,12 @@ export class CampaignOrchestrator {
       await emailMonitor.start();
       logger.info('✅ Email monitoring started for campaign execution');
     } catch (error) {
-      logger.warn('Email monitoring not available for campaign execution - continuing without email monitoring', {
-        error: (error as Error).message
-      });
+      logger.warn(
+        'Email monitoring not available for campaign execution - continuing without email monitoring',
+        {
+          error: (error as Error).message,
+        }
+      );
     }
 
     // Start execution monitor
@@ -78,7 +82,9 @@ export class CampaignOrchestrator {
     try {
       await emailMonitor.stop();
     } catch (error) {
-      logger.warn('Error stopping email monitor', { error: (error as Error).message });
+      logger.warn('Error stopping email monitor', {
+        error: (error as Error).message,
+      });
     }
 
     logger.info('✅ Campaign execution engine stopped');
@@ -126,11 +132,15 @@ export class CampaignOrchestrator {
    * Manually trigger a campaign for specific leads
    */
   async triggerCampaign(
-    campaignId: string, 
-    leadIds: string[], 
+    campaignId: string,
+    leadIds: string[],
     templateSequence?: string[]
   ): Promise<void> {
-    return await leadAssignmentService.triggerCampaign(campaignId, leadIds, templateSequence);
+    return await leadAssignmentService.triggerCampaign(
+      campaignId,
+      leadIds,
+      templateSequence
+    );
   }
 
   /**
@@ -150,7 +160,10 @@ export class CampaignOrchestrator {
   /**
    * Cancel scheduled executions for a campaign or lead
    */
-  async cancelExecutions(campaignId?: string, leadId?: string): Promise<number> {
+  async cancelExecutions(
+    campaignId?: string,
+    leadId?: string
+  ): Promise<number> {
     return executionScheduler.cancelExecutions(campaignId, leadId);
   }
 

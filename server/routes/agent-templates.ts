@@ -11,9 +11,9 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const templates = await db.query.agentTemplates.findMany({
-      orderBy: [sql`category`, sql`name`]
+      orderBy: [sql`category`, sql`name`],
     });
-    
+
     res.json({ templates });
   } catch (error) {
     logger.error('Error fetching agent templates', { error });
@@ -25,12 +25,12 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/category/:category', authenticate, async (req, res) => {
   try {
     const { category } = req.params;
-    
+
     const templates = await db.query.agentTemplates.findMany({
       where: eq(agentTemplates.category, category),
-      orderBy: sql`name`
+      orderBy: sql`name`,
     });
-    
+
     res.json({ templates });
   } catch (error) {
     logger.error('Error fetching agent templates by category', { error });
@@ -42,15 +42,15 @@ router.get('/category/:category', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const template = await db.query.agentTemplates.findFirst({
-      where: eq(agentTemplates.id, id)
+      where: eq(agentTemplates.id, id),
     });
-    
+
     if (!template) {
       return res.status(404).json({ error: 'Agent template not found' });
     }
-    
+
     res.json({ template });
   } catch (error) {
     logger.error('Error fetching agent template', { error });
@@ -62,11 +62,13 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
-    
+
     if (user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can create agent templates' });
+      return res
+        .status(403)
+        .json({ error: 'Only admins can create agent templates' });
     }
-    
+
     const {
       name,
       description,
@@ -78,29 +80,32 @@ router.post('/', authenticate, async (req, res) => {
       maxTokens,
       configurableParams,
       defaultParams,
-      metadata
+      metadata,
     } = req.body;
-    
+
     // Validate required fields
     if (!name || !description || !type || !category || !systemPrompt) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
-    const newTemplate = await db.insert(agentTemplates).values({
-      name,
-      description,
-      type,
-      category,
-      systemPrompt,
-      contextNote,
-      temperature: temperature || 70,
-      maxTokens: maxTokens || 500,
-      configurableParams: configurableParams || [],
-      defaultParams: defaultParams || {},
-      metadata: metadata || {},
-      isDefault: false
-    }).returning();
-    
+
+    const newTemplate = await db
+      .insert(agentTemplates)
+      .values({
+        name,
+        description,
+        type,
+        category,
+        systemPrompt,
+        contextNote,
+        temperature: temperature || 70,
+        maxTokens: maxTokens || 500,
+        configurableParams: configurableParams || [],
+        defaultParams: defaultParams || {},
+        metadata: metadata || {},
+        isDefault: false,
+      })
+      .returning();
+
     res.status(201).json({ template: newTemplate[0] });
   } catch (error) {
     logger.error('Error creating agent template', { error });
@@ -113,19 +118,21 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
     const { id } = req.params;
-    
+
     if (user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can update agent templates' });
+      return res
+        .status(403)
+        .json({ error: 'Only admins can update agent templates' });
     }
-    
+
     const template = await db.query.agentTemplates.findFirst({
-      where: eq(agentTemplates.id, id)
+      where: eq(agentTemplates.id, id),
     });
-    
+
     if (!template) {
       return res.status(404).json({ error: 'Agent template not found' });
     }
-    
+
     const {
       name,
       description,
@@ -137,27 +144,34 @@ router.put('/:id', authenticate, async (req, res) => {
       maxTokens,
       configurableParams,
       defaultParams,
-      metadata
+      metadata,
     } = req.body;
-    
-    const updatedTemplate = await db.update(agentTemplates)
+
+    const updatedTemplate = await db
+      .update(agentTemplates)
       .set({
         name: name || template.name,
         description: description || template.description,
         type: type || template.type,
         category: category || template.category,
         systemPrompt: systemPrompt || template.systemPrompt,
-        contextNote: contextNote !== undefined ? contextNote : template.contextNote,
-        temperature: temperature !== undefined ? temperature : template.temperature,
+        contextNote:
+          contextNote !== undefined ? contextNote : template.contextNote,
+        temperature:
+          temperature !== undefined ? temperature : template.temperature,
         maxTokens: maxTokens !== undefined ? maxTokens : template.maxTokens,
-        configurableParams: configurableParams !== undefined ? configurableParams : template.configurableParams,
-        defaultParams: defaultParams !== undefined ? defaultParams : template.defaultParams,
+        configurableParams:
+          configurableParams !== undefined
+            ? configurableParams
+            : template.configurableParams,
+        defaultParams:
+          defaultParams !== undefined ? defaultParams : template.defaultParams,
         metadata: metadata !== undefined ? metadata : template.metadata,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(agentTemplates.id, id))
       .returning();
-    
+
     res.json({ template: updatedTemplate[0] });
   } catch (error) {
     logger.error('Error updating agent template', { error });
@@ -170,26 +184,30 @@ router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { user } = req as any;
     const { id } = req.params;
-    
+
     if (user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can delete agent templates' });
+      return res
+        .status(403)
+        .json({ error: 'Only admins can delete agent templates' });
     }
-    
+
     const template = await db.query.agentTemplates.findFirst({
-      where: eq(agentTemplates.id, id)
+      where: eq(agentTemplates.id, id),
     });
-    
+
     if (!template) {
       return res.status(404).json({ error: 'Agent template not found' });
     }
-    
+
     // Don't allow deletion of default templates
     if (template.isDefault) {
-      return res.status(403).json({ error: 'Default templates cannot be deleted' });
+      return res
+        .status(403)
+        .json({ error: 'Default templates cannot be deleted' });
     }
-    
+
     await db.delete(agentTemplates).where(eq(agentTemplates.id, id));
-    
+
     res.json({ success: true });
   } catch (error) {
     logger.error('Error deleting agent template', { error });
@@ -202,34 +220,37 @@ router.post('/:id/clone', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
-    
+
     const template = await db.query.agentTemplates.findFirst({
-      where: eq(agentTemplates.id, id)
+      where: eq(agentTemplates.id, id),
     });
-    
+
     if (!template) {
       return res.status(404).json({ error: 'Agent template not found' });
     }
-    
+
     // Create a new template based on the existing one
-    const newTemplate = await db.insert(agentTemplates).values({
-      name: name || `${template.name} (Copy)`,
-      description: description || template.description,
-      type: template.type,
-      category: template.category,
-      isDefault: false,
-      systemPrompt: template.systemPrompt,
-      contextNote: template.contextNote,
-      temperature: template.temperature,
-      maxTokens: template.maxTokens,
-      configurableParams: template.configurableParams,
-      defaultParams: template.defaultParams,
-      metadata: {
-        ...template.metadata,
-        clonedFrom: template.id
-      }
-    }).returning();
-    
+    const newTemplate = await db
+      .insert(agentTemplates)
+      .values({
+        name: name || `${template.name} (Copy)`,
+        description: description || template.description,
+        type: template.type,
+        category: template.category,
+        isDefault: false,
+        systemPrompt: template.systemPrompt,
+        contextNote: template.contextNote,
+        temperature: template.temperature,
+        maxTokens: template.maxTokens,
+        configurableParams: template.configurableParams,
+        defaultParams: template.defaultParams,
+        metadata: {
+          ...template.metadata,
+          clonedFrom: template.id,
+        },
+      })
+      .returning();
+
     res.status(201).json({ template: newTemplate[0] });
   } catch (error) {
     logger.error('Error cloning agent template', { error });
@@ -242,39 +263,42 @@ router.post('/:id/create-agent', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, paramValues } = req.body;
-    
+
     const template = await db.query.agentTemplates.findFirst({
-      where: eq(agentTemplates.id, id)
+      where: eq(agentTemplates.id, id),
     });
-    
+
     if (!template) {
       return res.status(404).json({ error: 'Agent template not found' });
     }
-    
+
     // Process the system prompt with parameter values
     let systemPrompt = template.systemPrompt;
     const params = { ...template.defaultParams, ...paramValues };
-    
+
     // Replace template variables with actual values
     Object.entries(params).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       systemPrompt = systemPrompt.replace(regex, value as string);
     });
-    
+
     // Create a new agent configuration
-    const newAgent = await db.insert(agentConfigurations).values({
-      name: name || template.name,
-      type: template.type,
-      systemPrompt,
-      contextNote: template.contextNote,
-      temperature: template.temperature,
-      maxTokens: template.maxTokens,
-      metadata: {
-        createdFromTemplate: template.id,
-        templateParams: params
-      }
-    }).returning();
-    
+    const newAgent = await db
+      .insert(agentConfigurations)
+      .values({
+        name: name || template.name,
+        type: template.type,
+        systemPrompt,
+        contextNote: template.contextNote,
+        temperature: template.temperature,
+        maxTokens: template.maxTokens,
+        metadata: {
+          createdFromTemplate: template.id,
+          templateParams: params,
+        },
+      })
+      .returning();
+
     res.status(201).json({ agent: newAgent[0] });
   } catch (error) {
     logger.error('Error creating agent from template', { error });

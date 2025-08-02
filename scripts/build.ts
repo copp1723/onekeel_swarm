@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Build Script for OneKeel Swarm
- * 
+ *
  * This script builds both the client and server components
  */
 
@@ -12,9 +12,9 @@ import * as path from 'path';
 function runCommand(command: string, cwd?: string): void {
   console.log(`📦 Running: ${command}`);
   try {
-    execSync(command, { 
-      stdio: 'inherit', 
-      cwd: cwd || process.cwd() 
+    execSync(command, {
+      stdio: 'inherit',
+      cwd: cwd || process.cwd(),
     });
   } catch (error) {
     console.error(`❌ Command failed: ${command}`);
@@ -42,10 +42,10 @@ async function build() {
     if (checkDirectory(clientDir)) {
       console.log('\n📦 Installing client dependencies...');
       runCommand('npm install', clientDir);
-      
+
       console.log('\n🏗️  Building client application...');
       runCommand('npm run build', clientDir);
-      
+
       console.log('✅ Client build completed');
     } else {
       console.log('ℹ️  Client directory not found, skipping client build');
@@ -69,7 +69,9 @@ async function build() {
       runCommand('npx drizzle-kit push', serverDir);
       console.log('✅ Database migrations completed');
     } catch (error) {
-      console.log('⚠️  Database migrations failed (this may be expected if DB is not available)');
+      console.log(
+        '⚠️  Database migrations failed (this may be expected if DB is not available)'
+      );
     }
 
     console.log('\n🎉 Build process completed successfully!');
@@ -80,7 +82,6 @@ async function build() {
       console.log('  ✅ Client application built');
     }
     console.log('  ✅ Build artifacts ready for deployment');
-
   } catch (error) {
     console.error('\n❌ Build process failed:', error);
     process.exit(1);
@@ -91,7 +92,10 @@ async function build() {
 import { fileURLToPath } from 'url';
 import { argv } from 'process';
 
-if (import.meta.url === `file://${argv[1]}` || fileURLToPath(import.meta.url) === argv[1]) {
+if (
+  import.meta.url === `file://${argv[1]}` ||
+  fileURLToPath(import.meta.url) === argv[1]
+) {
   build();
 }
 

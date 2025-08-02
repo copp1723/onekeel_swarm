@@ -17,11 +17,11 @@ const minimalDefaults = {
   qualificationCriteria: {
     minScore: 50,
     requiredFields: ['name', 'email', 'phone'],
-    requiredGoals: []
+    requiredGoals: [],
   },
   allowDualChannel: false,
   primaryChannel: 'email',
-  goals: []
+  goals: [],
 };
 
 function buildPrompts(lead: Lead, campaignSettings?: any) {
@@ -29,7 +29,9 @@ function buildPrompts(lead: Lead, campaignSettings?: any) {
   const settings = campaignSettings || minimalDefaults;
 
   // Note in system prompt if campaign settings are missing
-  const missingSettingsNote = campaignSettings ? '' : '\nNOTE: Campaign settings are missing, using minimal safe defaults.\n';
+  const missingSettingsNote = campaignSettings
+    ? ''
+    : '\nNOTE: Campaign settings are missing, using minimal safe defaults.\n';
 
   const systemPrompt = `You are the Overlord Agent, responsible for lead management and campaign orchestration.
 Your job is to act as a deterministic campaign decision engine and return ONLY a valid JSON object according to the output schema below.
@@ -87,16 +89,21 @@ export class OverlordAgent extends BaseAgent {
     super('overlord');
   }
 
-  async processMessage(message: string, context: AgentContext): Promise<string> {
+  async processMessage(
+    message: string,
+    context: AgentContext
+  ): Promise<string> {
     // Store conversation in memory
     await this.storeMemory(`Lead ${context.lead.id} message: ${message}`, {
       leadId: context.lead.id,
       type: 'conversation',
-      channel: 'overlord'
+      channel: 'overlord',
     });
 
     // Search for relevant past interactions
-    const memories = await this.searchMemory(`lead ${context.lead.id} conversation`);
+    const memories = await this.searchMemory(
+      `lead ${context.lead.id} conversation`
+    );
     const conversationContext = memories.map(m => m.content).join('\n');
 
     return `Overlord processed: ${message} (with context: ${conversationContext.substring(0, 100)}...)`;
@@ -113,8 +120,13 @@ export class OverlordAgent extends BaseAgent {
     // Allow dual channel if enabled in campaign settings
     if (settings.allowDualChannel) {
       // Prefer email first unless primaryChannel is sms
-      channels = settings.primaryChannel === 'sms' ? ['sms', 'email'] : ['email', 'sms'];
-    } else if ((lead.metadata as any)?.preferredChannel && Array.isArray(settings.channels) && settings.channels.includes((lead.metadata as any).preferredChannel)) {
+      channels =
+        settings.primaryChannel === 'sms' ? ['sms', 'email'] : ['email', 'sms'];
+    } else if (
+      (lead.metadata as any)?.preferredChannel &&
+      Array.isArray(settings.channels) &&
+      settings.channels.includes((lead.metadata as any).preferredChannel)
+    ) {
       // Use lead's preferred channel only if enabled in campaign channels
       channels = [(lead.metadata as any).preferredChannel];
     }
@@ -126,15 +138,21 @@ export class OverlordAgent extends BaseAgent {
       businessCritical: true,
       requiresReasoning: true,
       responseFormat: { type: 'json_object' },
-      temperature: 0.3
+      temperature: 0.3,
     });
     const decision = JSON.parse(response);
 
     // Normalize channels: ensure channels is an array with valid channels from campaign settings
     let decidedChannels: string[] = [];
     if (Array.isArray(decision.channels) && Array.isArray(settings.channels)) {
-      decidedChannels = decision.channels.filter((ch: string) => settings.channels.includes(ch));
-    } else if (typeof decision.channels === 'string' && Array.isArray(settings.channels) && settings.channels.includes(decision.channels)) {
+      decidedChannels = decision.channels.filter((ch: string) =>
+        settings.channels.includes(ch)
+      );
+    } else if (
+      typeof decision.channels === 'string' &&
+      Array.isArray(settings.channels) &&
+      settings.channels.includes(decision.channels)
+    ) {
       decidedChannels = [decision.channels];
     }
 
@@ -147,8 +165,8 @@ export class OverlordAgent extends BaseAgent {
     const primaryChannel = decidedChannels[0];
     if (primaryChannel) {
       const updatedMetadata = {
-        ...(lead.metadata as Record<string, any> || {}),
-        assignedChannel: primaryChannel
+        ...((lead.metadata as Record<string, any>) || {}),
+        assignedChannel: primaryChannel,
       };
       // Note: You may need to implement updateMetadata in LeadsRepository
       // For now, we'll skip this update or implement it later
@@ -159,8 +177,8 @@ export class OverlordAgent extends BaseAgent {
       reasoning: decision.reasoning,
       data: {
         channels: decidedChannels,
-        initialMessageFocus: decision.initialMessageFocus || ''
-      }
+        initialMessageFocus: decision.initialMessageFocus || '',
+      },
     };
 
     // Save decision only if action or channels differ
@@ -169,21 +187,31 @@ export class OverlordAgent extends BaseAgent {
       'overlord',
       decision.action,
       decision.reasoning,
-      { channels: decidedChannels, initialMessageFocus: decision.initialMessageFocus || '' }
+      {
+        channels: decidedChannels,
+        initialMessageFocus: decision.initialMessageFocus || '',
+      }
     );
 
     return result;
   }
 
-  async evaluateConversation(conversationHistory: any[], context: { campaign?: any; lead: Lead }): Promise<any> {
+  async evaluateConversation(
+    conversationHistory: any[],
+    context: { campaign?: any; lead: Lead }
+  ): Promise<any> {
     // Use unified campaign settings or minimal defaults
     const settings = context.campaign?.settings || minimalDefaults;
 
     // Join goals and requiredGoals with fallback only if undefined
-    const campaignGoals = Array.isArray(settings.goals) ? settings.goals.join(', ') : 'No specific goals';
-    const requiredGoals = (settings.qualificationCriteria && Array.isArray(settings.qualificationCriteria.requiredGoals))
-      ? settings.qualificationCriteria.requiredGoals.join(', ')
-      : 'None';
+    const campaignGoals = Array.isArray(settings.goals)
+      ? settings.goals.join(', ')
+      : 'No specific goals';
+    const requiredGoals =
+      settings.qualificationCriteria &&
+      Array.isArray(settings.qualificationCriteria.requiredGoals)
+        ? settings.qualificationCriteria.requiredGoals.join(', ')
+        : 'None';
 
     const systemPrompt = `Evaluate conversation for campaign goals:
 Campaign Goals: ${campaignGoals}
@@ -209,7 +237,7 @@ Respond in JSON format:
       businessCritical: true,
       requiresReasoning: true,
       responseFormat: { type: 'json_object' },
-      temperature: 0.3
+      temperature: 0.3,
     });
     const evaluation = JSON.parse(response);
 
@@ -219,15 +247,20 @@ Respond in JSON format:
       data: {
         goalsMet: evaluation.goalsMet || [],
         qualified: evaluation.qualified,
-        nextSteps: evaluation.nextSteps || ''
-      }
+        nextSteps: evaluation.nextSteps || '',
+      },
     };
   }
 
-  async submitToBoberdoo(lead: Lead, testMode: boolean = false): Promise<BoberdooResponse> {
-    const metadata = lead.metadata as Record<string, any> || {};
-    const isTestLead = metadata.Test_Lead === '1' || metadata.zip === '99999' || testMode;
-    const boberdooUrl = process.env.BOBERDOO_API_URL || 'https://api.boberdoo.com';
+  async submitToBoberdoo(
+    lead: Lead,
+    testMode: boolean = false
+  ): Promise<BoberdooResponse> {
+    const metadata = (lead.metadata as Record<string, any>) || {};
+    const isTestLead =
+      metadata.Test_Lead === '1' || metadata.zip === '99999' || testMode;
+    const boberdooUrl =
+      process.env.BOBERDOO_API_URL || 'https://api.boberdoo.com';
     const apiKey = process.env.BOBERDOO_API_KEY;
 
     const leadData = {
@@ -238,7 +271,7 @@ Respond in JSON format:
       phone: lead.phone,
       zip: metadata.zip || '',
       ...(isTestLead ? { Test_Lead: '1' } : {}),
-      ...metadata
+      ...metadata,
     };
 
     try {
@@ -246,9 +279,9 @@ Respond in JSON format:
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/xml'
+          Accept: 'application/xml',
         },
-        body: new URLSearchParams(leadData as any).toString()
+        body: new URLSearchParams(leadData as any).toString(),
       });
 
       if (!response.ok) {
@@ -265,18 +298,22 @@ Respond in JSON format:
         matched,
         buyerId: buyerIdMatch?.[1],
         price: priceMatch ? parseFloat(priceMatch[1]) : undefined,
-        message: xmlText
+        message: xmlText,
       };
 
       logger.info('Boberdoo API success', {
         leadId: lead.id,
         matched,
         buyerId: result.buyerId,
-        isTest: isTestLead
+        isTest: isTestLead,
       });
 
       if (matched && result.buyerId) {
-        await LeadsRepository.updateStatus(lead.id, 'sent_to_boberdoo', result.buyerId);
+        await LeadsRepository.updateStatus(
+          lead.id,
+          'sent_to_boberdoo',
+          result.buyerId
+        );
         await AgentDecisionsRepository.create(
           lead.id,
           'overlord',
@@ -298,7 +335,7 @@ Respond in JSON format:
     } catch (error) {
       logger.error('Boberdoo API error', {
         error: error as Error,
-        leadId: lead.id
+        leadId: lead.id,
       });
       await AgentDecisionsRepository.create(
         lead.id,
@@ -311,7 +348,7 @@ Respond in JSON format:
       return {
         success: false,
         matched: false,
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -319,8 +356,12 @@ Respond in JSON format:
   isLeadReadyForBoberdoo(lead: Lead, campaign?: any): boolean {
     // Use unified campaign settings or minimal defaults
     const settings = campaign?.settings || minimalDefaults;
-    const requiredFields = settings.qualificationCriteria?.requiredFields || ['name', 'email', 'phone'];
-    const metadata = lead.metadata as Record<string, any> || {};
+    const requiredFields = settings.qualificationCriteria?.requiredFields || [
+      'name',
+      'email',
+      'phone',
+    ];
+    const metadata = (lead.metadata as Record<string, any>) || {};
     return requiredFields.every((field: string) => {
       // Check direct lead properties
       if (field === 'name') {
@@ -328,10 +369,9 @@ Respond in JSON format:
       }
       if (field === 'email') return !!lead.email;
       if (field === 'phone') return !!lead.phone;
-      
+
       // Check metadata for other fields
       return !!metadata[field];
     });
   }
-
 }

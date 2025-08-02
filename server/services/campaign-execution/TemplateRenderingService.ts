@@ -50,12 +50,11 @@ export class TemplateRenderingService {
       };
 
       return renderedContent;
-
     } catch (error) {
       logger.error('Template rendering failed', {
         templateId,
         leadId,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       return null;
     }
@@ -66,10 +65,17 @@ export class TemplateRenderingService {
    */
   private async getLeadData(leadId: string): Promise<any | null> {
     try {
-      const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+      const result = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, leadId))
+        .limit(1);
       return result[0] || null;
     } catch (error) {
-      logger.error('Failed to get lead data', { leadId, error: (error as Error).message });
+      logger.error('Failed to get lead data', {
+        leadId,
+        error: (error as Error).message,
+      });
       return null;
     }
   }
@@ -79,11 +85,17 @@ export class TemplateRenderingService {
    */
   private async getTemplate(templateId: string): Promise<any | null> {
     try {
-      const result = await db.select().from(emailTemplates)
-        .where(eq(emailTemplates.id, templateId)).limit(1);
+      const result = await db
+        .select()
+        .from(emailTemplates)
+        .where(eq(emailTemplates.id, templateId))
+        .limit(1);
       return result[0] || null;
     } catch (error) {
-      logger.error('Failed to get template', { templateId, error: (error as Error).message });
+      logger.error('Failed to get template', {
+        templateId,
+        error: (error as Error).message,
+      });
       return null;
     }
   }
@@ -92,14 +104,14 @@ export class TemplateRenderingService {
    * Prepare render data from lead information
    */
   private prepareRenderData(lead: any): TemplateRenderData {
-    const leadMetadata = lead.metadata as Record<string, any> || {};
-    
+    const leadMetadata = (lead.metadata as Record<string, any>) || {};
+
     return {
       firstName: lead.name?.split(' ')[0] || 'there',
       lastName: lead.name?.split(' ').slice(1).join(' ') || '',
       email: lead.email || '',
       phone: lead.phone || '',
-      ...leadMetadata
+      ...leadMetadata,
     };
   }
 
@@ -122,13 +134,15 @@ export class TemplateRenderingService {
   /**
    * Get template metadata
    */
-  async getTemplateMetadata(templateId: string): Promise<{ name?: string; subject?: string } | null> {
+  async getTemplateMetadata(
+    templateId: string
+  ): Promise<{ name?: string; subject?: string } | null> {
     const template = await this.getTemplate(templateId);
     if (!template) return null;
 
     return {
       name: template.name,
-      subject: template.subject
+      subject: template.subject,
     };
   }
 }

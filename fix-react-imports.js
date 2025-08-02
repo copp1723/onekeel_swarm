@@ -13,7 +13,7 @@ function fixReactImports(filePath) {
 
   // Fix "import React from 'react';" to remove React default import
   if (content.includes("import React from 'react';")) {
-    content = content.replace("import React from 'react';", "");
+    content = content.replace("import React from 'react';", '');
     modified = true;
   }
 
@@ -26,7 +26,7 @@ function fixReactImports(filePath) {
 
   // Fix React.FC to just remove it (since we're using function components)
   content = content.replace(/: React\.FC<([^>]*)>/g, '');
-  
+
   // Fix React.useState, React.useEffect, etc. to just useState, useEffect
   content = content.replace(/React\.(use[A-Z][a-zA-Z]*)/g, '$1');
   content = content.replace(/React\.StrictMode/g, 'StrictMode');
@@ -34,11 +34,21 @@ function fixReactImports(filePath) {
   content = content.replace(/React\.ReactNode/g, 'ReactNode');
 
   // Add missing imports for hooks that are used
-  const hooks = ['useState', 'useEffect', 'useRef', 'useCallback', 'useMemo', 'useContext'];
+  const hooks = [
+    'useState',
+    'useEffect',
+    'useRef',
+    'useCallback',
+    'useMemo',
+    'useContext',
+  ];
   const usedHooks = [];
-  
+
   hooks.forEach(hook => {
-    if (content.includes(hook + '(') && !content.includes(`import {`) || !content.includes(hook)) {
+    if (
+      (content.includes(hook + '(') && !content.includes(`import {`)) ||
+      !content.includes(hook)
+    ) {
       usedHooks.push(hook);
     }
   });
@@ -53,8 +63,12 @@ function fixReactImports(filePath) {
   // Find existing react import and update it
   const existingImportMatch = content.match(/import \{([^}]+)\} from 'react';/);
   if (existingImportMatch) {
-    const existingImports = existingImportMatch[1].split(',').map(s => s.trim());
-    const allImports = [...new Set([...existingImports, ...usedHooks, ...reactTypes])];
+    const existingImports = existingImportMatch[1]
+      .split(',')
+      .map(s => s.trim());
+    const allImports = [
+      ...new Set([...existingImports, ...usedHooks, ...reactTypes]),
+    ];
     if (allImports.length > 0) {
       content = content.replace(
         /import \{[^}]+\} from 'react';/,

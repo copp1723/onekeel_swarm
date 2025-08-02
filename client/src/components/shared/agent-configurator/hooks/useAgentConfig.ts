@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { UnifiedAgentConfig, AgentType } from '@/types';
-import { 
+import {
   getDefaultConfigForType,
   validateAgentConfig,
-  cleanAgentConfig
+  cleanAgentConfig,
 } from '@/utils/agentUtils';
-import { 
-  AgentFormData, 
-  ValidationErrors, 
-  FormSubmissionState, 
+import {
+  AgentFormData,
+  ValidationErrors,
+  FormSubmissionState,
   AgentConfigHookReturn,
-  ValidationResult
+  ValidationResult,
 } from '../types';
 
 /**
@@ -20,21 +20,20 @@ export function useAgentConfig(
   agent: UnifiedAgentConfig | null | undefined,
   onSave: (agent: UnifiedAgentConfig) => Promise<void>
 ): AgentConfigHookReturn {
-  
   // Initialize form data
   const [formData, setFormData] = useState<AgentFormData>(() => {
     if (agent) return agent as AgentFormData;
     return {
       name: '',
       type: 'email',
-      ...getDefaultConfigForType('email')
+      ...getDefaultConfigForType('email'),
     } as AgentFormData;
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submissionState, setSubmissionState] = useState<FormSubmissionState>({
     isSubmitting: false,
-    hasChanges: false
+    hasChanges: false,
   });
 
   // Update form data when agent prop changes
@@ -70,7 +69,7 @@ export function useAgentConfig(
       tone: defaultConfig.tone,
       responseLength: defaultConfig.responseLength,
       temperature: defaultConfig.temperature,
-      maxTokens: defaultConfig.maxTokens
+      maxTokens: defaultConfig.maxTokens,
     }));
   };
 
@@ -102,7 +101,7 @@ export function useAgentConfig(
       setSubmissionState(prev => ({
         ...prev,
         hasChanges: false,
-        lastSaved: new Date()
+        lastSaved: new Date(),
       }));
     } catch (error) {
       console.error('Failed to save agent:', error);
@@ -122,13 +121,13 @@ export function useAgentConfig(
       setFormData({
         name: '',
         type: 'email',
-        ...getDefaultConfigForType('email')
+        ...getDefaultConfigForType('email'),
       } as AgentFormData);
     }
     setErrors({});
     setSubmissionState({
       isSubmitting: false,
-      hasChanges: false
+      hasChanges: false,
     });
   };
 
@@ -141,6 +140,6 @@ export function useAgentConfig(
     handleSubmit,
     handleTypeChange,
     resetForm,
-    validateForm
+    validateForm,
   };
 }

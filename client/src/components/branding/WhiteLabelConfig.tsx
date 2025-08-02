@@ -30,33 +30,39 @@ export function WhiteLabelConfig() {
       <CardHeader>
         <CardTitle>Agency White-Label Configuration</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="customDomain">Custom Domain</Label>
-          <Input 
-            id="customDomain"
-            placeholder="e.g., clients.myagency.com"
+      <CardContent className='space-y-4'>
+        <div className='space-y-2'>
+          <Label htmlFor='customDomain'>Custom Domain</Label>
+          <Input
+            id='customDomain'
+            placeholder='e.g., clients.myagency.com'
             value={config.customDomain}
-            onChange={e => setConfig(c => ({ ...c, customDomain: e.target.value }))}
+            onChange={e =>
+              setConfig(c => ({ ...c, customDomain: e.target.value }))
+            }
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="agencyLogo">Agency Logo URL</Label>
-          <Input 
-            id="agencyLogo"
-            placeholder="https://myagency.com/logo.png"
+        <div className='space-y-2'>
+          <Label htmlFor='agencyLogo'>Agency Logo URL</Label>
+          <Input
+            id='agencyLogo'
+            placeholder='https://myagency.com/logo.png'
             value={config.agencyLogo}
-            onChange={e => setConfig(c => ({ ...c, agencyLogo: e.target.value }))}
+            onChange={e =>
+              setConfig(c => ({ ...c, agencyLogo: e.target.value }))
+            }
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="defaultEmailSignature">Default Email Signature</Label>
-          <Input 
-            id="defaultEmailSignature"
+        <div className='space-y-2'>
+          <Label htmlFor='defaultEmailSignature'>Default Email Signature</Label>
+          <Input
+            id='defaultEmailSignature'
             value={config.defaultEmailSignature}
-            onChange={e => setConfig(c => ({ ...c, defaultEmailSignature: e.target.value }))}
+            onChange={e =>
+              setConfig(c => ({ ...c, defaultEmailSignature: e.target.value }))
+            }
           />
-          <p className="text-xs text-gray-500">
+          <p className='text-xs text-gray-500'>
             Available variables: {`{{agent.name}}`}, {`{{client.name}}`}
           </p>
         </div>

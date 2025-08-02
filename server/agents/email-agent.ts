@@ -20,7 +20,7 @@ export class EmailAgent extends BaseAgent {
     disclaimer: string;
     primaryCTA: string;
     CTAurl: string;
-  }): Promise<Array<{subject: string; body: string; order: number}>> {
+  }): Promise<Array<{ subject: string; body: string; order: number }>> {
     const systemPrompt = `CRITICAL: YOU MUST ALWAYS RESPOND WITH VALID JSON ONLY. NO EXPLANATIONS, NO QUESTIONS, NO OTHER TEXT.
 
 ### **AUTHENTIC AUTOMOTIVE CONVERSATION GENERATOR**
@@ -111,7 +111,7 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
         {
           leadId: 'system',
           type: 'campaign_sequence_generation',
-          metadata: { campaignName: details.campaignName }
+          metadata: { campaignName: details.campaignName },
         },
         {
           // Force GPT-4o for sophisticated email generation
@@ -119,7 +119,7 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
           requiresReasoning: true,
           businessCritical: true,
           temperature: 0.8,
-          maxTokens: 2000
+          maxTokens: 2000,
         }
       );
 
@@ -127,7 +127,7 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       // Extract JSON if wrapped in markdown code blocks
       const jsonMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : cleanJson;
-      
+
       const sequence = JSON.parse(jsonStr);
 
       if (!Array.isArray(sequence) || sequence.length !== 5) {
@@ -140,7 +140,7 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       return validatedSequence.map((email: any, i: number) => ({
         subject: email.subject || `Email ${i + 1}`,
         body: email.body || 'Template content',
-        order: i + 1
+        order: i + 1,
       }));
     } catch (error) {
       console.error('Failed to generate campaign sequence', error);
@@ -149,15 +149,19 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
     }
   }
 
-  private generateFallbackSequence(details: any): Array<{subject: string; body: string; order: number}> {
+  private generateFallbackSequence(
+    details: any
+  ): Array<{ subject: string; body: string; order: number }> {
     // AUTHENTIC FILTERING: Convert marketing speak to real conversation
     const rawProduct = details.product || 'vehicle financing';
     const cta = details.primaryCTA || 'Schedule Test Drive';
     const url = details.CTAurl || '#';
 
     // FILTER: Extract genuine value from marketing speak
-    const hasZeroPercent = rawProduct.includes('0%') || details.benefits?.includes('0% interest');
-    const isWeekendSale = rawProduct.includes('weekend') || details.urgency?.includes('weekend');
+    const hasZeroPercent =
+      rawProduct.includes('0%') || details.benefits?.includes('0% interest');
+    const isWeekendSale =
+      rawProduct.includes('weekend') || details.urgency?.includes('weekend');
 
     // TRANSLATE: Convert to authentic language
     const genuineOffer = hasZeroPercent ? '0% financing' : 'financing';
@@ -167,28 +171,28 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       {
         subject: `Quick heads-up about ${timeframe}`,
         body: `Hey {firstName},\n\nSaw you were looking for a new car. Just a heads-up, we've got a big sale event ${timeframe}.\n\nHonestly, most of the noise is just marketing, but the ${genuineOffer} offer is the real deal and could save you a lot.\n\nWhat's driving the search right now? Just curious if you're looking for something specific.\n\n{agentName}`,
-        order: 1
+        order: 1,
       },
       {
         subject: `Re: What you're looking for`,
         body: `{firstName},\n\nGot it. Good choice, there are a ton of great options out there right now.\n\nQuick question - what's your current car doing that's bugging you? Knowing that helps me narrow down which ones are actually an upgrade for you vs. just more of the same.\n\n{agentName}`,
-        order: 2
+        order: 2,
       },
       {
         subject: `Re: Better options`,
         body: `{firstName},\n\nMakes sense. A lot of people are in the same boat.\n\nBased on that, you should probably look at a couple specific models. Since the ${genuineOffer} is on ${timeframe}, it's a good time to look.\n\nI can pull a few for you if you wanted to swing by to see which one feels right. No pressure either way.\n\nLet me know what you think.\n\n{agentName}`,
-        order: 3
+        order: 3,
       },
       {
         subject: `Still thinking it over?`,
         body: `{firstName},\n\nNo worries if you're still thinking it over. These decisions take time.\n\nJust wanted to check - any other questions come up that I can help with?\n\n{agentName}`,
-        order: 4
+        order: 4,
       },
       {
         subject: `Last check-in`,
         body: `{firstName},\n\nLast email from me about this. Don't want to bug you, but also don't want you to miss out if you're still looking.\n\nIf you're ready: [${cta}](${url})\n\nIf not, no worries. Good luck with the search.\n\n{agentName}${details.disclaimer ? `\n\n${details.disclaimer}` : ''}`,
-        order: 5
-      }
+        order: 5,
+      },
     ];
   }
 
@@ -205,29 +209,43 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
       if (body.includes(rawProduct) && rawProduct.length > 50) {
         // This is likely copy-pasted marketing speak - fix it
         body = this.translateMarketingSpeak(body, details);
-        logger.warn('Fixed copy-pasted marketing speak in email', { emailIndex: index });
+        logger.warn('Fixed copy-pasted marketing speak in email', {
+          emailIndex: index,
+        });
       }
 
       // DETECT AND FIX: Corporate template language
       const corporatePatterns = [
         'I hope this email finds you well',
-        'We\'re excited to help you find the perfect vehicle solution',
-        'Please don\'t hesitate to contact us',
-        'Thank you for your interest in our services'
+        "We're excited to help you find the perfect vehicle solution",
+        "Please don't hesitate to contact us",
+        'Thank you for your interest in our services',
       ];
 
       corporatePatterns.forEach(pattern => {
         if (body.includes(pattern)) {
           body = body.replace(pattern, this.getAuthenticAlternative(pattern));
-          logger.warn('Fixed corporate speak in email', { emailIndex: index, pattern });
+          logger.warn('Fixed corporate speak in email', {
+            emailIndex: index,
+            pattern,
+          });
         }
       });
 
       // DETECT AND FIX: Missing conversation flow
-      if (index === 0 && !body.includes('What\'s driving') && !body.includes('what\'s your')) {
+      if (
+        index === 0 &&
+        !body.includes("What's driving") &&
+        !body.includes("what's your")
+      ) {
         // First email should ask a genuine question
-        body = body.replace(/\n\n{agentName}$/, '\n\nWhat\'s driving the search right now?\n\n{agentName}');
-        logger.warn('Added genuine question to first email', { emailIndex: index });
+        body = body.replace(
+          /\n\n{agentName}$/,
+          "\n\nWhat's driving the search right now?\n\n{agentName}"
+        );
+        logger.warn('Added genuine question to first email', {
+          emailIndex: index,
+        });
       }
 
       return { ...email, subject, body };
@@ -245,7 +263,8 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
     const isWeekendSale = rawProduct.includes('weekend');
 
     // Replace with authentic language
-    let translated = text.replace(rawProduct,
+    let translated = text.replace(
+      rawProduct,
       `a big sale event ${isWeekendSale ? 'this weekend' : 'right now'}. Honestly, most of the noise is just marketing, but the ${hasZeroPercent ? '0% financing' : 'financing'} offer is the real deal`
     );
 
@@ -258,9 +277,10 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
   private getAuthenticAlternative(corporatePhrase: string): string {
     const alternatives: Record<string, string> = {
       'I hope this email finds you well': 'Hey',
-      'We\'re excited to help you find the perfect vehicle solution': 'What\'s driving the search right now?',
-      'Please don\'t hesitate to contact us': 'Let me know what you think',
-      'Thank you for your interest in our services': 'Thanks for reaching out'
+      "We're excited to help you find the perfect vehicle solution":
+        "What's driving the search right now?",
+      "Please don't hesitate to contact us": 'Let me know what you think',
+      'Thank you for your interest in our services': 'Thanks for reaching out',
     };
 
     return alternatives[corporatePhrase] || corporatePhrase;
@@ -269,7 +289,10 @@ OUTPUT: Return ONLY a valid JSON array of 5 objects, each with "subject" and "bo
   /**
    * Enhance campaign context with sophisticated AI-generated content
    */
-  async enhanceCampaignField(field: string, campaignData: any): Promise<string> {
+  async enhanceCampaignField(
+    field: string,
+    campaignData: any
+  ): Promise<string> {
     if (field !== 'context') {
       throw new Error(`Unsupported field enhancement: ${field}`);
     }
@@ -318,14 +341,14 @@ Write it like this format:
         {
           leadId: 'system',
           type: 'campaign_context_enhancement',
-          metadata: { campaignName: campaignData.name }
+          metadata: { campaignName: campaignData.name },
         },
         {
           model: 'openai/gpt-4o',
           requiresReasoning: true,
           businessCritical: true,
           temperature: 0.7,
-          maxTokens: 1500
+          maxTokens: 1500,
         }
       );
 
@@ -339,7 +362,8 @@ Write it like this format:
   private getFallbackContextEnhancement(campaignData: any): string {
     const campaignName = campaignData.name || 'Car Sales Campaign';
     const product = campaignData.product || 'vehicles';
-    const benefits = campaignData.benefits?.join(', ') || 'good financing, reliable cars';
+    const benefits =
+      campaignData.benefits?.join(', ') || 'good financing, reliable cars';
     const targetCount = campaignData.targetCount || 50;
 
     return `Campaign Overview: ${campaignName} is about helping ${targetCount} people who are looking for ${product}. We want to connect with folks who need cars and help them find what works.
@@ -360,30 +384,30 @@ What Success Looks Like: People actually show up for test drives, they come back
     if (prompt.includes('5-email') || prompt.includes('sequence')) {
       return JSON.stringify([
         {
-          subject: "Quick question about your car financing needs",
+          subject: 'Quick question about your car financing needs',
           body: "Hello {firstName},\n\nThanks for your interest in car financing! I see you're exploring your options, and I'm excited to help you find the perfect solution.\n\nTo get started, what type of vehicle are you looking to finance, or are you considering refinancing an existing loan? Knowing your specific situation will help me provide the most relevant guidance.\n\nBest regards,\n{agentName}",
-          order: 1
+          order: 1,
         },
         {
-          subject: "Following up on your financing inquiry",
+          subject: 'Following up on your financing inquiry',
           body: "Hi {firstName},\n\nI wanted to follow up on your car financing inquiry. Most people I work with find the process overwhelming with so many lenders advertising different rates.\n\nHere's what I've learned: the banks with the flashy ads often aren't the ones that actually approve you. The real success comes from matching you with lenders who specialize in your specific situation.\n\nWould you like me to explain how this works?\n\nBest regards,\n{agentName}",
-          order: 2
+          order: 2,
         },
         {
-          subject: "Success story you might find encouraging",
+          subject: 'Success story you might find encouraging',
           body: "Hi {firstName},\n\nI just helped Mike secure financing yesterday, and I thought you might find his story encouraging. He was convinced his credit situation would prevent him from getting a good rate.\n\nTurns out there was a lender who specializes in exactly his circumstances. He's now driving his dream truck with a 4.2% APR rate he never thought possible.\n\nWant me to check what options might be available for your situation?\n\nBest regards,\n{agentName}",
-          order: 3
+          order: 3,
         },
         {
           subject: "I've been thinking about your financing needs",
           body: "Hi {firstName},\n\nYour financing inquiry has been on my mind, and I really believe I can help you secure better terms than what you're seeing elsewhere.\n\nBased on what you're looking for, I think we could find you some excellent options. Would you be open to a brief conversation to explore this further?\n\n[Check Your Rate](#)\n\nBest regards,\n{agentName}",
-          order: 4
+          order: 4,
         },
         {
-          subject: "Final note about your car financing",
+          subject: 'Final note about your car financing',
           body: "Hi {firstName},\n\nThis is my final email about car financing options. I don't want to overwhelm your inbox, but I also don't want you to miss out on rates that could save you money.\n\nIf you're still interested in exploring your options, I'm here to help: [Take a Look](#)\n\nIf not, I completely understand and wish you all the best with your financing needs.\n\nBest regards,\n{agentName}",
-          order: 5
-        }
+          order: 5,
+        },
       ]);
     }
 
@@ -398,20 +422,30 @@ What Success Looks Like: People actually show up for test drives, they come back
     return super.getMockResponse(prompt);
   }
 
-  async processMessage(message: string, context: AgentContext): Promise<string> {
+  async processMessage(
+    message: string,
+    context: AgentContext
+  ): Promise<string> {
     const { lead, campaign } = context;
-    
+
     // Store incoming message in supermemory
-    await this.storeMemory(`Email from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`, {
-      leadId: lead.id,
-      type: 'email_received',
-      source: lead.source
-    });
+    await this.storeMemory(
+      `Email from ${lead.firstName || ''} ${lead.lastName || ''}: ${message}`,
+      {
+        leadId: lead.id,
+        type: 'email_received',
+        source: lead.source,
+      }
+    );
 
     // Search for previous email interactions
-    const memories = await this.searchMemory(`email ${lead.firstName || ''} ${lead.lastName || ''} ${lead.id}`);
-    const emailHistory = memories.filter(m => m.metadata?.type?.includes('email')).slice(0, 3);
-    
+    const memories = await this.searchMemory(
+      `email ${lead.firstName || ''} ${lead.lastName || ''} ${lead.id}`
+    );
+    const emailHistory = memories
+      .filter(m => m.metadata?.type?.includes('email'))
+      .slice(0, 3);
+
     const systemPrompt = `CRITICAL: YOU MUST ALWAYS RESPOND WITH VALID JSON ONLY. NO EXPLANATIONS, NO QUESTIONS, NO OTHER TEXT.
 
 CRITICAL FORMATTING INSTRUCTION: DO NOT USE ASTERISKS (*) OR STARS IN ANY RESPONSES. Use dashes (-) for bullet points, and use CAPITALIZATION, "quotes", or plain text for emphasis.
@@ -454,16 +488,12 @@ Write like you're a real person having a conversation. Address what they said, a
 
 Response Format: Return ONLY valid JSON with "type": "sales_response" and your email content.`;
 
-    const response = await this.generateResponse(
-      prompt,
-      systemPrompt,
-      {
-        leadId: lead.id,
-        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
-        type: 'email_sent',
-        metadata: { campaign: campaign?.name }
-      }
-    );
+    const response = await this.generateResponse(prompt, systemPrompt, {
+      leadId: lead.id,
+      leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+      type: 'email_sent',
+      metadata: { campaign: campaign?.name },
+    });
 
     return response;
   }
@@ -473,48 +503,67 @@ Response Format: Return ONLY valid JSON with "type": "sales_response" and your e
     return {
       action: 'send_email',
       reasoning: 'Email agent executing communication task',
-      data: {}
+      data: {},
     };
   }
 
   async sendEmail(to: string, subject: string): Promise<any> {
     try {
       // For now, always use mock response since MailgunService implementation is incomplete
-      logger.info('Email agent simulated send - using mock implementation', { to, subject });
+      logger.info('Email agent simulated send - using mock implementation', {
+        to,
+        subject,
+      });
       const mockResponse = {
         id: `mock-${Date.now()}@example.com`,
-        message: 'Simulated email send (mock implementation)'
+        message: 'Simulated email send (mock implementation)',
       };
-      
+
       // Store successful email send in supermemory
       await this.storeMemory(`Email sent to ${to}: ${subject}`, {
         recipient: to,
         subject,
         type: 'email_delivery',
         status: 'sent',
-        externalId: mockResponse.id
+        externalId: mockResponse.id,
       });
-      
-      logger.info('Email communication sent (mock)', { recipient: to, subject, mock: true });
+
+      logger.info('Email communication sent (mock)', {
+        recipient: to,
+        subject,
+        mock: true,
+      });
       return mockResponse;
     } catch (error) {
-      logger.error('Email communication failed', { recipient: to, subject, error: (error as Error).message });
+      logger.error('Email communication failed', {
+        recipient: to,
+        subject,
+        error: (error as Error).message,
+      });
       // Return mock response instead of throwing
       return {
         id: `mock-error-${Date.now()}@example.com`,
         message: 'Email send failed, returning mock response',
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
 
-  async generateInitialEmail(context: AgentContext, focus: string): Promise<string> {
+  async generateInitialEmail(
+    context: AgentContext,
+    focus: string
+  ): Promise<string> {
     const { lead } = context;
-    
+
     // Search for similar leads or previous campaigns for context
-    const memories = await this.searchMemory(`initial email ${lead.source} ${focus}`);
-    const similarInteractions = memories.slice(0, 2).map(m => m.content).join('\n');
-    
+    const memories = await this.searchMemory(
+      `initial email ${lead.source} ${focus}`
+    );
+    const similarInteractions = memories
+      .slice(0, 2)
+      .map(m => m.content)
+      .join('\n');
+
     const systemPrompt = `CRITICAL: YOU MUST ALWAYS RESPOND WITH VALID JSON ONLY. NO EXPLANATIONS, NO QUESTIONS, NO OTHER TEXT.
 
 MANDATORY FIELD: Your JSON response MUST include a "type" field set to "sales_response" for all interactions.
@@ -556,19 +605,13 @@ Under 150 words. Sound like a real person.
 
 Response Format: Return ONLY valid JSON with "type": "sales_response" and your email content.`;
 
-    const email = await this.generateResponse(
-      prompt,
-      systemPrompt,
-      {
-        leadId: lead.id,
-        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
-        type: 'initial_email',
-        metadata: { focus, source: lead.source }
-      }
-    );
+    const email = await this.generateResponse(prompt, systemPrompt, {
+      leadId: lead.id,
+      leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
+      type: 'initial_email',
+      metadata: { focus, source: lead.source },
+    });
 
     return email;
   }
-
-
 }

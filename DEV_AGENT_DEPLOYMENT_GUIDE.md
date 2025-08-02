@@ -1,32 +1,37 @@
 # Development Agent Deployment Guide
 
 ## Overview
+
 This guide explains how to safely deploy specialized development agents to work on the 15 onboarding tasks without freezing or causing errors in the production system.
 
 ## Safety Measures Implemented
 
 ### 1. **Isolated Agent System**
+
 - Development agents use `BaseDevAgent` class (separate from production agents)
 - Prefixed with `dev-` to avoid conflicts
 - Separate execution context that won't interfere with customer-facing agents
 
 ### 2. **Non-Blocking Architecture**
+
 ```typescript
 // Agents run asynchronously without blocking main application
 const results = await Promise.allSettled([
   documentationAgent.executeTask(task1),
   provisioningAgent.executeTask(task2),
-  architectureAgent.executeTask(task3)
+  architectureAgent.executeTask(task3),
 ]);
 ```
 
 ### 3. **Resource Protection**
+
 - File operations create backups before modifications
 - Rate limiting between API calls (2-second delays)
 - Separate API keys via `DEV_OPENROUTER_API_KEY`
 - Mock responses fallback if API unavailable
 
 ### 4. **Error Isolation**
+
 - Try-catch blocks around all agent operations
 - Failed tasks don't crash the system
 - Progress tracking in SuperMemory
@@ -34,6 +39,7 @@ const results = await Promise.allSettled([
 ## Deployment Steps
 
 ### Step 1: Set Up Development Environment
+
 ```bash
 # Add development API key to .env
 echo "DEV_OPENROUTER_API_KEY=your-dev-key-here" >> .env
@@ -45,18 +51,21 @@ mkdir -p server/agents/development-agents
 ```
 
 ### Step 2: Deploy Documentation Agent (Safe to Start)
+
 ```bash
 # Run the documentation agent for tasks 1.1-1.4
 npm run tsx scripts/deploy-dev-agents.ts
 ```
 
 This will generate:
+
 - `/docs/onboarding/API_INTEGRATION_GUIDE.md`
 - `/docs/onboarding/CLIENT_SETUP_CHECKLIST.md`
 - `/docs/onboarding/MULTI_TENANT_ARCHITECTURE.md`
 - `/docs/onboarding/USER_ROLE_PERMISSIONS.md`
 
 ### Step 3: Deploy Additional Agents (When Ready)
+
 Create similar agents for other task categories:
 
 ```typescript
@@ -65,7 +74,7 @@ class ProvisioningAgent extends BaseDevAgent {
   // Generates provisioning scripts and APIs
 }
 
-// Architecture Agent - For tasks 3.1-3.4  
+// Architecture Agent - For tasks 3.1-3.4
 class ArchitectureAgent extends BaseDevAgent {
   // Generates multi-tenant code enhancements
 }
@@ -79,6 +88,7 @@ class UIBuilderAgent extends BaseDevAgent {
 ## Monitoring Agent Execution
 
 ### Check Progress
+
 ```bash
 # View agent logs
 tail -f logs/development-agents.log
@@ -89,26 +99,32 @@ ls -la scripts/onboarding/
 ```
 
 ### Task Status Tracking
+
 The agents update task progress in SuperMemory:
+
 - `in_progress` - Agent is working on the task
-- `completed` - Task finished successfully  
+- `completed` - Task finished successfully
 - `failed` - Task encountered an error
 
 ## Preventing System Freezes
 
 ### 1. **Async Execution**
+
 Agents run in background without blocking:
+
 ```typescript
 // Won't freeze the main app
 deployDocumentationAgent(); // Runs async
 ```
 
 ### 2. **Resource Limits**
+
 - Max 2000 tokens per API call
 - 2-second delays between tasks
 - File operations are atomic
 
 ### 3. **Graceful Degradation**
+
 - Falls back to mock responses if API fails
 - Continues with next task if one fails
 - Logs all errors without crashing
@@ -116,12 +132,13 @@ deployDocumentationAgent(); // Runs async
 ## Running Agents in Parallel
 
 For faster execution (with caution):
+
 ```typescript
 // Deploy multiple agent types simultaneously
 await Promise.all([
   deployDocumentationAgent(),
   deployProvisioningAgent(),
-  deployArchitectureAgent()
+  deployArchitectureAgent(),
 ]);
 ```
 
@@ -146,17 +163,20 @@ await Promise.all([
 ## Troubleshooting
 
 ### Agent Not Generating Files
+
 - Check API key is set correctly
 - Verify write permissions to directories
 - Check logs for specific errors
 
 ### API Rate Limits
+
 - Increase delay between tasks
 - Use different API keys for parallel agents
 - Implement exponential backoff
 
 ### Memory Issues
-- Run fewer agents simultaneously  
+
+- Run fewer agents simultaneously
 - Increase Node.js heap size: `NODE_OPTIONS="--max-old-space-size=4096"`
 
 ## Next Steps

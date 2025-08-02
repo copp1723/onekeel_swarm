@@ -14,7 +14,7 @@ export function AgentManagementDemo() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className='container mx-auto p-6'>
       <AgentManagementDashboard
         onAgentSelect={handleAgentSelect}
         showCreateButton={true}

@@ -1,44 +1,44 @@
 import { AgentType, UnifiedAgentConfig } from '@/types';
 
-export const AGENT_TYPES: { 
-  value: AgentType; 
-  label: string; 
-  icon: string; 
+export const AGENT_TYPES: {
+  value: AgentType;
+  label: string;
+  icon: string;
   description: string;
   capabilities: {
     email: boolean;
     sms: boolean;
     chat: boolean;
-  }
+  };
 }[] = [
-  { 
-    value: 'email', 
-    label: 'Email', 
-    icon: '✉️', 
+  {
+    value: 'email',
+    label: 'Email',
+    icon: '✉️',
     description: 'Specialized in email communication and marketing',
-    capabilities: { email: true, sms: false, chat: false }
+    capabilities: { email: true, sms: false, chat: false },
   },
-  { 
-    value: 'sms', 
-    label: 'SMS', 
-    icon: '💬', 
+  {
+    value: 'sms',
+    label: 'SMS',
+    icon: '💬',
     description: 'Handles SMS messaging and text campaigns',
-    capabilities: { email: false, sms: true, chat: false }
+    capabilities: { email: false, sms: true, chat: false },
   },
-  { 
-    value: 'chat', 
-    label: 'Chat', 
-    icon: '🗨️', 
+  {
+    value: 'chat',
+    label: 'Chat',
+    icon: '🗨️',
     description: 'Manages live chat interactions',
-    capabilities: { email: false, sms: false, chat: true }
+    capabilities: { email: false, sms: false, chat: true },
   },
-  { 
-    value: 'overlord', 
-    label: 'Overlord', 
-    icon: '👑', 
+  {
+    value: 'overlord',
+    label: 'Overlord',
+    icon: '👑',
     description: 'Master agent that coordinates other agents',
-    capabilities: { email: true, sms: true, chat: true }
-  }
+    capabilities: { email: true, sms: true, chat: true },
+  },
 ];
 
 export const PERSONALITY_OPTIONS = {
@@ -47,20 +47,20 @@ export const PERSONALITY_OPTIONS = {
   casual: 'Casual',
   formal: 'Formal',
   empathetic: 'Empathetic',
-  humorous: 'Humorous'
+  humorous: 'Humorous',
 };
 
 export const TONE_OPTIONS = [
   { value: 'professional', label: 'Professional' },
   { value: 'friendly', label: 'Friendly' },
   { value: 'casual', label: 'Casual' },
-  { value: 'formal', label: 'Formal' }
+  { value: 'formal', label: 'Formal' },
 ];
 
 export const RESPONSE_LENGTH_OPTIONS = [
   { value: 'concise', label: 'Concise' },
   { value: 'moderate', label: 'Moderate' },
-  { value: 'detailed', label: 'Detailed' }
+  { value: 'detailed', label: 'Detailed' },
 ];
 
 export const getAgentTypeColor = (type: AgentType): string => {
@@ -68,7 +68,7 @@ export const getAgentTypeColor = (type: AgentType): string => {
     email: 'bg-blue-100 text-blue-800',
     sms: 'bg-green-100 text-green-800',
     chat: 'bg-purple-100 text-purple-800',
-    overlord: 'bg-red-100 text-red-800'
+    overlord: 'bg-red-100 text-red-800',
   };
   return colors[type] || 'bg-gray-100 text-gray-800';
 };
@@ -78,7 +78,7 @@ export const getAgentTypeIcon = (type: AgentType): string => {
     email: '✉️',
     sms: '💬',
     chat: '🗨️',
-    overlord: '👑'
+    overlord: '👑',
   };
   return icons[type] || '🤖';
 };
@@ -91,13 +91,15 @@ export const getAgentTypeInfo = (type: AgentType) => {
   return {
     color: getAgentTypeColor(type),
     icon: getAgentTypeIcon(type),
-    label: formatAgentType(type)
+    label: formatAgentType(type),
   };
 };
 
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 
-export const getAgentStatusBadge = (isActive: boolean | undefined): {
+export const getAgentStatusBadge = (
+  isActive: boolean | undefined
+): {
   color: string;
   label: string;
   variant: BadgeVariant;
@@ -108,11 +110,13 @@ export const getAgentStatusBadge = (isActive: boolean | undefined): {
     color: active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
     label: active ? 'Active' : 'Inactive',
     variant: active ? 'default' : 'secondary',
-    text: active ? 'Active' : 'Inactive'
+    text: active ? 'Active' : 'Inactive',
   };
 };
 
-export const cleanAgentConfig = (config: Partial<UnifiedAgentConfig>): UnifiedAgentConfig => {
+export const cleanAgentConfig = (
+  config: Partial<UnifiedAgentConfig>
+): UnifiedAgentConfig => {
   return {
     id: config.id || '',
     name: config.name || '',
@@ -121,18 +125,20 @@ export const cleanAgentConfig = (config: Partial<UnifiedAgentConfig>): UnifiedAg
     active: config.isActive || false,
     createdAt: config.createdAt || new Date().toISOString(),
     updatedAt: config.updatedAt || new Date().toISOString(),
-    ...config
+    ...config,
   } as UnifiedAgentConfig;
 };
 
-export const getDefaultConfigForType = (type: AgentType): Partial<UnifiedAgentConfig> => {
+export const getDefaultConfigForType = (
+  type: AgentType
+): Partial<UnifiedAgentConfig> => {
   const baseConfig: Partial<UnifiedAgentConfig> = {
     type,
     isActive: true,
     personality: {
       tone: 'professional',
       style: 'balanced',
-      traits: []
+      traits: [],
     },
     capabilities: {
       canSendEmails: type === 'email',
@@ -144,10 +150,10 @@ export const getDefaultConfigForType = (type: AgentType): Partial<UnifiedAgentCo
       canFollowUp: true,
       canSegment: true,
       canReport: true,
-      canIntegrate: true
+      canIntegrate: true,
     },
     temperature: 0.7,
-    responseLength: 'moderate'
+    responseLength: 'moderate',
   };
 
   switch (type) {
@@ -155,60 +161,68 @@ export const getDefaultConfigForType = (type: AgentType): Partial<UnifiedAgentCo
       return {
         ...baseConfig,
         name: 'Email Agent',
-        description: 'AI agent specialized in email communication'
+        description: 'AI agent specialized in email communication',
       };
     case 'sms':
       return {
         ...baseConfig,
         name: 'SMS Agent',
-        description: 'AI agent specialized in SMS messaging'
+        description: 'AI agent specialized in SMS messaging',
       };
     case 'chat':
       return {
         ...baseConfig,
         name: 'Chat Agent',
-        description: 'AI agent specialized in live chat'
+        description: 'AI agent specialized in live chat',
       };
     case 'overlord':
       return {
         ...baseConfig,
         name: 'Overlord Agent',
-        description: 'Master AI agent that coordinates other agents'
+        description: 'Master AI agent that coordinates other agents',
       };
     default:
       return baseConfig;
   }
 };
 
-export const validateAgentConfig = (config: Partial<UnifiedAgentConfig>): { isValid: boolean; errors: Record<string, string> } => {
+export const validateAgentConfig = (
+  config: Partial<UnifiedAgentConfig>
+): { isValid: boolean; errors: Record<string, string> } => {
   const errors: Record<string, string> = {};
-  
+
   if (!config.name || config.name.trim().length === 0) {
     errors.name = 'Agent name is required';
   }
-  
+
   if (!config.type) {
     errors.type = 'Agent type is required';
   }
-  
+
   if (!config.role || config.role.trim().length === 0) {
     errors.role = 'Agent role is required';
   }
-  
+
   if (!config.endGoal || config.endGoal.trim().length === 0) {
     errors.endGoal = 'End goal is required';
   }
-  
-  if (config.temperature !== undefined && (config.temperature < 0 || config.temperature > 100)) {
+
+  if (
+    config.temperature !== undefined &&
+    (config.temperature < 0 || config.temperature > 100)
+  ) {
     errors.temperature = 'Temperature must be between 0 and 100';
   }
-  
-  if (config.maxTokens !== undefined && (config.maxTokens < 50 || config.maxTokens > 4000)) {
+
+  if (
+    config.maxTokens !== undefined &&
+    (config.maxTokens < 50 || config.maxTokens > 4000)
+  ) {
     errors.maxTokens = 'Max tokens must be between 50 and 4000';
   }
-  
+
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };

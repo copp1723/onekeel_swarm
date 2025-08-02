@@ -1,6 +1,6 @@
 /**
  * Real-time Monitoring WebSocket Handler
- * 
+ *
  * Provides real-time monitoring updates through WebSocket connections,
  * integrating with the existing WebSocket infrastructure.
  */
@@ -79,13 +79,13 @@ export class MonitoringWebSocketHandler {
 
     this.clients.set(ws.clientId, ws);
 
-    logger.info('Monitoring client connected', { 
+    logger.info('Monitoring client connected', {
       clientId: ws.clientId,
-      totalClients: this.clients.size 
+      totalClients: this.clients.size,
     });
 
     // Setup message handler
-    ws.on('message', (data) => {
+    ws.on('message', data => {
       this.handleMessage(ws, data);
     });
 
@@ -95,7 +95,7 @@ export class MonitoringWebSocketHandler {
     });
 
     // Setup error handler
-    ws.on('error', (error) => {
+    ws.on('error', error => {
       logger.error('Monitoring WebSocket error:', error);
       this.handleDisconnection(ws);
     });
@@ -106,9 +106,16 @@ export class MonitoringWebSocketHandler {
       data: {
         message: 'Connected to monitoring service',
         clientId: ws.clientId,
-        availableSubscriptions: ['health', 'performance', 'business', 'services', 'database', 'all']
+        availableSubscriptions: [
+          'health',
+          'performance',
+          'business',
+          'services',
+          'database',
+          'all',
+        ],
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -118,22 +125,22 @@ export class MonitoringWebSocketHandler {
   private async handleMessage(ws: MonitoringWebSocketClient, data: Buffer) {
     try {
       ws.lastActivity = Date.now();
-      
+
       const message: MonitoringMessage = JSON.parse(data.toString());
 
       switch (message.type) {
         case 'subscribe':
           await this.handleSubscribe(ws, message.subscription!);
           break;
-          
+
         case 'unsubscribe':
           this.handleUnsubscribe(ws, message.subscription!);
           break;
-          
+
         case 'ping':
           this.sendMessage(ws, { type: 'pong', timestamp: Date.now() });
           break;
-          
+
         default:
           this.sendError(ws, `Unknown message type: ${message.type}`);
       }
@@ -146,16 +153,19 @@ export class MonitoringWebSocketHandler {
   /**
    * Handle subscription requests
    */
-  private async handleSubscribe(ws: MonitoringWebSocketClient, subscription: MonitoringSubscription) {
+  private async handleSubscribe(
+    ws: MonitoringWebSocketClient,
+    subscription: MonitoringSubscription
+  ) {
     const subscriptionKey = `${subscription.type}:${subscription.interval || this.defaultUpdateInterval}`;
-    
+
     // Add subscription
     ws.subscriptions.add(subscriptionKey);
-    
+
     logger.debug('Client subscribed to monitoring', {
       clientId: ws.clientId,
       subscription: subscription.type,
-      interval: subscription.interval || this.defaultUpdateInterval
+      interval: subscription.interval || this.defaultUpdateInterval,
     });
 
     // Start sending updates for this subscription
@@ -166,42 +176,48 @@ export class MonitoringWebSocketHandler {
       type: 'data',
       data: {
         message: `Subscribed to ${subscription.type} monitoring`,
-        subscription: subscriptionKey
+        subscription: subscriptionKey,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   /**
    * Handle unsubscription requests
    */
-  private handleUnsubscribe(ws: MonitoringWebSocketClient, subscription: MonitoringSubscription) {
+  private handleUnsubscribe(
+    ws: MonitoringWebSocketClient,
+    subscription: MonitoringSubscription
+  ) {
     const subscriptionKey = `${subscription.type}:${subscription.interval || this.defaultUpdateInterval}`;
-    
+
     ws.subscriptions.delete(subscriptionKey);
-    
+
     // Stop updates if no other clients are subscribed
     this.stopSubscriptionUpdates(subscriptionKey);
 
     logger.debug('Client unsubscribed from monitoring', {
       clientId: ws.clientId,
-      subscription: subscription.type
+      subscription: subscription.type,
     });
 
     this.sendMessage(ws, {
       type: 'data',
       data: {
         message: `Unsubscribed from ${subscription.type} monitoring`,
-        subscription: subscriptionKey
+        subscription: subscriptionKey,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   /**
    * Start sending updates for a subscription
    */
-  private startSubscriptionUpdates(ws: MonitoringWebSocketClient, subscription: MonitoringSubscription) {
+  private startSubscriptionUpdates(
+    ws: MonitoringWebSocketClient,
+    subscription: MonitoringSubscription
+  ) {
     const interval = subscription.interval || this.defaultUpdateInterval;
     const subscriptionKey = `${subscription.type}:${interval}`;
 
@@ -213,37 +229,46 @@ export class MonitoringWebSocketHandler {
     const intervalId = setInterval(async () => {
       try {
         const data = await this.getMonitoringData(subscription);
-        
+
         // Send to all clients subscribed to this type
         this.clients.forEach(client => {
-          if (client.subscriptions.has(subscriptionKey) && client.readyState === WebSocket.OPEN) {
+          if (
+            client.subscriptions.has(subscriptionKey) &&
+            client.readyState === WebSocket.OPEN
+          ) {
             this.sendMessage(client, {
               type: 'data',
               data: {
                 subscription: subscription.type,
-                ...data
+                ...data,
               },
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
           }
         });
       } catch (error) {
         logger.error('Error collecting monitoring data:', error);
-        
+
         // Send error to subscribed clients
         this.clients.forEach(client => {
-          if (client.subscriptions.has(subscriptionKey) && client.readyState === WebSocket.OPEN) {
-            this.sendError(client, `Failed to collect ${subscription.type} data`);
+          if (
+            client.subscriptions.has(subscriptionKey) &&
+            client.readyState === WebSocket.OPEN
+          ) {
+            this.sendError(
+              client,
+              `Failed to collect ${subscription.type} data`
+            );
           }
         });
       }
     }, interval);
 
     this.updateIntervals.set(subscriptionKey, intervalId);
-    
-    logger.debug('Started monitoring updates', { 
+
+    logger.debug('Started monitoring updates', {
       subscription: subscriptionKey,
-      interval 
+      interval,
     });
   }
 
@@ -252,15 +277,17 @@ export class MonitoringWebSocketHandler {
    */
   private stopSubscriptionUpdates(subscriptionKey: string) {
     // Check if any clients are still subscribed
-    const hasSubscribers = Array.from(this.clients.values()).some(
-      client => client.subscriptions.has(subscriptionKey)
+    const hasSubscribers = Array.from(this.clients.values()).some(client =>
+      client.subscriptions.has(subscriptionKey)
     );
 
     if (!hasSubscribers && this.updateIntervals.has(subscriptionKey)) {
       clearInterval(this.updateIntervals.get(subscriptionKey)!);
       this.updateIntervals.delete(subscriptionKey);
-      
-      logger.debug('Stopped monitoring updates', { subscription: subscriptionKey });
+
+      logger.debug('Stopped monitoring updates', {
+        subscription: subscriptionKey,
+      });
     }
   }
 
@@ -271,28 +298,28 @@ export class MonitoringWebSocketHandler {
     switch (subscription.type) {
       case 'health':
         return await unifiedMonitor.healthChecker.checkSystemHealth({
-          includeDetails: subscription.includeDetails
+          includeDetails: subscription.includeDetails,
         });
-        
+
       case 'performance':
         return await unifiedMonitor.metricsCollector.collectPerformanceMetrics();
-        
+
       case 'business':
         return await unifiedMonitor.metricsCollector.collectBusinessMetrics();
-        
+
       case 'services':
         return await unifiedMonitor.serviceMonitor.checkAllServices({
-          includeDetails: subscription.includeDetails
+          includeDetails: subscription.includeDetails,
         });
-        
+
       case 'database':
         return await unifiedMonitor.databaseMonitor.checkHealth({
-          includePerformanceDetails: subscription.includeDetails
+          includePerformanceDetails: subscription.includeDetails,
         });
-        
+
       case 'all':
         return await unifiedMonitor.getSystemStatus();
-        
+
       default:
         throw new Error(`Unknown subscription type: ${subscription.type}`);
     }
@@ -316,7 +343,7 @@ export class MonitoringWebSocketHandler {
       logger.info('Monitoring client disconnected', {
         clientId: ws.clientId,
         totalClients: this.clients.size,
-        subscriptionsCleanedUp: subscriptionsToCleanup.length
+        subscriptionsCleanedUp: subscriptionsToCleanup.length,
       });
     }
   }
@@ -324,7 +351,10 @@ export class MonitoringWebSocketHandler {
   /**
    * Send message to client
    */
-  private sendMessage(ws: MonitoringWebSocketClient, message: MonitoringMessage) {
+  private sendMessage(
+    ws: MonitoringWebSocketClient,
+    message: MonitoringMessage
+  ) {
     if (ws.readyState === WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify(message));
@@ -341,7 +371,7 @@ export class MonitoringWebSocketHandler {
     this.sendMessage(ws, {
       type: 'error',
       error,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -377,33 +407,38 @@ export class MonitoringWebSocketHandler {
    */
   private startPeriodicCleanup() {
     // Clean up old data every hour
-    this.cleanupTimer = setInterval(() => {
-      this.cleanupOldData();
-    }, 60 * 60 * 1000); // 1 hour
+    this.cleanupTimer = setInterval(
+      () => {
+        this.cleanupOldData();
+      },
+      60 * 60 * 1000
+    ); // 1 hour
   }
 
   /**
    * Clean up old monitoring data to prevent memory leaks
    */
   private cleanupOldData() {
-    const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
     // Clean up any orphaned intervals
     this.updateIntervals.forEach((interval, key) => {
-      const hasSubscribers = Array.from(this.clients.values()).some(
-        client => client.subscriptions.has(key)
+      const hasSubscribers = Array.from(this.clients.values()).some(client =>
+        client.subscriptions.has(key)
       );
 
       if (!hasSubscribers) {
         clearInterval(interval);
         this.updateIntervals.delete(key);
-        logger.debug('Cleaned up orphaned monitoring interval', { subscription: key });
+        logger.debug('Cleaned up orphaned monitoring interval', {
+          subscription: key,
+        });
       }
     });
 
     logger.debug('Monitoring data cleanup completed', {
       activeClients: this.clients.size,
-      activeIntervals: this.updateIntervals.size
+      activeIntervals: this.updateIntervals.size,
     });
   }
 
@@ -422,7 +457,7 @@ export class MonitoringWebSocketHandler {
       totalClients: this.clients.size,
       activeSubscriptions: this.updateIntervals.size,
       subscriptionTypes: Array.from(this.updateIntervals.keys()),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     };
   }
 
@@ -433,7 +468,7 @@ export class MonitoringWebSocketHandler {
     const message: MonitoringMessage = {
       type: 'data',
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     this.clients.forEach(client => {

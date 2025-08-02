@@ -6,16 +6,44 @@
 import Papa from 'papaparse';
 
 // Dangerous CSV formula prefixes that could execute in spreadsheet applications
-const DANGEROUS_PREFIXES = ['=', '+', '-', '@', '\t=', '\t+', '\t-', '\t@', ' =', ' +', ' -', ' @'];
+const DANGEROUS_PREFIXES = [
+  '=',
+  '+',
+  '-',
+  '@',
+  '\t=',
+  '\t+',
+  '\t-',
+  '\t@',
+  ' =',
+  ' +',
+  ' -',
+  ' @',
+];
 
 // Common dangerous patterns for CSV injection
 const DANGEROUS_PATTERNS = [
-  /^=/, /^\+/, /^-/, /^@/, /^\t=/, /^\t\+/, /^\t-/, /^\t@/, /^ =/, /^ \+/, /^ -/, /^ @/,
-  /^[\s\t]*=/, /^[\s\t]*\+/, /^[\s\t]*-/, /^[\s\t]*@/
+  /^=/,
+  /^\+/,
+  /^-/,
+  /^@/,
+  /^\t=/,
+  /^\t\+/,
+  /^\t-/,
+  /^\t@/,
+  /^ =/,
+  /^ \+/,
+  /^ -/,
+  /^ @/,
+  /^[\s\t]*=/,
+  /^[\s\t]*\+/,
+  /^[\s\t]*-/,
+  /^[\s\t]*@/,
 ];
 
 // Email validation regex
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 /**
  * Sanitizes a single CSV cell value to prevent CSV injection
@@ -26,9 +54,9 @@ export function sanitizeCSVCell(value: any): string {
   if (value === null || value === undefined) {
     return '';
   }
-  
+
   const stringValue = String(value).trim();
-  
+
   // Check for dangerous formula prefixes
   for (const prefix of DANGEROUS_PREFIXES) {
     if (stringValue.startsWith(prefix)) {
@@ -36,14 +64,14 @@ export function sanitizeCSVCell(value: any): string {
       return `'${stringValue}`;
     }
   }
-  
+
   // Check for dangerous patterns
   for (const pattern of DANGEROUS_PATTERNS) {
     if (pattern.test(stringValue)) {
       return `'${stringValue}`;
     }
   }
-  
+
   // Escape pipe characters that might be interpreted as cell separators
   return stringValue.replace(/\|/g, '\\|');
 }
@@ -63,14 +91,21 @@ export function isValidEmail(email: string): boolean {
  * @param emailFields - Array of field names that should contain email addresses
  * @returns Sanitized row object
  */
-export function sanitizeCSVRow(row: Record<string, any>, emailFields: string[] = []): Record<string, any> {
+export function sanitizeCSVRow(
+  row: Record<string, any>,
+  emailFields: string[] = []
+): Record<string, any> {
   const sanitized: Record<string, any> = {};
-  
+
   Object.keys(row).forEach(key => {
     const value = row[key];
-    
+
     // Special handling for email fields
-    if (emailFields.some(emailKey => key.toLowerCase().includes(emailKey.toLowerCase()))) {
+    if (
+      emailFields.some(emailKey =>
+        key.toLowerCase().includes(emailKey.toLowerCase())
+      )
+    ) {
       if (isValidEmail(value)) {
         sanitized[key] = value.toLowerCase();
       } else {
@@ -80,7 +115,7 @@ export function sanitizeCSVRow(row: Record<string, any>, emailFields: string[] =
       sanitized[key] = sanitizeCSVCell(value);
     }
   });
-  
+
   return sanitized;
 }
 
@@ -107,7 +142,7 @@ export async function validateCSVFile(
     maxSize = 10 * 1024 * 1024, // 10MB
     maxRows = 10000,
     allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/csv'],
-    emailFields = []
+    emailFields = [],
   } = options;
 
   const errors: string[] = [];
@@ -124,15 +159,17 @@ export async function validateCSVFile(
     return { valid: false, errors };
   }
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (header) => {
+      transformHeader: header => {
         // Sanitize header names
-        return sanitizeCSVCell(header).replace(/[^\w\s-]/g, '').trim();
+        return sanitizeCSVCell(header)
+          .replace(/[^\w\s-]/g, '')
+          .trim();
       },
-      transform: (value) => {
+      transform: value => {
         // Sanitize all cell values
         return sanitizeCSVCell(value);
       },
@@ -162,8 +199,8 @@ export async function validateCSVFile(
           .filter((row: any) => {
             // Must have at least one valid email if email fields are specified
             if (emailFields.length > 0) {
-              return emailFields.some(emailField => 
-                emailField in row && isValidEmail(row[emailField])
+              return emailFields.some(
+                emailField => emailField in row && isValidEmail(row[emailField])
               );
             }
             return true;
@@ -180,7 +217,7 @@ export async function validateCSVFile(
       error: (error: Error) => {
         errors.push(`Error reading file: ${error.message}`);
         resolve({ valid: false, errors });
-      }
+      },
     });
   });
 }
@@ -191,14 +228,17 @@ export async function validateCSVFile(
  * @param filename - The filename for the CSV download
  * @returns Response object ready for download
  */
-export function generateSecureCSVResponse(data: any[], filename: string): Response {
+export function generateSecureCSVResponse(
+  data: any[],
+  filename: string
+): Response {
   const csvContent = Papa.unparse(data, {
     header: true,
     quotes: true, // Always quote fields to prevent injection
     delimiter: ',',
-    newline: '\r\n'
+    newline: '\r\n',
   });
-  
+
   return new Response(csvContent, {
     headers: {
       'Content-Type': 'text/csv',
@@ -207,9 +247,9 @@ export function generateSecureCSVResponse(data: any[], filename: string): Respon
       'Content-Security-Policy': "default-src 'none'",
       'X-Frame-Options': 'DENY',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    }
+      Pragma: 'no-cache',
+      Expires: '0',
+    },
   });
 }
 
@@ -222,17 +262,22 @@ export function makeCSVSafe(value: any): string {
   if (value === null || value === undefined) {
     return '';
   }
-  
+
   const stringValue = String(value);
-  
+
   // If the value contains quotes, double them
   let escaped = stringValue.replace(/"/g, '""');
-  
+
   // If the value contains special characters, wrap in quotes
-  if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r')) {
+  if (
+    escaped.includes(',') ||
+    escaped.includes('"') ||
+    escaped.includes('\n') ||
+    escaped.includes('\r')
+  ) {
     escaped = `"${escaped}"`;
   }
-  
+
   return escaped;
 }
 
@@ -248,18 +293,22 @@ export function validateCSVHeaders(
 ): { valid: boolean; errors: string[]; missing: string[]; extra: string[] } {
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
   const normalizedExpected = expectedHeaders.map(h => h.toLowerCase().trim());
-  
-  const missing = normalizedExpected.filter(h => !normalizedHeaders.includes(h));
+
+  const missing = normalizedExpected.filter(
+    h => !normalizedHeaders.includes(h)
+  );
   const extra = normalizedHeaders.filter(h => !normalizedExpected.includes(h));
-  
+
   return {
     valid: missing.length === 0,
     errors: [
-      ...(missing.length > 0 ? [`Missing required headers: ${missing.join(', ')}`] : []),
-      ...(extra.length > 0 ? [`Unexpected headers: ${extra.join(', ')}`] : [])
+      ...(missing.length > 0
+        ? [`Missing required headers: ${missing.join(', ')}`]
+        : []),
+      ...(extra.length > 0 ? [`Unexpected headers: ${extra.join(', ')}`] : []),
     ],
     missing: missing.map(h => expectedHeaders[normalizedExpected.indexOf(h)]),
-    extra: extra.map(h => headers[normalizedHeaders.indexOf(h)])
+    extra: extra.map(h => headers[normalizedHeaders.indexOf(h)]),
   };
 }
 
@@ -273,5 +322,5 @@ export const CSVUtils = {
   generateSecureCSVResponse,
   makeCSVSafe,
   validateCSVHeaders,
-  isValidEmail
+  isValidEmail,
 };

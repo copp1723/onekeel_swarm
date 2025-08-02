@@ -48,7 +48,7 @@ export class FeedbackService {
       message,
       read: false,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     // Store notification
@@ -59,25 +59,28 @@ export class FeedbackService {
 
     // Send via WebSocket if connected
     const ws = this.connections.get(userId);
-    if (ws && ws.readyState === 1) { // WebSocket.OPEN
+    if (ws && ws.readyState === 1) {
+      // WebSocket.OPEN
       try {
-        ws.send(JSON.stringify({
-          type: 'notification',
-          data: notification
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'notification',
+            data: notification,
+          })
+        );
       } catch (error) {
-        logger.error('Failed to send WebSocket notification', { 
-          userId, 
-          error: (error as Error).message 
+        logger.error('Failed to send WebSocket notification', {
+          userId,
+          error: (error as Error).message,
         });
       }
     }
 
-    logger.info('Notification sent', { 
-      userId, 
+    logger.info('Notification sent', {
+      userId,
       notificationId: notification.id,
       type,
-      title 
+      title,
     });
 
     return notification.id;
@@ -131,14 +134,20 @@ export class FeedbackService {
       }
     });
 
-    logger.info('All notifications marked as read', { userId, count: markedCount });
+    logger.info('All notifications marked as read', {
+      userId,
+      count: markedCount,
+    });
     return markedCount;
   }
 
   /**
    * Delete a notification
    */
-  async deleteNotification(userId: string, notificationId: string): Promise<boolean> {
+  async deleteNotification(
+    userId: string,
+    notificationId: string
+  ): Promise<boolean> {
     const userNotifications = this.notifications.get(userId);
     if (!userNotifications) return false;
 
@@ -174,17 +183,17 @@ export class FeedbackService {
     message: string
   ): Promise<void> {
     const connectedUsers = Array.from(this.connections.keys());
-    
+
     await Promise.all(
-      connectedUsers.map(userId => 
+      connectedUsers.map(userId =>
         this.sendNotification(userId, type, title, message)
       )
     );
 
-    logger.info('System notification sent', { 
+    logger.info('System notification sent', {
       userCount: connectedUsers.length,
       type,
-      title 
+      title,
     });
   }
 
@@ -212,7 +221,7 @@ export class FeedbackService {
       totalUsers,
       totalNotifications,
       unreadNotifications,
-      connectedUsers
+      connectedUsers,
     };
   }
 
@@ -234,8 +243,13 @@ export class FeedbackService {
    * Send lead qualified notification to all connected users
    */
   leadQualified(lead: any): void {
-    const leadName = `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown Lead';
-    this.sendSystemNotification('success', 'Lead Qualified', `${leadName} has been qualified and sent to Boberdoo`);
+    const leadName =
+      `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Unknown Lead';
+    this.sendSystemNotification(
+      'success',
+      'Lead Qualified',
+      `${leadName} has been qualified and sent to Boberdoo`
+    );
   }
 }
 

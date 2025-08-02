@@ -22,7 +22,8 @@ export class OpenRouterHealthChecker {
 
   constructor() {
     // Check both OPENROUTER_API_KEY and OPENAI_API_KEY for compatibility
-    this.apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || "";
+    this.apiKey =
+      process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || '';
     this.isConfigured = !!this.apiKey;
   }
 
@@ -33,41 +34,48 @@ export class OpenRouterHealthChecker {
       connected: false,
       lastChecked: new Date().toISOString(),
       details: {
-        apiKeyPresent: !!(process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY),
-      }
+        apiKeyPresent: !!(
+          process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY
+        ),
+      },
     };
 
     if (!this.isConfigured) {
-      status.error = "OpenRouter not configured - missing API key";
+      status.error = 'OpenRouter not configured - missing API key';
       return status;
     }
 
     try {
       // Test connection by fetching available models with circuit breaker protection
-      const modelsResponse = await openrouterCircuitBreaker.execute(async () => {
-        return await fetch(`${this.baseUrl}/models`, {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      });
+      const modelsResponse = await openrouterCircuitBreaker.execute(
+        async () => {
+          return await fetch(`${this.baseUrl}/models`, {
+            headers: {
+              Authorization: `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+      );
 
       if (!modelsResponse.ok) {
-        throw new Error(`HTTP ${modelsResponse.status}: ${modelsResponse.statusText}`);
+        throw new Error(
+          `HTTP ${modelsResponse.status}: ${modelsResponse.statusText}`
+        );
       }
 
       const modelsData = await modelsResponse.json();
-      
+
       status.connected = true;
       status.responseTime = Date.now() - startTime;
-      status.details!.modelsAvailable = modelsData.data?.slice(0, 5).map((model: any) => model.id) || [];
+      status.details!.modelsAvailable =
+        modelsData.data?.slice(0, 5).map((model: any) => model.id) || [];
 
       // Try to get account/usage info if available
       try {
         const accountResponse = await fetch(`${this.baseUrl}/auth/key`, {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
           },
         });
@@ -78,27 +86,28 @@ export class OpenRouterHealthChecker {
             label: accountData.data?.label,
             usage: accountData.data?.usage,
             limit: accountData.data?.limit,
-            is_free_tier: accountData.data?.is_free_tier
+            is_free_tier: accountData.data?.is_free_tier,
           };
         }
       } catch (accountError) {
         // Account info is optional, don't fail the health check
-        logger.debug('Could not fetch OpenRouter account info', { error: accountError });
+        logger.debug('Could not fetch OpenRouter account info', {
+          error: accountError,
+        });
       }
 
       logger.info('OpenRouter health check passed', {
         responseTime: status.responseTime,
-        modelsCount: status.details!.modelsAvailable?.length
+        modelsCount: status.details!.modelsAvailable?.length,
       });
-
     } catch (error) {
       status.connected = false;
       status.responseTime = Date.now() - startTime;
       status.error = error instanceof Error ? error.message : 'Unknown error';
-      
+
       logger.error('OpenRouter health check failed', {
         error: status.error,
-        responseTime: status.responseTime
+        responseTime: status.responseTime,
       });
     }
 
@@ -114,7 +123,7 @@ export class OpenRouterHealthChecker {
     if (!this.isConfigured) {
       return {
         canGenerate: false,
-        error: "OpenRouter not configured"
+        error: 'OpenRouter not configured',
       };
     }
 
@@ -124,24 +133,24 @@ export class OpenRouterHealthChecker {
         // No model specified to test auto-select capability
         messages: [
           {
-            role: "user",
-            content: "Respond with exactly: 'Health check successful'"
-          }
+            role: 'user',
+            content: "Respond with exactly: 'Health check successful'",
+          },
         ],
         max_tokens: 10,
         temperature: 0,
-        route: "fallback" // Enable fallback routing for auto-select
+        route: 'fallback', // Enable fallback routing for auto-select
       };
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': process.env.SERVICE_URL || 'http://localhost:3000',
-          'X-Title': 'OneKeel Swarm'
+          'X-Title': 'OneKeel Swarm',
         },
-        body: JSON.stringify(testRequest)
+        body: JSON.stringify(testRequest),
       });
 
       if (!response.ok) {
@@ -154,13 +163,12 @@ export class OpenRouterHealthChecker {
       return {
         canGenerate: true,
         testResponse,
-        model: data.model
+        model: data.model,
       };
-
     } catch (error) {
       return {
         canGenerate: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -174,20 +182,22 @@ export class OpenRouterHealthChecker {
     const recommendations: string[] = [];
 
     if (!process.env.OPENROUTER_API_KEY) {
-      issues.push("OPENROUTER_API_KEY environment variable not set");
+      issues.push('OPENROUTER_API_KEY environment variable not set');
     } else if (process.env.OPENROUTER_API_KEY.length < 20) {
-      issues.push("OPENROUTER_API_KEY appears to be too short");
+      issues.push('OPENROUTER_API_KEY appears to be too short');
     }
 
     // Check if we have fallback configurations
     if (!process.env.OPENAI_API_KEY) {
-      recommendations.push("Consider setting OPENAI_API_KEY as a fallback for AI operations");
+      recommendations.push(
+        'Consider setting OPENAI_API_KEY as a fallback for AI operations'
+      );
     }
 
     return {
       valid: issues.length === 0,
       issues,
-      recommendations
+      recommendations,
     };
   }
 
@@ -204,14 +214,14 @@ export class OpenRouterHealthChecker {
     if (!this.isConfigured) {
       return {
         success: false,
-        error: "OpenRouter not configured"
+        error: 'OpenRouter not configured',
       };
     }
 
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
       });
@@ -221,21 +231,21 @@ export class OpenRouterHealthChecker {
       }
 
       const data = await response.json();
-      
+
       return {
         success: true,
-        models: data.data?.map((model: any) => ({
-          id: model.id,
-          name: model.name || model.id,
-          description: model.description,
-          pricing: model.pricing
-        })) || []
+        models:
+          data.data?.map((model: any) => ({
+            id: model.id,
+            name: model.name || model.id,
+            description: model.description,
+            pricing: model.pricing,
+          })) || [],
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -250,7 +260,7 @@ export class OpenRouterHealthChecker {
       service: 'OpenRouter',
       configured: this.isConfigured,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,
-      baseUrl: this.baseUrl
+      baseUrl: this.baseUrl,
     };
   }
 }

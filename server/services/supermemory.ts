@@ -13,7 +13,12 @@ export interface SuperMemoryEntry {
 export class SuperMemory {
   private memory: Map<string, SuperMemoryEntry> = new Map();
 
-  async store(key: string, value: any, metadata?: Record<string, any>, ttl?: number): Promise<string> {
+  async store(
+    key: string,
+    value: any,
+    metadata?: Record<string, any>,
+    ttl?: number
+  ): Promise<string> {
     const id = crypto.randomUUID();
     const entry: SuperMemoryEntry = {
       id,
@@ -22,7 +27,7 @@ export class SuperMemory {
       metadata,
       createdAt: new Date(),
       updatedAt: new Date(),
-      expiresAt: ttl ? new Date(Date.now() + ttl * 1000) : undefined
+      expiresAt: ttl ? new Date(Date.now() + ttl * 1000) : undefined,
     };
 
     this.memory.set(key, entry);
@@ -96,12 +101,22 @@ export class SuperMemory {
     newestEntry?: Date;
   }> {
     const entries = Array.from(this.memory.values());
-    
+
     return {
       totalEntries: entries.length,
       memoryUsage: JSON.stringify(entries).length,
-      oldestEntry: entries.length > 0 ? Math.min(...entries.map(e => e.createdAt.getTime())) as unknown as Date : undefined,
-      newestEntry: entries.length > 0 ? Math.max(...entries.map(e => e.createdAt.getTime())) as unknown as Date : undefined
+      oldestEntry:
+        entries.length > 0
+          ? (Math.min(
+              ...entries.map(e => e.createdAt.getTime())
+            ) as unknown as Date)
+          : undefined,
+      newestEntry:
+        entries.length > 0
+          ? (Math.max(
+              ...entries.map(e => e.createdAt.getTime())
+            ) as unknown as Date)
+          : undefined,
     };
   }
 }
@@ -113,7 +128,12 @@ export class MockSuperMemory extends SuperMemory {
     logger.info('MockSuperMemory initialized');
   }
 
-  async store(key: string, value: any, metadata?: Record<string, any>, ttl?: number): Promise<string> {
+  async store(
+    key: string,
+    value: any,
+    metadata?: Record<string, any>,
+    ttl?: number
+  ): Promise<string> {
     logger.info('MockSuperMemory: Store called', { key });
     return super.store(key, value, metadata, ttl);
   }
@@ -124,9 +144,16 @@ export class MockSuperMemory extends SuperMemory {
   }
 
   // Add compatibility methods for agent memory interface
-  async addMemory(data: { content: string; metadata?: Record<string, any>; spaces?: string[] }): Promise<string> {
+  async addMemory(data: {
+    content: string;
+    metadata?: Record<string, any>;
+    spaces?: string[];
+  }): Promise<string> {
     const key = `memory-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    logger.info('MockSuperMemory: AddMemory called', { key, spaces: data.spaces });
+    logger.info('MockSuperMemory: AddMemory called', {
+      key,
+      spaces: data.spaces,
+    });
     return this.store(key, data.content, data.metadata);
   }
 
@@ -136,7 +163,7 @@ export class MockSuperMemory extends SuperMemory {
     return results.slice(0, limit).map(entry => ({
       content: entry.value,
       metadata: entry.metadata,
-      id: entry.id
+      id: entry.id,
     }));
   }
 }

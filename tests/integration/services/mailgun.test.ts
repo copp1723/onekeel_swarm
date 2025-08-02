@@ -66,7 +66,9 @@ describe('Mailgun Integration Tests', () => {
       const validation = await mailgunHealthChecker.validateConfiguration();
 
       expect(validation.valid).toBe(false);
-      expect(validation.issues).toContain('MAILGUN_API_KEY appears to be invalid format');
+      expect(validation.issues).toContain(
+        'MAILGUN_API_KEY appears to be invalid format'
+      );
     });
 
     it('should validate domain format', async () => {
@@ -76,7 +78,9 @@ describe('Mailgun Integration Tests', () => {
       const validation = await mailgunHealthChecker.validateConfiguration();
 
       expect(validation.valid).toBe(false);
-      expect(validation.issues).toContain('MAILGUN_DOMAIN appears to be invalid format');
+      expect(validation.issues).toContain(
+        'MAILGUN_DOMAIN appears to be invalid format'
+      );
     });
 
     it('should pass validation with correct configuration', async () => {
@@ -227,7 +231,7 @@ describe('Mailgun Integration Tests', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
       const health = await mailgunHealthChecker.checkHealth();
@@ -247,9 +251,9 @@ describe('Mailgun Integration Tests', () => {
       process.env.MAILGUN_DOMAIN = 'test.example.com';
 
       // Test multiple rapid calls to simulate circuit breaker scenarios
-      const promises = Array(5).fill(null).map(() => 
-        mailgunHealthChecker.checkHealth()
-      );
+      const promises = Array(5)
+        .fill(null)
+        .map(() => mailgunHealthChecker.checkHealth());
 
       const results = await Promise.allSettled(promises);
 

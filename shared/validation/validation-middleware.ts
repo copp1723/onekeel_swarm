@@ -18,19 +18,19 @@ export function validateRequest(schema: {
         // Replace body with validated data to prevent mass assignment
         req.body = validated;
       }
-      
+
       // Validate query
       if (schema.query) {
         const validated = await schema.query.parseAsync(req.query);
         req.query = validated as any;
       }
-      
+
       // Validate params
       if (schema.params) {
         const validated = await schema.params.parseAsync(req.params);
         req.params = validated as any;
       }
-      
+
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -40,17 +40,18 @@ export function validateRequest(schema: {
             code: 'VALIDATION_ERROR',
             message: 'Invalid request data',
             // Only show details in development
-            details: process.env.NODE_ENV === 'development' ? error.errors : undefined
-          }
+            details:
+              process.env.NODE_ENV === 'development' ? error.errors : undefined,
+          },
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
-          message: 'Request validation failed'
-        }
+          message: 'Request validation failed',
+        },
       });
     }
   };

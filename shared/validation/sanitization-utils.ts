@@ -9,12 +9,31 @@ import DOMPurify from 'isomorphic-dompurify';
 export function sanitizeHtml(input: string): string {
   return DOMPurify.sanitize(input, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'img',
-      'table', 'tr', 'td', 'th'
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'blockquote',
+      'img',
+      'table',
+      'tr',
+      'td',
+      'th',
     ],
     ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'class', 'id'],
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+\-:]|$))/i
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+\-:]|$))/i,
   });
 }
 
@@ -48,7 +67,9 @@ export function sanitizeObjectStrings(obj: any): any {
 /**
  * Sanitize metadata object (all string values)
  */
-export function sanitizeMetadata(meta: Record<string, any>): Record<string, any> {
+export function sanitizeMetadata(
+  meta: Record<string, any>
+): Record<string, any> {
   if (!meta) return {};
   const sanitized: Record<string, any> = {};
   for (const [key, value] of Object.entries(meta)) {
@@ -61,5 +82,5 @@ export default {
   sanitizeHtml,
   sanitizeString,
   sanitizeObjectStrings,
-  sanitizeMetadata
+  sanitizeMetadata,
 };

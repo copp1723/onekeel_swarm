@@ -18,7 +18,7 @@ async function debugAPIErrors() {
       WHERE table_schema = 'public' 
       ORDER BY table_name
     `);
-    
+
     console.log('Tables found:');
     tables.rows.forEach(row => console.log(`  - ${row.table_name}`));
     console.log('');
@@ -31,11 +31,13 @@ async function debugAPIErrors() {
       WHERE table_name = 'agent_configurations'
       ORDER BY ordinal_position
     `);
-    
+
     if (agentColumns.rows.length > 0) {
       console.log('agent_configurations columns:');
-      agentColumns.rows.forEach(row => 
-        console.log(`  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`)
+      agentColumns.rows.forEach(row =>
+        console.log(
+          `  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`
+        )
       );
     } else {
       console.log('❌ agent_configurations table not found!');
@@ -50,11 +52,13 @@ async function debugAPIErrors() {
       WHERE table_name = 'campaigns'
       ORDER BY ordinal_position
     `);
-    
+
     if (campaignColumns.rows.length > 0) {
       console.log('campaigns columns:');
-      campaignColumns.rows.forEach(row => 
-        console.log(`  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`)
+      campaignColumns.rows.forEach(row =>
+        console.log(
+          `  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`
+        )
       );
     } else {
       console.log('❌ campaigns table not found!');
@@ -69,11 +73,13 @@ async function debugAPIErrors() {
       WHERE table_name = 'feature_flags'
       ORDER BY ordinal_position
     `);
-    
+
     if (flagColumns.rows.length > 0) {
       console.log('feature_flags columns:');
-      flagColumns.rows.forEach(row => 
-        console.log(`  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`)
+      flagColumns.rows.forEach(row =>
+        console.log(
+          `  - ${row.column_name} (${row.data_type}, nullable: ${row.is_nullable})`
+        )
       );
     } else {
       console.log('❌ feature_flags table not found!');
@@ -88,16 +94,17 @@ async function debugAPIErrors() {
       WHERE key LIKE 'ui.%'
       LIMIT 5
     `);
-    
+
     if (flags.rows.length > 0) {
       console.log('UI Feature flags found:');
-      flags.rows.forEach(row => 
-        console.log(`  - ${row.key}: enabled=${row.enabled}, rollout=${row.rollout_percentage}%`)
+      flags.rows.forEach(row =>
+        console.log(
+          `  - ${row.key}: enabled=${row.enabled}, rollout=${row.rollout_percentage}%`
+        )
       );
     } else {
       console.log('❌ No UI feature flags found!');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   }

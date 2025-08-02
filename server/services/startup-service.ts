@@ -13,7 +13,7 @@ export class StartupService {
     const serviceResults = {
       campaignEngine: false,
       emailReplyDetector: false,
-      queueManager: true // Always available as singleton
+      queueManager: true, // Always available as singleton
     };
 
     // Start campaign execution engine
@@ -22,9 +22,12 @@ export class StartupService {
       serviceResults.campaignEngine = true;
       logger.info('✅ Campaign execution engine started');
     } catch (error) {
-      logger.warn('⚠️ Campaign execution engine failed to start - continuing without it', {
-        error: (error as Error).message
-      });
+      logger.warn(
+        '⚠️ Campaign execution engine failed to start - continuing without it',
+        {
+          error: (error as Error).message,
+        }
+      );
     }
 
     // Start email reply detector
@@ -33,18 +36,25 @@ export class StartupService {
       serviceResults.emailReplyDetector = true;
       logger.info('✅ Email reply detector started');
     } catch (error) {
-      logger.warn('⚠️ Email reply detector failed to start - continuing without it', {
-        error: (error as Error).message
-      });
+      logger.warn(
+        '⚠️ Email reply detector failed to start - continuing without it',
+        {
+          error: (error as Error).message,
+        }
+      );
     }
 
     // Queue manager is already initialized as singleton
     logger.info('✅ Queue manager initialized');
 
-    const successfulServices = Object.values(serviceResults).filter(Boolean).length;
+    const successfulServices =
+      Object.values(serviceResults).filter(Boolean).length;
     const totalServices = Object.keys(serviceResults).length;
-    
-    logger.info(`🚀 OneKeel Swarm services initialization completed: ${successfulServices}/${totalServices} services started`, serviceResults);
+
+    logger.info(
+      `🚀 OneKeel Swarm services initialization completed: ${successfulServices}/${totalServices} services started`,
+      serviceResults
+    );
   }
 
   /**
@@ -67,10 +77,9 @@ export class StartupService {
       logger.info('✅ Queue manager stopped');
 
       logger.info('🛑 All OneKeel Swarm services shut down successfully');
-
     } catch (error) {
       logger.error('❌ Error during service shutdown', {
-        error: (error as Error).message
+        error: (error as Error).message,
       });
     }
   }
@@ -85,14 +94,14 @@ export class StartupService {
     const services = {
       queueManager: queueManager.isHealthy(),
       campaignEngine: true, // Simple check - could be enhanced
-      emailDetector: true   // Simple check - could be enhanced
+      emailDetector: true, // Simple check - could be enhanced
     };
 
     const healthy = Object.values(services).every(status => status);
 
     return {
       healthy,
-      services
+      services,
     };
   }
 }

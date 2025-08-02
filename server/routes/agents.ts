@@ -15,20 +15,18 @@ router.get('/', async (req, res) => {
 
     // Build query conditions
     const conditions = [];
-    
+
     if (type) {
       conditions.push(eq(agentConfigurations.type, type as any));
     }
-    
+
     if (active !== undefined) {
       conditions.push(eq(agentConfigurations.active, active === 'true'));
     }
-    
+
     if (search) {
       const searchPattern = `%${search}%`;
-      conditions.push(
-        ilike(agentConfigurations.name, searchPattern)
-      );
+      conditions.push(ilike(agentConfigurations.name, searchPattern));
     }
 
     // Execute query
@@ -60,7 +58,7 @@ router.get('/', async (req, res) => {
       agents,
       total: count,
       offset: Number(offset),
-      limit: Number(limit)
+      limit: Number(limit),
     });
   } catch (error) {
     console.error('Error fetching agents:', error);
@@ -69,8 +67,8 @@ router.get('/', async (req, res) => {
       error: {
         code: 'AGENT_FETCH_ERROR',
         message: 'Failed to fetch agents',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -79,7 +77,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [agent] = await db
       .select()
       .from(agentConfigurations)
@@ -91,14 +89,14 @@ router.get('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'AGENT_NOT_FOUND',
-          message: 'Agent not found'
-        }
+          message: 'Agent not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      agent
+      agent,
     });
   } catch (error) {
     console.error('Error fetching agent:', error);
@@ -107,8 +105,8 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'AGENT_FETCH_ERROR',
         message: 'Failed to fetch agent',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -126,89 +124,97 @@ const createAgentSchema = z.object({
   channelConfig: z.record(z.any()).optional(),
   responseDelay: z.number().min(0).default(0),
   retryAttempts: z.number().min(0).max(10).default(3),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
 });
 
-router.post('/', validateRequest({ body: createAgentSchema }), async (req, res) => {
-  try {
-    const agentData = req.body;
-    
-    const [newAgent] = await db
-      .insert(agentConfigurations)
-      .values({
-        ...agentData,
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+router.post(
+  '/',
+  validateRequest({ body: createAgentSchema }),
+  async (req, res) => {
+    try {
+      const agentData = req.body;
 
-    res.status(201).json({
-      success: true,
-      agent: newAgent
-    });
-  } catch (error) {
-    console.error('Error creating agent:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'AGENT_CREATE_ERROR',
-        message: 'Failed to create agent',
-        category: 'database'
-      }
-    });
+      const [newAgent] = await db
+        .insert(agentConfigurations)
+        .values({
+          ...agentData,
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.status(201).json({
+        success: true,
+        agent: newAgent,
+      });
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'AGENT_CREATE_ERROR',
+          message: 'Failed to create agent',
+          category: 'database',
+        },
+      });
+    }
   }
-});
+);
 
 // Update agent
 const updateAgentSchema = createAgentSchema.partial();
 
-router.put('/:id', validateRequest({ body: updateAgentSchema }), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    
-    const [updatedAgent] = await db
-      .update(agentConfigurations)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
-      .where(eq(agentConfigurations.id, id))
-      .returning();
+router.put(
+  '/:id',
+  validateRequest({ body: updateAgentSchema }),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
 
-    if (!updatedAgent) {
-      return res.status(404).json({
+      const [updatedAgent] = await db
+        .update(agentConfigurations)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(agentConfigurations.id, id))
+        .returning();
+
+      if (!updatedAgent) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'AGENT_NOT_FOUND',
+            message: 'Agent not found',
+          },
+        });
+      }
+
+      res.json({
+        success: true,
+        agent: updatedAgent,
+      });
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      res.status(500).json({
         success: false,
         error: {
-          code: 'AGENT_NOT_FOUND',
-          message: 'Agent not found'
-        }
+          code: 'AGENT_UPDATE_ERROR',
+          message: 'Failed to update agent',
+          category: 'database',
+        },
       });
     }
-
-    res.json({
-      success: true,
-      agent: updatedAgent
-    });
-  } catch (error) {
-    console.error('Error updating agent:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'AGENT_UPDATE_ERROR',
-        message: 'Failed to update agent',
-        category: 'database'
-      }
-    });
   }
-});
+);
 
 // Delete agent
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [deletedAgent] = await db
       .delete(agentConfigurations)
       .where(eq(agentConfigurations.id, id))
@@ -219,14 +225,14 @@ router.delete('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'AGENT_NOT_FOUND',
-          message: 'Agent not found'
-        }
+          message: 'Agent not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      message: 'Agent deleted successfully'
+      message: 'Agent deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting agent:', error);
@@ -235,8 +241,8 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'AGENT_DELETE_ERROR',
         message: 'Failed to delete agent',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -245,7 +251,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get current status
     const [agent] = await db
       .select()
@@ -258,8 +264,8 @@ router.post('/:id/toggle', async (req, res) => {
         success: false,
         error: {
           code: 'AGENT_NOT_FOUND',
-          message: 'Agent not found'
-        }
+          message: 'Agent not found',
+        },
       });
     }
 
@@ -268,14 +274,14 @@ router.post('/:id/toggle', async (req, res) => {
       .update(agentConfigurations)
       .set({
         active: !agent.active,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(agentConfigurations.id, id))
       .returning();
 
     res.json({
       success: true,
-      agent: updatedAgent
+      agent: updatedAgent,
     });
   } catch (error) {
     console.error('Error toggling agent:', error);
@@ -284,8 +290,8 @@ router.post('/:id/toggle', async (req, res) => {
       error: {
         code: 'AGENT_TOGGLE_ERROR',
         message: 'Failed to toggle agent status',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -301,30 +307,34 @@ const generateSequenceSchema = z.object({
   urgency: z.string().min(1),
   disclaimer: z.string().optional(),
   primaryCTA: z.string().min(1),
-  CTAurl: z.string().url()
+  CTAurl: z.string().url(),
 });
 
-router.post('/email/generate-sequence', validateRequest({ body: generateSequenceSchema }), async (req, res) => {
-  try {
-    const emailAgent = new EmailAgent();
-    const sequence = await emailAgent.generateCampaignSequence(req.body);
+router.post(
+  '/email/generate-sequence',
+  validateRequest({ body: generateSequenceSchema }),
+  async (req, res) => {
+    try {
+      const emailAgent = new EmailAgent();
+      const sequence = await emailAgent.generateCampaignSequence(req.body);
 
-    res.json({
-      success: true,
-      sequence
-    });
-  } catch (error) {
-    console.error('Error generating email sequence:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'SEQUENCE_GENERATION_ERROR',
-        message: 'Failed to generate email sequence',
-        category: 'ai'
-      }
-    });
+      res.json({
+        success: true,
+        sequence,
+      });
+    } catch (error) {
+      console.error('Error generating email sequence:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'SEQUENCE_GENERATION_ERROR',
+          message: 'Failed to generate email sequence',
+          category: 'ai',
+        },
+      });
+    }
   }
-});
+);
 
 // Campaign field enhancement endpoint
 const enhanceFieldSchema = z.object({
@@ -337,31 +347,38 @@ const enhanceFieldSchema = z.object({
     pricing: z.string().optional(),
     urgency: z.string().optional(),
     targetCount: z.number().optional(),
-    currentValue: z.string().optional()
-  })
+    currentValue: z.string().optional(),
+  }),
 });
 
-router.post('/enhance-campaign-field', validateRequest({ body: enhanceFieldSchema }), async (req, res) => {
-  try {
-    const { field, campaignData } = req.body;
-    const emailAgent = new EmailAgent();
-    const enhancedContent = await emailAgent.enhanceCampaignField(field, campaignData);
+router.post(
+  '/enhance-campaign-field',
+  validateRequest({ body: enhanceFieldSchema }),
+  async (req, res) => {
+    try {
+      const { field, campaignData } = req.body;
+      const emailAgent = new EmailAgent();
+      const enhancedContent = await emailAgent.enhanceCampaignField(
+        field,
+        campaignData
+      );
 
-    res.json({
-      success: true,
-      enhancedContent
-    });
-  } catch (error) {
-    console.error('Error enhancing campaign field:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FIELD_ENHANCEMENT_ERROR',
-        message: 'Failed to enhance campaign field',
-        category: 'ai'
-      }
-    });
+      res.json({
+        success: true,
+        enhancedContent,
+      });
+    } catch (error) {
+      console.error('Error enhancing campaign field:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'FIELD_ENHANCEMENT_ERROR',
+          message: 'Failed to enhance campaign field',
+          category: 'ai',
+        },
+      });
+    }
   }
-});
+);
 
 export default router;

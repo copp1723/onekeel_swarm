@@ -15,14 +15,16 @@ export class MonitoringIntegrationTest {
   }
 
   async runIntegrationTests(): Promise<void> {
-    logger.info('Starting Service Integration Manager monitoring integration tests');
+    logger.info(
+      'Starting Service Integration Manager monitoring integration tests'
+    );
 
     try {
       await this.testServiceManagerWithMonitoring();
       await this.testUnifiedMonitorIntegration();
       await this.testServiceOrchestratorIntegration();
       await this.testEndToEndIntegration();
-      
+
       logger.info('✅ All monitoring integration tests passed successfully');
     } catch (error) {
       logger.error('❌ Monitoring integration tests failed', error);
@@ -31,14 +33,17 @@ export class MonitoringIntegrationTest {
   }
 
   private async testServiceManagerWithMonitoring(): Promise<void> {
-    logger.info('Testing ServiceManager integration with existing monitoring...');
+    logger.info(
+      'Testing ServiceManager integration with existing monitoring...'
+    );
 
     // Test that ServiceManager methods work alongside existing monitoring
-    const [configResult, healthResult, metricsResult] = await Promise.allSettled([
-      this.serviceManager.getAllServiceConfigs(),
-      serviceMonitor.checkAllServices(),
-      this.serviceManager.getServiceMetrics()
-    ]);
+    const [configResult, healthResult, metricsResult] =
+      await Promise.allSettled([
+        this.serviceManager.getAllServiceConfigs(),
+        serviceMonitor.checkAllServices(),
+        this.serviceManager.getServiceMetrics(),
+      ]);
 
     if (configResult.status === 'rejected') {
       throw new Error('ServiceManager config retrieval failed');
@@ -55,7 +60,7 @@ export class MonitoringIntegrationTest {
     // Verify that both systems can check the same services
     const monitoringServices = healthResult.value.services.map(s => s.name);
     const configuredServices = Object.keys(configResult.value);
-    
+
     for (const service of ['mailgun', 'twilio', 'openrouter']) {
       if (!monitoringServices.includes(service)) {
         throw new Error(`Service ${service} not found in monitoring system`);
@@ -65,7 +70,9 @@ export class MonitoringIntegrationTest {
       }
     }
 
-    logger.info('✅ ServiceManager integrates correctly with existing monitoring');
+    logger.info(
+      '✅ ServiceManager integrates correctly with existing monitoring'
+    );
   }
 
   private async testUnifiedMonitorIntegration(): Promise<void> {
@@ -73,21 +80,21 @@ export class MonitoringIntegrationTest {
 
     // Test that unified monitor can get comprehensive status including our services
     const systemStatus = await unifiedMonitor.getSystemStatus();
-    
+
     if (!systemStatus.services) {
       throw new Error('UnifiedMonitor missing service status');
     }
 
     // Test that dashboard data includes service information
     const dashboardData = await unifiedMonitor.getDashboardData();
-    
+
     if (!dashboardData.health) {
       throw new Error('UnifiedMonitor dashboard missing health data');
     }
 
     // Verify that our service management doesn't interfere with monitoring
     await this.serviceManager.updateServiceConfig('mailgun', { enabled: true });
-    
+
     // Check that monitoring still works after configuration change
     const healthAfterUpdate = await serviceMonitor.checkService('mailgun');
     if (!healthAfterUpdate) {
@@ -101,11 +108,12 @@ export class MonitoringIntegrationTest {
     logger.info('Testing ServiceOrchestrator integration with monitoring...');
 
     // Test that orchestrator methods work alongside monitoring
-    const [statusSummary, testResults, monitoringStats] = await Promise.allSettled([
-      serviceOrchestrator.getServiceStatusSummary(),
-      serviceOrchestrator.testAllServices(),
-      serviceMonitor.checkAllServices()
-    ]);
+    const [statusSummary, testResults, monitoringStats] =
+      await Promise.allSettled([
+        serviceOrchestrator.getServiceStatusSummary(),
+        serviceOrchestrator.testAllServices(),
+        serviceMonitor.checkAllServices(),
+      ]);
 
     if (statusSummary.status === 'rejected') {
       throw new Error('ServiceOrchestrator status summary failed');
@@ -125,7 +133,9 @@ export class MonitoringIntegrationTest {
 
     for (const service of orchestratorServices) {
       if (!monitoringServices.includes(service)) {
-        throw new Error(`Service ${service} found in orchestrator but not in monitoring`);
+        throw new Error(
+          `Service ${service} found in orchestrator but not in monitoring`
+        );
       }
     }
 
@@ -136,19 +146,20 @@ export class MonitoringIntegrationTest {
     logger.info('Testing end-to-end integration scenario...');
 
     // Simulate a complete service management workflow
-    
+
     // 1. Get initial service status
     const initialStatus = await serviceMonitor.checkAllServices();
     const initialConfigs = await this.serviceManager.getAllServiceConfigs();
 
     // 2. Update a service configuration
-    await this.serviceManager.updateServiceConfig('mailgun', { 
+    await this.serviceManager.updateServiceConfig('mailgun', {
       enabled: true,
-      description: 'Updated during integration test'
+      description: 'Updated during integration test',
     });
 
     // 3. Test the service connection
-    const connectionTest = await this.serviceManager.testServiceConnection('mailgun');
+    const connectionTest =
+      await this.serviceManager.testServiceConnection('mailgun');
     if (!connectionTest) {
       throw new Error('Connection test failed after configuration update');
     }
@@ -162,10 +173,13 @@ export class MonitoringIntegrationTest {
     // 5. Get metrics from both systems
     const [serviceMetrics, unifiedStatus] = await Promise.allSettled([
       this.serviceManager.getServiceMetrics(),
-      unifiedMonitor.getSystemStatus()
+      unifiedMonitor.getSystemStatus(),
     ]);
 
-    if (serviceMetrics.status === 'rejected' || unifiedStatus.status === 'rejected') {
+    if (
+      serviceMetrics.status === 'rejected' ||
+      unifiedStatus.status === 'rejected'
+    ) {
       throw new Error('Metrics collection failed in end-to-end test');
     }
 

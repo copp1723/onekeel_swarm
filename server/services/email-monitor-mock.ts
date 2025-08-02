@@ -67,27 +67,27 @@ class EmailMonitor {
         name: 'Car Loan Inquiry',
         enabled: true,
         conditions: {
-          subject: ['car loan', 'auto loan', 'vehicle financing']
+          subject: ['car loan', 'auto loan', 'vehicle financing'],
         },
         actions: {
           createLead: true,
           assignToAgent: 'email',
-          setSource: 'email-inquiry'
-        }
+          setSource: 'email-inquiry',
+        },
       },
       {
         id: 'general-inquiry',
         name: 'General Inquiry',
         enabled: true,
         conditions: {
-          subject: ['inquiry', 'information', 'quote']
+          subject: ['inquiry', 'information', 'quote'],
         },
         actions: {
           createLead: true,
           assignToAgent: 'chat',
-          setSource: 'email-monitor'
-        }
-      }
+          setSource: 'email-monitor',
+        },
+      },
     ];
 
     defaultRules.forEach(rule => this.addRule(rule));
@@ -111,24 +111,26 @@ class EmailMonitor {
         from: 'customer1@example.com',
         subject: 'Car loan inquiry',
         body: 'I am interested in getting a car loan. Can you help?',
-        date: new Date()
+        date: new Date(),
       },
       {
         from: 'customer2@example.com',
         subject: 'Auto financing information',
         body: 'Looking for information about auto financing options.',
-        date: new Date()
+        date: new Date(),
       },
       {
         from: 'prospect@example.com',
         subject: 'General inquiry about services',
         body: 'Can you provide more information about your services?',
-        date: new Date()
-      }
+        date: new Date(),
+      },
     ];
 
     const email = mockEmails[Math.floor(Math.random() * mockEmails.length)];
-    logger.info(`📧 Mock email received: "${email.subject}" from ${email.from}`);
+    logger.info(
+      `📧 Mock email received: "${email.subject}" from ${email.from}`
+    );
 
     // Process against rules
     this.processEmail(email);
@@ -142,21 +144,21 @@ class EmailMonitor {
 
       // Check subject conditions
       if (rule.conditions.subject) {
-        matches = rule.conditions.subject.some(keyword => 
+        matches = rule.conditions.subject.some(keyword =>
           email.subject.toLowerCase().includes(keyword.toLowerCase())
         );
       }
 
       // Check from conditions
       if (rule.conditions.from && !matches) {
-        matches = rule.conditions.from.some(pattern => 
+        matches = rule.conditions.from.some(pattern =>
           email.from.toLowerCase().includes(pattern.toLowerCase())
         );
       }
 
       // Check body conditions
       if (rule.conditions.body && !matches) {
-        matches = rule.conditions.body.some(keyword => 
+        matches = rule.conditions.body.some(keyword =>
           email.body.toLowerCase().includes(keyword.toLowerCase())
         );
       }
@@ -167,8 +169,13 @@ class EmailMonitor {
     }
   }
 
-  private async executeRuleActions(email: any, rule: EmailTriggerRule): Promise<void> {
-    logger.info(`📧 Executing rule "${rule.name}" for email from ${email.from}`);
+  private async executeRuleActions(
+    email: any,
+    rule: EmailTriggerRule
+  ): Promise<void> {
+    logger.info(
+      `📧 Executing rule "${rule.name}" for email from ${email.from}`
+    );
 
     try {
       if (rule.actions.createLead) {
@@ -187,15 +194,20 @@ class EmailMonitor {
     }
   }
 
-  private async createLeadFromEmail(email: any, rule: EmailTriggerRule): Promise<void> {
+  private async createLeadFromEmail(
+    email: any,
+    rule: EmailTriggerRule
+  ): Promise<void> {
     const leadData = {
       email: email.from,
       source: rule.actions.setSource || 'email-monitor',
       notes: `Created from email: ${email.subject}`,
-      assignedChannel: rule.actions.assignToAgent || 'email'
+      assignedChannel: rule.actions.assignToAgent || 'email',
     };
 
-    logger.info(`📧 Mock lead created: ${leadData.email} (source: ${leadData.source})`);
+    logger.info(
+      `📧 Mock lead created: ${leadData.email} (source: ${leadData.source})`
+    );
   }
 
   getStatus() {
@@ -203,7 +215,7 @@ class EmailMonitor {
       running: this.running,
       ruleCount: this.rules.length,
       enabledRules: this.rules.filter(r => r.enabled).length,
-      mode: 'mock'
+      mode: 'mock',
     };
   }
 }

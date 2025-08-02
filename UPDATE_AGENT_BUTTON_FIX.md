@@ -13,6 +13,7 @@ Through investigation, I identified that the issue was caused by **database sche
    - `username` column in `users` table
 
 2. **API Failures**: All agent-related API calls were failing with PostgreSQL errors:
+
    ```
    PostgresError: column "system_prompt" does not exist
    PostgresError: column "username" does not exist
@@ -38,6 +39,7 @@ npm run db:fix
 ```
 
 This script:
+
 1. ✅ Creates the `agent_configurations` table if missing
 2. ✅ Adds missing columns (`system_prompt`, `context_note`, etc.)
 3. ✅ Adds missing `username` column to `users` table
@@ -113,6 +115,7 @@ After applying the fix:
 ### Code Flow Verification
 
 The update agent button follows this flow:
+
 1. User clicks "Update Agent" button
 2. Form submission triggers `handleSubmit` in `useAgentConfig`
 3. Form validation passes

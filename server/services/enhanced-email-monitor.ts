@@ -39,19 +39,21 @@ class EnhancedEmailMonitor {
     this.triggers = [
       {
         subject: 'START CAMPAIGN',
-        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
-        action: 'start_campaign'
+        from:
+          process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
+        action: 'start_campaign',
       },
       {
         subject: 'STOP CAMPAIGN',
-        from: process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
-        action: 'stop_campaign'
+        from:
+          process.env.CAMPAIGN_TRIGGER_EMAIL || 'campaigns@OneKeelSwarm.com',
+        action: 'stop_campaign',
       },
       {
         subject: 'NEW LEAD',
         from: process.env.LEAD_TRIGGER_EMAIL || 'leads@OneKeelSwarm.com',
-        action: 'create_lead'
-      }
+        action: 'create_lead',
+      },
     ];
   }
 
@@ -62,8 +64,14 @@ class EnhancedEmailMonitor {
     }
 
     // Check if IMAP configuration is available
-    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASSWORD) {
-      logger.info('Enhanced email monitor not started - IMAP configuration missing (IMAP_HOST, IMAP_USER, IMAP_PASSWORD)');
+    if (
+      !process.env.IMAP_HOST ||
+      !process.env.IMAP_USER ||
+      !process.env.IMAP_PASSWORD
+    ) {
+      logger.info(
+        'Enhanced email monitor not started - IMAP configuration missing (IMAP_HOST, IMAP_USER, IMAP_PASSWORD)'
+      );
       return;
     }
 
@@ -84,9 +92,13 @@ class EnhancedEmailMonitor {
       this.connection = await imaps.connect(config);
       await this.connection.openBox('INBOX');
       this.isRunning = true;
-      logger.info('Enhanced email monitor connected and listening for campaign triggers');
+      logger.info(
+        'Enhanced email monitor connected and listening for campaign triggers'
+      );
     } catch (error) {
-      logger.error('Failed to start enhanced email monitor:', { error: (error as Error).message });
+      logger.error('Failed to start enhanced email monitor:', {
+        error: (error as Error).message,
+      });
       throw error;
     }
   }
@@ -97,7 +109,10 @@ class EnhancedEmailMonitor {
     try {
       const searchCriteria = ['UNSEEN'];
       const fetchOptions = { bodies: [''], markSeen: true };
-      const messages = await this.connection.search(searchCriteria, fetchOptions);
+      const messages = await this.connection.search(
+        searchCriteria,
+        fetchOptions
+      );
 
       for (const message of messages) {
         const all = message.parts.find((part: any) => part.which === '');
@@ -107,7 +122,9 @@ class EnhancedEmailMonitor {
         await this.processEmail(parsed);
       }
     } catch (error) {
-      logger.error('Error handling new mail:', { error: (error as Error).message });
+      logger.error('Error handling new mail:', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -123,9 +140,10 @@ class EnhancedEmailMonitor {
       logger.info('Processing email', { from: fromEmail, subject });
 
       // Check for campaign triggers
-      const trigger = this.triggers.find(t => 
-        subject.toUpperCase().includes(t.subject.toUpperCase()) &&
-        fromEmail.toLowerCase().includes(t.from.toLowerCase())
+      const trigger = this.triggers.find(
+        t =>
+          subject.toUpperCase().includes(t.subject.toUpperCase()) &&
+          fromEmail.toLowerCase().includes(t.from.toLowerCase())
       );
 
       if (trigger) {
@@ -137,22 +155,26 @@ class EnhancedEmailMonitor {
       if (this.isLeadEmail(parsed)) {
         await this.createLeadFromEmail(parsed);
       }
-
     } catch (error) {
-      logger.error('Error processing email:', { error: (error as Error).message });
+      logger.error('Error processing email:', {
+        error: (error as Error).message,
+      });
     }
   }
 
   /**
    * Handle campaign trigger emails
    */
-  private async handleTrigger(trigger: EmailTrigger, parsed: any): Promise<void> {
+  private async handleTrigger(
+    trigger: EmailTrigger,
+    parsed: any
+  ): Promise<void> {
     try {
       const body = parsed.text || '';
-      
-      logger.info('Processing campaign trigger', { 
+
+      logger.info('Processing campaign trigger', {
         action: trigger.action,
-        subject: parsed.subject 
+        subject: parsed.subject,
       });
 
       switch (trigger.action) {
@@ -166,11 +188,10 @@ class EnhancedEmailMonitor {
           await this.createLeadFromEmail(parsed);
           break;
       }
-
     } catch (error) {
-      logger.error('Error handling trigger:', { 
+      logger.error('Error handling trigger:', {
         error: (error as Error).message,
-        action: trigger.action 
+        action: trigger.action,
       });
     }
   }
@@ -191,7 +212,7 @@ class EnhancedEmailMonitor {
       }
 
       const campaignId = campaignMatch[1].trim();
-      
+
       // If specific leads are mentioned, use those; otherwise auto-assign
       if (leadsMatch) {
         const leadIds = leadsMatch[1]
@@ -201,16 +222,20 @@ class EnhancedEmailMonitor {
 
         if (leadIds.length > 0) {
           await campaignExecutionEngine.triggerCampaign(campaignId, leadIds);
-          logger.info('Campaign triggered via email', { campaignId, leadCount: leadIds.length });
+          logger.info('Campaign triggered via email', {
+            campaignId,
+            leadCount: leadIds.length,
+          });
         }
       } else {
         // Auto-assign available leads
         await campaignExecutionEngine.autoAssignLeads();
         logger.info('Auto-assignment triggered via email', { campaignId });
       }
-
     } catch (error) {
-      logger.error('Error handling start campaign trigger:', { error: (error as Error).message });
+      logger.error('Error handling start campaign trigger:', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -220,19 +245,21 @@ class EnhancedEmailMonitor {
   private async handleStopCampaignTrigger(body: string): Promise<void> {
     try {
       const campaignMatch = body.match(/CAMPAIGN\s+([^\s]+)/i);
-      
+
       if (!campaignMatch) {
         logger.warn('No campaign ID found in stop trigger email');
         return;
       }
 
       const campaignId = campaignMatch[1].trim();
-      const cancelledCount = await campaignExecutionEngine.cancelExecutions(campaignId);
-      
-      logger.info('Campaign stopped via email', { campaignId, cancelledCount });
+      const cancelledCount =
+        await campaignExecutionEngine.cancelExecutions(campaignId);
 
+      logger.info('Campaign stopped via email', { campaignId, cancelledCount });
     } catch (error) {
-      logger.error('Error handling stop campaign trigger:', { error: (error as Error).message });
+      logger.error('Error handling stop campaign trigger:', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -250,17 +277,28 @@ class EnhancedEmailMonitor {
       'noreply',
       'no-reply',
       'mailer-daemon',
-      'postmaster'
+      'postmaster',
     ];
 
-    if (systemDomains.some(domain => fromEmail.toLowerCase().includes(domain))) {
+    if (
+      systemDomains.some(domain => fromEmail.toLowerCase().includes(domain))
+    ) {
       return false;
     }
 
     // Look for lead indicators in subject or body
     const leadKeywords = [
-      'loan', 'financing', 'car', 'auto', 'vehicle', 'credit',
-      'application', 'interested', 'quote', 'rate', 'payment'
+      'loan',
+      'financing',
+      'car',
+      'auto',
+      'vehicle',
+      'credit',
+      'application',
+      'interested',
+      'quote',
+      'rate',
+      'payment',
     ];
 
     const text = (subject + ' ' + body).toLowerCase();
@@ -274,7 +312,7 @@ class EnhancedEmailMonitor {
     try {
       const fromEmail = parsed.from?.value[0].address || '';
       const fromName = parsed.from?.value[0].name || '';
-      
+
       const leadData: LeadData = {
         email: fromEmail,
         name: fromName || this.extractNameFromEmail(fromEmail),
@@ -282,23 +320,26 @@ class EnhancedEmailMonitor {
           source: 'email',
           originalSubject: parsed.subject,
           originalBody: parsed.text,
-          receivedAt: new Date().toISOString()
-        }
+          receivedAt: new Date().toISOString(),
+        },
       };
 
       // Extract phone number if present in email
-      const phoneMatch = parsed.text?.match(/(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/);
+      const phoneMatch = parsed.text?.match(
+        /(\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4})/
+      );
       if (phoneMatch) {
         leadData.phone = phoneMatch[1];
       }
 
       await this.createLead(leadData);
-      
+
       // Auto-assign to campaign if enabled
       await campaignExecutionEngine.autoAssignLeads();
-
     } catch (error) {
-      logger.error('Failed to create lead from email:', { error: (error as Error).message });
+      logger.error('Failed to create lead from email:', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -319,7 +360,7 @@ class EnhancedEmailMonitor {
   private async createLead(data: LeadData): Promise<void> {
     try {
       const leadId = crypto.randomUUID();
-      
+
       await db.insert(leads).values({
         id: leadId,
         name: data.name || 'Unknown Lead',
@@ -329,17 +370,18 @@ class EnhancedEmailMonitor {
         status: 'new',
         metadata: data.metadata,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
-      logger.info('Created lead from email', { 
-        leadId, 
+      logger.info('Created lead from email', {
+        leadId,
         email: data.email,
-        name: data.name 
+        name: data.name,
       });
-
     } catch (error) {
-      logger.error('Failed to create lead in database:', { error: (error as Error).message });
+      logger.error('Failed to create lead in database:', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -356,15 +398,15 @@ class EnhancedEmailMonitor {
    */
   removeTrigger(subject: string, from: string): boolean {
     const initialLength = this.triggers.length;
-    this.triggers = this.triggers.filter(t => 
-      !(t.subject === subject && t.from === from)
+    this.triggers = this.triggers.filter(
+      t => !(t.subject === subject && t.from === from)
     );
-    
+
     const removed = this.triggers.length < initialLength;
     if (removed) {
       logger.info('Removed email trigger', { subject, from });
     }
-    
+
     return removed;
   }
 
@@ -381,7 +423,7 @@ class EnhancedEmailMonitor {
     }
 
     this.isRunning = false;
-    
+
     if (this.connection) {
       this.connection.end();
       this.connection = null;

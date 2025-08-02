@@ -6,7 +6,7 @@ import { ChatWidget } from './ChatWidget';
 const ChatWidgetStandalone = () => {
   // Get configuration from global variable or script tag
   const config = (window as any).CCLChatConfig || {};
-  
+
   // Listen for programmatic API events
   React.useEffect(() => {
     const handleShow = () => {
@@ -16,7 +16,7 @@ const ChatWidgetStandalone = () => {
         (widget as any).style.display = 'flex';
       }
     };
-    
+
     const handleHide = () => {
       // Trigger hide event
       const widget = document.querySelector('.ccl-chat-widget');
@@ -24,16 +24,16 @@ const ChatWidgetStandalone = () => {
         (widget as any).style.display = 'none';
       }
     };
-    
+
     window.addEventListener('ccl-chat-show', handleShow);
     window.addEventListener('ccl-chat-hide', handleHide);
-    
+
     return () => {
       window.removeEventListener('ccl-chat-show', handleShow);
       window.removeEventListener('ccl-chat-hide', handleHide);
     };
   }, []);
-  
+
   return <ChatWidget {...config} />;
 };
 

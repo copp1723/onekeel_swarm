@@ -63,12 +63,12 @@ export interface RetryConfig {
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 3,
   retryDelayMs: 300000, // 5 minutes
-  backoffMultiplier: 1.5
+  backoffMultiplier: 1.5,
 };
 
 export const DEFAULT_TEMPLATE_SEQUENCE = [
   'welcome_application',
   'followup_24h',
   'followup_3day',
-  'followup_7day'
+  'followup_7day',
 ];

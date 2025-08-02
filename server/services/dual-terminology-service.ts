@@ -1,7 +1,15 @@
 import { db } from '../db/client';
-import { leads, conversations, communications, leadCampaignEnrollments } from '../db/schema';
+import {
+  leads,
+  conversations,
+  communications,
+  leadCampaignEnrollments,
+} from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
-import { featureFlagService, type FeatureFlagContext } from './feature-flag-service';
+import {
+  featureFlagService,
+  type FeatureFlagContext,
+} from './feature-flag-service';
 
 // Type mappings for dual terminology support
 export type EntityType = 'lead' | 'contact';
@@ -43,13 +51,18 @@ export class DualTerminologyService {
   }
 
   // Determine which terminology to use based on feature flags and context
-  async getTerminologyMode(context: FeatureFlagContext): Promise<TerminologyMode> {
-    const useContactsTerminology = await featureFlagService.isEnabled('ui.contacts-terminology', context);
-    
+  async getTerminologyMode(
+    context: FeatureFlagContext
+  ): Promise<TerminologyMode> {
+    const useContactsTerminology = await featureFlagService.isEnabled(
+      'ui.contacts-terminology',
+      context
+    );
+
     if (useContactsTerminology) {
       return 'modern';
     }
-    
+
     return 'legacy';
   }
 
@@ -74,38 +87,55 @@ export class DualTerminologyService {
     limit: number;
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     // Validate and sanitize pagination parameters
     const validLimit = Math.min(Math.max(1, Number(filters.limit) || 50), 1000);
     const validOffset = Math.max(0, Number(filters.offset) || 0);
-    
+
     // Validate sort field against allowed columns
-    const ALLOWED_SORT_FIELDS = ['createdAt', 'updatedAt', 'email', 'firstName', 'lastName', 'qualificationScore', 'status'];
-    const validSort = ALLOWED_SORT_FIELDS.includes(filters.sort || '') ? filters.sort : 'createdAt';
+    const ALLOWED_SORT_FIELDS = [
+      'createdAt',
+      'updatedAt',
+      'email',
+      'firstName',
+      'lastName',
+      'qualificationScore',
+      'status',
+    ];
+    const validSort = ALLOWED_SORT_FIELDS.includes(filters.sort || '')
+      ? filters.sort
+      : 'createdAt';
     const validOrder = filters.order === 'asc' ? 'asc' : 'desc';
-    
-    const {
-      status,
-      source,
-      assignedChannel,
-      search
-    } = filters;
+
+    const { status, source, assignedChannel, search } = filters;
 
     // Build query conditions
     const conditions = [];
-    
-    if (status && ['new', 'contacted', 'qualified', 'converted', 'rejected'].includes(status)) {
-      conditions.push(eq(leads.status, status as 'new' | 'contacted' | 'qualified' | 'converted' | 'rejected'));
+
+    if (
+      status &&
+      ['new', 'contacted', 'qualified', 'converted', 'rejected'].includes(
+        status
+      )
+    ) {
+      conditions.push(
+        eq(
+          leads.status,
+          status as 'new' | 'contacted' | 'qualified' | 'converted' | 'rejected'
+        )
+      );
     }
-    
+
     if (source) {
       conditions.push(eq(leads.source, source));
     }
-    
+
     if (assignedChannel && ['email', 'sms', 'chat'].includes(assignedChannel)) {
-      conditions.push(eq(leads.assignedChannel, assignedChannel as 'email' | 'sms' | 'chat'));
+      conditions.push(
+        eq(leads.assignedChannel, assignedChannel as 'email' | 'sms' | 'chat')
+      );
     }
-    
+
     if (search) {
       const searchPattern = `%${search}%`;
       conditions.push(
@@ -119,11 +149,7 @@ export class DualTerminologyService {
     }
 
     // Execute query
-    const query = db
-      .select()
-      .from(leads)
-      .limit(validLimit)
-      .offset(validOffset);
+    const query = db.select().from(leads).limit(validLimit).offset(validOffset);
 
     if (conditions.length > 0) {
       query.where(and(...conditions));
@@ -157,7 +183,7 @@ export class DualTerminologyService {
       total: count,
       terminology,
       offset: validOffset,
-      limit: validLimit
+      limit: validLimit,
     };
   }
 
@@ -173,7 +199,7 @@ export class DualTerminologyService {
     enrollments?: any[];
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     const [entity] = await db
       .select()
       .from(leads)
@@ -183,31 +209,38 @@ export class DualTerminologyService {
     if (!entity) {
       return {
         entity: null,
-        terminology
+        terminology,
       };
     }
 
     // Get related data
-    const [communicationsList, conversationsList, enrollments] = await Promise.all([
-      db.select().from(communications)
-        .where(eq(communications.leadId, id))
-        .orderBy(desc(communications.createdAt))
-        .limit(10),
-      
-      db.select().from(conversations)
-        .where(eq(conversations.leadId, id))
-        .orderBy(desc(conversations.startedAt)),
-      
-      db.select().from(leadCampaignEnrollments)
-        .where(eq(leadCampaignEnrollments.leadId, id))
-    ]);
+    const [communicationsList, conversationsList, enrollments] =
+      await Promise.all([
+        db
+          .select()
+          .from(communications)
+          .where(eq(communications.leadId, id))
+          .orderBy(desc(communications.createdAt))
+          .limit(10),
+
+        db
+          .select()
+          .from(conversations)
+          .where(eq(conversations.leadId, id))
+          .orderBy(desc(conversations.startedAt)),
+
+        db
+          .select()
+          .from(leadCampaignEnrollments)
+          .where(eq(leadCampaignEnrollments.leadId, id)),
+      ]);
 
     return {
       entity: this.mapToUnifiedEntity(entity),
       terminology,
       communications: communicationsList,
       conversations: conversationsList,
-      enrollments
+      enrollments,
     };
   }
 
@@ -220,7 +253,7 @@ export class DualTerminologyService {
     terminology: TerminologyMode;
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     // Check for duplicate email
     if (entityData.email) {
       const [existing] = await db
@@ -228,12 +261,14 @@ export class DualTerminologyService {
         .from(leads)
         .where(eq(leads.email, entityData.email))
         .limit(1);
-      
+
       if (existing) {
-        throw new Error(`A ${terminology === 'modern' ? 'contact' : 'lead'} with this email already exists`);
+        throw new Error(
+          `A ${terminology === 'modern' ? 'contact' : 'lead'} with this email already exists`
+        );
       }
     }
-    
+
     const [newEntity] = await db
       .insert(leads)
       .values({
@@ -254,13 +289,13 @@ export class DualTerminologyService {
         metadata: entityData.metadata || {},
         notes: entityData.notes,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
 
     return {
       entity: this.mapToUnifiedEntity(newEntity),
-      terminology
+      terminology,
     };
   }
 
@@ -274,7 +309,7 @@ export class DualTerminologyService {
     terminology: TerminologyMode;
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     const [updatedEntity] = await db
       .update(leads)
       .set({
@@ -295,14 +330,14 @@ export class DualTerminologyService {
         jobTitle: updates.jobTitle,
         metadata: updates.metadata,
         notes: updates.notes,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(leads.id, id))
       .returning();
 
     return {
       entity: updatedEntity ? this.mapToUnifiedEntity(updatedEntity) : null,
-      terminology
+      terminology,
     };
   }
 
@@ -315,7 +350,7 @@ export class DualTerminologyService {
     terminology: TerminologyMode;
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     const [deleted] = await db
       .delete(leads)
       .where(eq(leads.id, id))
@@ -323,7 +358,7 @@ export class DualTerminologyService {
 
     return {
       success: !!deleted,
-      terminology
+      terminology,
     };
   }
 
@@ -338,9 +373,11 @@ export class DualTerminologyService {
     terminology: TerminologyMode;
   }> {
     const terminology = await this.getTerminologyMode(context);
-    
+
     if (!Array.isArray(entitiesData) || entitiesData.length === 0) {
-      throw new Error(`${terminology === 'modern' ? 'Contacts' : 'Leads'} must be a non-empty array`);
+      throw new Error(
+        `${terminology === 'modern' ? 'Contacts' : 'Leads'} must be a non-empty array`
+      );
     }
 
     const validEntities = [];
@@ -349,11 +386,11 @@ export class DualTerminologyService {
     // Validate entities
     for (let i = 0; i < entitiesData.length; i++) {
       const entityData = entitiesData[i];
-      
+
       if (!entityData.email) {
         errors.push({
           row: i + 1,
-          error: 'Email is required'
+          error: 'Email is required',
         });
         continue;
       }
@@ -376,7 +413,7 @@ export class DualTerminologyService {
         metadata: entityData.metadata || {},
         notes: entityData.notes,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
     }
 
@@ -385,7 +422,7 @@ export class DualTerminologyService {
         imported: 0,
         failed: errors.length,
         errors,
-        terminology
+        terminology,
       };
     }
 
@@ -400,25 +437,25 @@ export class DualTerminologyService {
       imported: insertedEntities.length,
       failed: errors.length,
       errors: errors.length > 0 ? errors : undefined,
-      terminology
+      terminology,
     };
   }
 
   // Get API response with terminology-aware labels
   getApiResponse(data: any, terminology: TerminologyMode) {
     const labels = this.getTerminologyLabels(terminology);
-    
+
     // Transform response keys based on terminology
     if (terminology === 'modern') {
       return this.transformResponseKeys(data, {
-        'leads': 'contacts',
-        'lead': 'contact',
-        'leadId': 'contactId',
-        'Lead': 'Contact',
-        'Leads': 'Contacts'
+        leads: 'contacts',
+        lead: 'contact',
+        leadId: 'contactId',
+        Lead: 'Contact',
+        Leads: 'Contacts',
       });
     }
-    
+
     return data;
   }
 
@@ -430,16 +467,16 @@ export class DualTerminologyService {
         plural: 'contacts',
         singularCapitalized: 'Contact',
         pluralCapitalized: 'Contacts',
-        entityType: 'contact' as EntityType
+        entityType: 'contact' as EntityType,
       };
     }
-    
+
     return {
       singular: 'lead',
       plural: 'leads',
       singularCapitalized: 'Lead',
       pluralCapitalized: 'Leads',
-      entityType: 'lead' as EntityType
+      entityType: 'lead' as EntityType,
     };
   }
 
@@ -465,7 +502,7 @@ export class DualTerminologyService {
       metadata: entity.metadata,
       notes: entity.notes,
       createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt
+      updatedAt: entity.updatedAt,
     };
   }
 
@@ -479,7 +516,7 @@ export class DualTerminologyService {
     }
 
     const transformed: any = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const newKey = keyMap[key] || key;
       transformed[newKey] = this.transformResponseKeys(value, keyMap);

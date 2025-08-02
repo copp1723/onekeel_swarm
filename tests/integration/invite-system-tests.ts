@@ -1,6 +1,6 @@
 /**
  * Invitation System Integration Tests
- * 
+ *
  * Tests the complete invitation flow from creation to registration
  */
 
@@ -20,21 +20,27 @@ describe('Invitation System Integration', () => {
     // Create a test inviter user
     testEmail = `test-${Date.now()}@example.com`;
     try {
-      const [inviter] = await db.insert(users).values({
-        email: 'inviter@test.com',
-        username: 'test-inviter',
-        passwordHash: 'hashed-password',
-        firstName: 'Test',
-        lastName: 'Inviter',
-        role: 'admin',
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning({ id: users.id });
-      
+      const [inviter] = await db
+        .insert(users)
+        .values({
+          email: 'inviter@test.com',
+          username: 'test-inviter',
+          passwordHash: 'hashed-password',
+          firstName: 'Test',
+          lastName: 'Inviter',
+          role: 'admin',
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning({ id: users.id });
+
       testInviterUserId = inviter.id;
     } catch (error) {
-      console.warn('Could not create test inviter - database may not be available:', error);
+      console.warn(
+        'Could not create test inviter - database may not be available:',
+        error
+      );
       testInviterUserId = 'test-inviter-id';
     }
   });
@@ -44,7 +50,9 @@ describe('Invitation System Integration', () => {
     try {
       await db.delete(users).where(eq(users.email, 'inviter@test.com'));
       await db.delete(users).where(eq(users.email, testEmail));
-      await db.delete(auditLogs).where(eq(auditLogs.resourceId, testInviteToken));
+      await db
+        .delete(auditLogs)
+        .where(eq(auditLogs.resourceId, testInviteToken));
     } catch (error) {
       console.warn('Could not clean up test data:', error);
     }
@@ -63,7 +71,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -71,16 +79,19 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: testInviteToken,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Verify invitation was created
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       expect(invite).toBeDefined();
@@ -99,7 +110,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -107,20 +118,23 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: testInviteToken,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Check for existing active invite (simulate API logic)
-      const invites = await db.select()
+      const invites = await db
+        .select()
         .from(auditLogs)
         .where(eq(auditLogs.action, 'user_invite'));
 
       const activeInvite = invites.find(invite => {
         try {
           const changes = JSON.parse(invite.changes as string);
-          return changes.email === testEmail && 
-                 new Date(changes.expiresAt) > new Date() && 
-                 !changes.used;
+          return (
+            changes.email === testEmail &&
+            new Date(changes.expiresAt) > new Date() &&
+            !changes.used
+          );
         } catch {
           return false;
         }
@@ -140,7 +154,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -148,21 +162,24 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: testInviteToken,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     });
 
     it('should validate active invitation token', async () => {
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       expect(invite).toBeDefined();
-      
+
       const changes = JSON.parse(invite.changes as string);
       expect(new Date(changes.expiresAt) > new Date()).toBe(true);
       expect(changes.used).toBe(false);
@@ -178,7 +195,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -186,15 +203,18 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: expiredToken,
         changes: JSON.stringify(expiredInviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, expiredToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, expiredToken)
+          )
+        )
         .limit(1);
 
       const changes = JSON.parse(invite.changes as string);
@@ -212,7 +232,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -220,31 +240,37 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: testInviteToken,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     });
 
     it('should mark invitation as used after registration', async () => {
       // Simulate user registration
-      const [newUser] = await db.insert(users).values({
-        email: testEmail,
-        username: 'test-user',
-        passwordHash: 'hashed-password',
-        firstName: 'Test',
-        lastName: 'User',
-        role: 'agent',
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning({ id: users.id });
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email: testEmail,
+          username: 'test-user',
+          passwordHash: 'hashed-password',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'agent',
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning({ id: users.id });
 
       // Mark invitation as used
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       const changes = JSON.parse(invite.changes as string);
@@ -252,23 +278,29 @@ describe('Invitation System Integration', () => {
         ...changes,
         used: true,
         usedAt: new Date().toISOString(),
-        registeredUserId: newUser.id
+        registeredUserId: newUser.id,
       };
 
-      await db.update(auditLogs)
+      await db
+        .update(auditLogs)
         .set({ changes: JSON.stringify(updatedChanges) })
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ));
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        );
 
       // Verify invitation is marked as used
-      const [updatedInvite] = await db.select()
+      const [updatedInvite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       const updatedChangesResult = JSON.parse(updatedInvite.changes as string);
@@ -278,31 +310,44 @@ describe('Invitation System Integration', () => {
 
     it('should prevent reuse of used invitation', async () => {
       // Mark invitation as used
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       const changes = JSON.parse(invite.changes as string);
-      const updatedChanges = { ...changes, used: true, usedAt: new Date().toISOString() };
+      const updatedChanges = {
+        ...changes,
+        used: true,
+        usedAt: new Date().toISOString(),
+      };
 
-      await db.update(auditLogs)
+      await db
+        .update(auditLogs)
         .set({ changes: JSON.stringify(updatedChanges) })
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ));
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        );
 
       // Try to use the same invitation again
-      const [usedInvite] = await db.select()
+      const [usedInvite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, testInviteToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, testInviteToken)
+          )
+        )
         .limit(1);
 
       const usedChanges = JSON.parse(usedInvite.changes as string);
@@ -314,7 +359,7 @@ describe('Invitation System Integration', () => {
     it('should track invite rate limiting properly', async () => {
       const RATE_LIMIT = 5;
       const invites: string[] = [];
-      
+
       // Create 5 invites within an hour
       for (let i = 0; i < RATE_LIMIT; i++) {
         const token = crypto.randomBytes(32).toString('hex');
@@ -323,9 +368,11 @@ describe('Invitation System Integration', () => {
           email: `ratetest${i}@example.com`,
           role: 'agent',
           invitedBy: testInviterUserId,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           createdAt: new Date().toISOString(),
-          used: false
+          used: false,
         };
 
         await db.insert(auditLogs).values({
@@ -334,23 +381,26 @@ describe('Invitation System Integration', () => {
           resource: 'users',
           resourceId: token,
           changes: JSON.stringify(inviteData),
-          createdAt: new Date()
+          createdAt: new Date(),
         });
-        
+
         invites.push(token);
       }
 
       // Check rate limit logic
-      const recentInvites = await db.select()
+      const recentInvites = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.userId, testInviterUserId),
-          sql`created_at >= NOW() - INTERVAL '1 hour'`
-        ));
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.userId, testInviterUserId),
+            sql`created_at >= NOW() - INTERVAL '1 hour'`
+          )
+        );
 
       expect(recentInvites.length).toBeGreaterThanOrEqual(RATE_LIMIT);
-      
+
       // Clean up
       for (const token of invites) {
         await db.delete(auditLogs).where(eq(auditLogs.resourceId, token));
@@ -363,7 +413,7 @@ describe('Invitation System Integration', () => {
       const testInvites = [
         { email: 'pending1@test.com', used: false },
         { email: 'pending2@test.com', used: false },
-        { email: 'used@test.com', used: true }
+        { email: 'used@test.com', used: true },
       ];
 
       const createdTokens: string[] = [];
@@ -371,15 +421,17 @@ describe('Invitation System Integration', () => {
       for (const invite of testInvites) {
         const token = crypto.randomBytes(32).toString('hex');
         createdTokens.push(token);
-        
+
         const inviteData = {
           token,
           email: invite.email,
           role: 'agent',
           invitedBy: testInviterUserId,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000
+          ).toISOString(),
           createdAt: new Date().toISOString(),
-          used: invite.used
+          used: invite.used,
         };
 
         await db.insert(auditLogs).values({
@@ -387,23 +439,27 @@ describe('Invitation System Integration', () => {
           resource: 'users',
           resourceId: token,
           changes: JSON.stringify(inviteData),
-          createdAt: new Date()
+          createdAt: new Date(),
         });
       }
 
       // Fetch all invites and filter pending ones
-      const allInvites = await db.select()
+      const allInvites = await db
+        .select()
         .from(auditLogs)
         .where(eq(auditLogs.action, 'user_invite'));
 
       const pendingInvites = allInvites
         .map(invite => {
           try {
-            const changes = typeof invite.changes === 'string' ? JSON.parse(invite.changes) : invite.changes;
+            const changes =
+              typeof invite.changes === 'string'
+                ? JSON.parse(invite.changes)
+                : invite.changes;
             return {
               email: changes.email,
               used: changes.used || false,
-              expired: new Date(changes.expiresAt) < new Date()
+              expired: new Date(changes.expiresAt) < new Date(),
             };
           } catch {
             return null;
@@ -412,9 +468,15 @@ describe('Invitation System Integration', () => {
         .filter(invite => invite && !invite.used && !invite.expired);
 
       expect(pendingInvites.length).toBeGreaterThanOrEqual(2);
-      expect(pendingInvites.find(i => i?.email === 'pending1@test.com')).toBeDefined();
-      expect(pendingInvites.find(i => i?.email === 'pending2@test.com')).toBeDefined();
-      expect(pendingInvites.find(i => i?.email === 'used@test.com')).toBeUndefined();
+      expect(
+        pendingInvites.find(i => i?.email === 'pending1@test.com')
+      ).toBeDefined();
+      expect(
+        pendingInvites.find(i => i?.email === 'pending2@test.com')
+      ).toBeDefined();
+      expect(
+        pendingInvites.find(i => i?.email === 'used@test.com')
+      ).toBeUndefined();
 
       // Clean up
       for (const token of createdTokens) {
@@ -431,7 +493,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -439,7 +501,7 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: token,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Revoke the invitation
@@ -447,23 +509,29 @@ describe('Invitation System Integration', () => {
         ...inviteData,
         revoked: true,
         revokedAt: new Date().toISOString(),
-        revokedBy: testInviterUserId
+        revokedBy: testInviterUserId,
       };
 
-      await db.update(auditLogs)
+      await db
+        .update(auditLogs)
         .set({ changes: JSON.stringify(revokedData) })
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, token)
-        ));
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, token)
+          )
+        );
 
       // Verify revocation
-      const [revokedInvite] = await db.select()
+      const [revokedInvite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, token)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, token)
+          )
+        )
         .limit(1);
 
       const changes = JSON.parse(revokedInvite.changes as string);
@@ -478,25 +546,28 @@ describe('Invitation System Integration', () => {
   describe('Error Handling', () => {
     it('should handle malformed invitation data gracefully', async () => {
       const token = crypto.randomBytes(32).toString('hex');
-      
+
       await db.insert(auditLogs).values({
         action: 'user_invite',
         resource: 'users',
         resourceId: token,
         changes: 'invalid-json-{malformed',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, token)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, token)
+          )
+        )
         .limit(1);
 
       expect(invite).toBeDefined();
-      
+
       // Simulate parsing with error handling
       let parsedData = null;
       try {
@@ -504,7 +575,7 @@ describe('Invitation System Integration', () => {
       } catch {
         parsedData = null;
       }
-      
+
       expect(parsedData).toBeNull();
 
       // Clean up
@@ -515,7 +586,7 @@ describe('Invitation System Integration', () => {
       const validEmails = [
         'user@example.com',
         'test.user@company.co.uk',
-        'user123@domain-name.org'
+        'user123@domain-name.org',
       ];
 
       const invalidEmails = [
@@ -523,11 +594,11 @@ describe('Invitation System Integration', () => {
         '@example.com',
         'user@',
         'user..name@example.com',
-        'user+alias@example.com' // Should be blocked by our validation
+        'user+alias@example.com', // Should be blocked by our validation
       ];
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      
+
       validEmails.forEach(email => {
         expect(emailRegex.test(email)).toBe(true);
         expect(email.includes('+')).toBe(false); // Our validation blocks + aliases
@@ -540,17 +611,21 @@ describe('Invitation System Integration', () => {
     });
 
     it('should detect disposable email domains', () => {
-      const disposableDomains = ['tempmail.org', '10minutemail.com', 'guerrillamail.com'];
+      const disposableDomains = [
+        'tempmail.org',
+        '10minutemail.com',
+        'guerrillamail.com',
+      ];
       const testEmails = [
         'user@tempmail.org',
         'test@10minutemail.com',
-        'valid@gmail.com'
+        'valid@gmail.com',
       ];
 
       testEmails.forEach(email => {
         const domain = email.split('@')[1];
         const isDisposable = disposableDomains.includes(domain);
-        
+
         if (email.includes('gmail.com')) {
           expect(isDisposable).toBe(false);
         } else {
@@ -564,7 +639,7 @@ describe('Invitation System Integration', () => {
     it('should complete full invite-to-registration flow', async () => {
       const fullFlowEmail = `fullflow-${Date.now()}@example.com`;
       const fullFlowToken = crypto.randomBytes(32).toString('hex');
-      
+
       // Step 1: Create invitation
       const inviteData = {
         token: fullFlowToken,
@@ -573,7 +648,7 @@ describe('Invitation System Integration', () => {
         invitedBy: testInviterUserId,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString(),
-        used: false
+        used: false,
       };
 
       await db.insert(auditLogs).values({
@@ -581,16 +656,19 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: fullFlowToken,
         changes: JSON.stringify(inviteData),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Step 2: Validate invitation exists and is active
-      const [invite] = await db.select()
+      const [invite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, fullFlowToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, fullFlowToken)
+          )
+        )
         .limit(1);
 
       expect(invite).toBeDefined();
@@ -600,17 +678,20 @@ describe('Invitation System Integration', () => {
 
       // Step 3: Register user
       const hashedPassword = await bcrypt.hash('TestPassword123!', 10);
-      const [newUser] = await db.insert(users).values({
-        email: fullFlowEmail,
-        username: `fullflow-${Date.now()}`,
-        passwordHash: hashedPassword,
-        firstName: 'Full',
-        lastName: 'Flow',
-        role: changes.role,
-        active: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email: fullFlowEmail,
+          username: `fullflow-${Date.now()}`,
+          passwordHash: hashedPassword,
+          firstName: 'Full',
+          lastName: 'Flow',
+          role: changes.role,
+          active: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
 
       expect(newUser).toBeDefined();
       expect(newUser.email).toBe(fullFlowEmail);
@@ -621,15 +702,18 @@ describe('Invitation System Integration', () => {
         ...changes,
         used: true,
         usedAt: new Date().toISOString(),
-        registeredUserId: newUser.id
+        registeredUserId: newUser.id,
       };
 
-      await db.update(auditLogs)
+      await db
+        .update(auditLogs)
         .set({ changes: JSON.stringify(usedInviteData) })
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, fullFlowToken)
-        ));
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, fullFlowToken)
+          )
+        );
 
       // Step 5: Create registration audit log
       await db.insert(auditLogs).values({
@@ -638,16 +722,19 @@ describe('Invitation System Integration', () => {
         resource: 'users',
         resourceId: newUser.id,
         changes: JSON.stringify({ inviteToken: fullFlowToken }),
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Step 6: Verify complete flow
-      const [finalInvite] = await db.select()
+      const [finalInvite] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_invite'),
-          eq(auditLogs.resourceId, fullFlowToken)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_invite'),
+            eq(auditLogs.resourceId, fullFlowToken)
+          )
+        )
         .limit(1);
 
       const finalChanges = JSON.parse(finalInvite.changes as string);
@@ -655,12 +742,15 @@ describe('Invitation System Integration', () => {
       expect(finalChanges.registeredUserId).toBe(newUser.id);
 
       // Verify registration log
-      const [regLog] = await db.select()
+      const [regLog] = await db
+        .select()
         .from(auditLogs)
-        .where(and(
-          eq(auditLogs.action, 'user_registered'),
-          eq(auditLogs.userId, newUser.id)
-        ))
+        .where(
+          and(
+            eq(auditLogs.action, 'user_registered'),
+            eq(auditLogs.userId, newUser.id)
+          )
+        )
         .limit(1);
 
       expect(regLog).toBeDefined();
@@ -670,10 +760,14 @@ describe('Invitation System Integration', () => {
       // Clean up
       await db.delete(users).where(eq(users.id, newUser.id));
       await db.delete(auditLogs).where(eq(auditLogs.resourceId, fullFlowToken));
-      await db.delete(auditLogs).where(and(
-        eq(auditLogs.action, 'user_registered'),
-        eq(auditLogs.userId, newUser.id)
-      ));
+      await db
+        .delete(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.action, 'user_registered'),
+            eq(auditLogs.userId, newUser.id)
+          )
+        );
     });
   });
 });

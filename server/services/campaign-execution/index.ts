@@ -1,6 +1,6 @@
 /**
  * Campaign Execution System
- * 
+ *
  * This module provides a refactored, modular campaign execution system
  * that replaces the monolithic campaign-execution-engine.ts
  */
@@ -13,12 +13,21 @@ export { ExecutionStorage, executionStorage } from './ExecutionStorage';
 export { ExecutionScheduler, executionScheduler } from './ExecutionScheduler';
 export { ExecutionProcessor, executionProcessor } from './ExecutionProcessor';
 export { ExecutionMonitor, executionMonitor } from './ExecutionMonitor';
-export { TemplateRenderingService, templateRenderingService } from './TemplateRenderingService';
+export {
+  TemplateRenderingService,
+  templateRenderingService,
+} from './TemplateRenderingService';
 export { RetryManager, retryManager } from './RetryManager';
-export { LeadAssignmentService, leadAssignmentService } from './LeadAssignmentService';
+export {
+  LeadAssignmentService,
+  leadAssignmentService,
+} from './LeadAssignmentService';
 
 // Main orchestrator
-export { CampaignOrchestrator, campaignOrchestrator } from './CampaignOrchestrator';
+export {
+  CampaignOrchestrator,
+  campaignOrchestrator,
+} from './CampaignOrchestrator';
 
 // Backward compatibility exports
 export { campaignOrchestrator as campaignExecutionEngine } from './CampaignOrchestrator';

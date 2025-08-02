@@ -21,7 +21,10 @@ class FeatureFlagClient {
   private cache = new Map<string, { enabled: boolean; expiry: number }>();
   private readonly CACHE_TTL = 2 * 60 * 1000; // 2 minutes client-side cache
 
-  async isEnabled(flagKey: string, context: FeatureFlagContext): Promise<boolean> {
+  async isEnabled(
+    flagKey: string,
+    context: FeatureFlagContext
+  ): Promise<boolean> {
     // Check cache first
     const cached = this.cache.get(flagKey);
     if (cached && Date.now() < cached.expiry) {
@@ -38,7 +41,10 @@ class FeatureFlagClient {
       });
 
       if (!response.ok) {
-        console.warn(`Feature flag evaluation failed for ${flagKey}:`, response.statusText);
+        console.warn(
+          `Feature flag evaluation failed for ${flagKey}:`,
+          response.statusText
+        );
         return false;
       }
 
@@ -48,7 +54,7 @@ class FeatureFlagClient {
       // Cache the result
       this.cache.set(flagKey, {
         enabled,
-        expiry: Date.now() + this.CACHE_TTL
+        expiry: Date.now() + this.CACHE_TTL,
       });
 
       return enabled;
@@ -58,7 +64,9 @@ class FeatureFlagClient {
     }
   }
 
-  async getAllFlags(context: FeatureFlagContext): Promise<Record<string, boolean>> {
+  async getAllFlags(
+    context: FeatureFlagContext
+  ): Promise<Record<string, boolean>> {
     try {
       const response = await fetch('/api/feature-flags/all', {
         method: 'POST',
@@ -159,10 +167,10 @@ export const useFeatureFlags = (flagKeys: string[]) => {
       };
 
       const results: Record<string, boolean> = {};
-      
+
       // Check each flag individually (could be optimized with bulk API)
       await Promise.all(
-        flagKeys.map(async (key) => {
+        flagKeys.map(async key => {
           results[key] = await featureFlagClient.isEnabled(key, context);
         })
       );
@@ -229,16 +237,20 @@ export const useAllFeatureFlags = () => {
 };
 
 // Utility hook for feature flag-based rendering
-export const useFeatureFlaggedComponent = (flagKey: string, fallbackComponent?: React.ComponentType) => {
+export const useFeatureFlaggedComponent = (
+  flagKey: string,
+  fallbackComponent?: React.ComponentType
+) => {
   const { enabled, loading } = useFeatureFlag(flagKey);
-  
+
   return {
     enabled,
     loading,
-    renderWhenEnabled: (component: React.ComponentType) => enabled ? component : null,
+    renderWhenEnabled: (component: React.ComponentType) =>
+      enabled ? component : null,
     renderWithFallback: (component: React.ComponentType) => {
       if (loading) return null;
-      return enabled ? component : (fallbackComponent || null);
-    }
+      return enabled ? component : fallbackComponent || null;
+    },
   };
 };

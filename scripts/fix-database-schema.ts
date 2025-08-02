@@ -2,10 +2,10 @@
 
 /**
  * Database Schema Fix Script
- * 
+ *
  * This script fixes the database schema issues that are preventing
  * the "update agent" button from working properly.
- * 
+ *
  * Issues identified:
  * 1. Missing 'system_prompt' column in agent_configurations table
  * 2. Missing 'username' column in users table
@@ -15,7 +15,8 @@
 import postgres from 'postgres';
 
 // Create direct postgres connection for schema operations
-const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
+const connectionString =
+  process.env.DATABASE_URL || 'postgresql://localhost:5432/ccl3_swarm';
 const sql = postgres(connectionString, {
   ssl: false, // For local development
   transform: {
@@ -94,7 +95,7 @@ async function fixDatabaseSchema() {
         { name: 'notes', type: 'text', default: null },
         { name: 'score', type: 'integer', default: '0' },
         { name: 'last_contacted', type: 'timestamp', default: null },
-        { name: 'metadata', type: 'jsonb', default: "'{}'::jsonb" }
+        { name: 'metadata', type: 'jsonb', default: "'{}'::jsonb" },
       ];
 
       for (const column of columnsToCheck) {
@@ -107,8 +108,12 @@ async function fixDatabaseSchema() {
         `;
 
         if (!columnExists[0].exists) {
-          console.log(`➕ Adding missing ${column.name} column to leads table...`);
-          const defaultClause = column.default ? `DEFAULT ${column.default}` : '';
+          console.log(
+            `➕ Adding missing ${column.name} column to leads table...`
+          );
+          const defaultClause = column.default
+            ? `DEFAULT ${column.default}`
+            : '';
           await sql.unsafe(`
             ALTER TABLE leads
             ADD COLUMN ${column.name} ${column.type} ${defaultClause};
@@ -129,7 +134,7 @@ async function fixDatabaseSchema() {
 
     if (!agentTableExists[0].exists) {
       console.log('📋 Creating agent_configurations table...');
-      
+
       // Create agent_type enum if it doesn't exist
       await sql`
         DO $$ BEGIN
@@ -182,8 +187,10 @@ async function fixDatabaseSchema() {
 
       console.log('✅ agent_configurations table created successfully');
     } else {
-      console.log('📋 agent_configurations table already exists, checking columns...');
-      
+      console.log(
+        '📋 agent_configurations table already exists, checking columns...'
+      );
+
       // Check if system_prompt column exists
       const systemPromptExists = await sql`
         SELECT EXISTS (
@@ -207,7 +214,7 @@ async function fixDatabaseSchema() {
         { name: 'context_note', type: 'text', default: null },
         { name: 'temperature', type: 'integer', default: '7' },
         { name: 'max_tokens', type: 'integer', default: '500' },
-        { name: 'metadata', type: 'jsonb', default: "'{}'::jsonb" }
+        { name: 'metadata', type: 'jsonb', default: "'{}'::jsonb" },
       ];
 
       for (const column of columnsToCheck) {
@@ -221,7 +228,9 @@ async function fixDatabaseSchema() {
 
         if (!columnExists[0].exists) {
           console.log(`➕ Adding missing ${column.name} column...`);
-          const defaultClause = column.default ? `DEFAULT ${column.default}` : '';
+          const defaultClause = column.default
+            ? `DEFAULT ${column.default}`
+            : '';
           await sql.unsafe(`
             ALTER TABLE agent_configurations 
             ADD COLUMN ${column.name} ${column.type} ${defaultClause};
@@ -255,14 +264,14 @@ async function fixDatabaseSchema() {
           ALTER TABLE users 
           ADD COLUMN username varchar(255) UNIQUE;
         `;
-        
+
         // Update existing users with a default username based on email
         await sql`
           UPDATE users 
           SET username = split_part(email, '@', 1) 
           WHERE username IS NULL;
         `;
-        
+
         console.log('✅ username column added to users table');
       }
     }
@@ -274,7 +283,8 @@ async function fixDatabaseSchema() {
     await sql`DELETE FROM agent_configurations WHERE id IS NULL;`;
 
     // Check if we have valid agent configurations
-    const agentCount = await sql`SELECT COUNT(*) FROM agent_configurations WHERE id IS NOT NULL;`;
+    const agentCount =
+      await sql`SELECT COUNT(*) FROM agent_configurations WHERE id IS NOT NULL;`;
 
     if (parseInt(agentCount[0].count) === 0) {
       console.log('📝 Inserting sample agent configurations...');
@@ -288,7 +298,8 @@ async function fixDatabaseSchema() {
       `;
 
       const hasRoleColumn = roleColumnInfo.length > 0;
-      const roleRequired = hasRoleColumn && roleColumnInfo[0].is_nullable === 'NO';
+      const roleRequired =
+        hasRoleColumn && roleColumnInfo[0].is_nullable === 'NO';
 
       // Check if end_goal column exists and is required
       const endGoalColumnInfo = await sql`
@@ -299,9 +310,15 @@ async function fixDatabaseSchema() {
       `;
 
       const hasEndGoalColumn = endGoalColumnInfo.length > 0;
-      const endGoalRequired = hasEndGoalColumn && endGoalColumnInfo[0].is_nullable === 'NO';
+      const endGoalRequired =
+        hasEndGoalColumn && endGoalColumnInfo[0].is_nullable === 'NO';
 
-      if (hasRoleColumn && roleRequired && hasEndGoalColumn && endGoalRequired) {
+      if (
+        hasRoleColumn &&
+        roleRequired &&
+        hasEndGoalColumn &&
+        endGoalRequired
+      ) {
         // Include both role and end_goal columns
         await sql`
           INSERT INTO agent_configurations (id, name, type, role, end_goal, system_prompt, active) VALUES
@@ -341,7 +358,9 @@ async function fixDatabaseSchema() {
 
       console.log('✅ Sample agent configurations inserted');
     } else {
-      console.log(`📊 Found ${agentCount[0].count} existing agent configurations`);
+      console.log(
+        `📊 Found ${agentCount[0].count} existing agent configurations`
+      );
     }
 
     // CRITICAL FIX: Create feature_flags table (also causing errors)
@@ -445,7 +464,6 @@ async function fixDatabaseSchema() {
     console.log('2. Click "Edit" on any agent');
     console.log('3. Make changes and click "Update Agent"');
     console.log('4. The changes should be saved successfully');
-
   } catch (error) {
     console.error('❌ Error fixing database schema:', error);
     throw error;
@@ -462,7 +480,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('✅ Schema fix completed');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('❌ Schema fix failed:', error);
       process.exit(1);
     });

@@ -22,7 +22,7 @@ export enum SecurityEventType {
   SESSION_HIJACK_ATTEMPT = 'SESSION_HIJACK',
   FILE_ACCESS_VIOLATION = 'FILE_ACCESS',
   API_ABUSE = 'API_ABUSE',
-  DATA_EXFILTRATION_ATTEMPT = 'DATA_EXFIL'
+  DATA_EXFILTRATION_ATTEMPT = 'DATA_EXFIL',
 }
 
 // Security event severity levels
@@ -30,7 +30,7 @@ export enum SecuritySeverity {
   LOW = 1,
   MEDIUM = 2,
   HIGH = 3,
-  CRITICAL = 4
+  CRITICAL = 4,
 }
 
 // Security event interface
@@ -73,7 +73,7 @@ export class SecurityMonitor extends EventEmitter {
 
   constructor() {
     super();
-    
+
     this.threatIntel = {
       blacklistedIPs: new Set(),
       suspiciousPatterns: [
@@ -88,7 +88,7 @@ export class SecurityMonitor extends EventEmitter {
         /(\||;|&|`|\$\(|\${)/,
       ],
       knownAttackSignatures: [],
-      riskScores: new Map()
+      riskScores: new Map(),
     };
 
     this.alertThresholds = new Map([
@@ -96,7 +96,7 @@ export class SecurityMonitor extends EventEmitter {
       [SecurityEventType.RATE_LIMIT_EXCEEDED, 10],
       [SecurityEventType.SQL_INJECTION_ATTEMPT, 1],
       [SecurityEventType.XSS_ATTEMPT, 1],
-      [SecurityEventType.BRUTE_FORCE_ATTEMPT, 3]
+      [SecurityEventType.BRUTE_FORCE_ATTEMPT, 3],
     ]);
 
     this.timeWindows = new Map();
@@ -119,10 +119,10 @@ export class SecurityMonitor extends EventEmitter {
   private initializeMonitoring() {
     // Set up event handlers
     this.on('security-event', this.handleSecurityEvent.bind(this));
-    
+
     // Periodic cleanup of old events
     setInterval(() => this.cleanupOldEvents(), 3600000); // 1 hour
-    
+
     // Periodic threat intel update
     setInterval(() => this.updateThreatIntelligence(), 1800000); // 30 minutes
   }
@@ -144,20 +144,20 @@ export class SecurityMonitor extends EventEmitter {
         ip: this.getClientIP(req),
         userAgent: req.headers['user-agent'],
         userId: (req as any).user?.id,
-        sessionId: (req as any).session?.id
+        sessionId: (req as any).session?.id,
       },
       details: {
         message: details.message || 'Security event occurred',
         endpoint: req.path,
         method: req.method,
-        ...details
+        ...details,
       },
-      metadata
+      metadata,
     };
 
     this.events.push(event);
     this.emit('security-event', event);
-    
+
     // Persist to file
     this.persistEvent(event);
 
@@ -188,7 +188,7 @@ export class SecurityMonitor extends EventEmitter {
   // Update risk score for an IP
   private updateRiskScore(ip: string, severity: SecuritySeverity) {
     const currentScore = this.threatIntel.riskScores.get(ip) || 0;
-    const newScore = currentScore + (severity * 10);
+    const newScore = currentScore + severity * 10;
     this.threatIntel.riskScores.set(ip, newScore);
 
     // Auto-block high risk IPs
@@ -205,7 +205,7 @@ export class SecurityMonitor extends EventEmitter {
     const key = `${event.type}-${event.source.ip}`;
     const window = this.timeWindows.get(key) || [];
     const now = Date.now();
-    
+
     // Keep only events in the last 15 minutes
     const recentEvents = window.filter(time => now - time < 900000);
     recentEvents.push(now);
@@ -217,8 +217,7 @@ export class SecurityMonitor extends EventEmitter {
   // Detect attack patterns
   private detectAttackPattern(ip: string): boolean {
     const recentEvents = this.events.filter(
-      e => e.source.ip === ip && 
-      Date.now() - e.timestamp.getTime() < 300000 // Last 5 minutes
+      e => e.source.ip === ip && Date.now() - e.timestamp.getTime() < 300000 // Last 5 minutes
     );
 
     // Multiple different attack types from same IP
@@ -229,7 +228,9 @@ export class SecurityMonitor extends EventEmitter {
     if (recentEvents.length >= 20) return true;
 
     // Critical severity events
-    const criticalEvents = recentEvents.filter(e => e.severity === SecuritySeverity.CRITICAL);
+    const criticalEvents = recentEvents.filter(
+      e => e.severity === SecuritySeverity.CRITICAL
+    );
     if (criticalEvents.length >= 2) return true;
 
     return false;
@@ -257,8 +258,10 @@ export class SecurityMonitor extends EventEmitter {
 
   // Escalate security event
   private escalateEvent(event: SecurityEvent) {
-    console.error(`[SECURITY ESCALATION] ${event.type} threshold exceeded for ${event.source.ip}`);
-    
+    console.error(
+      `[SECURITY ESCALATION] ${event.type} threshold exceeded for ${event.source.ip}`
+    );
+
     // Automated responses based on event type
     switch (event.type) {
       case SecurityEventType.BRUTE_FORCE_ATTEMPT:
@@ -282,10 +285,12 @@ export class SecurityMonitor extends EventEmitter {
     // - Slack/Discord
     // - PagerDuty
     // - SIEM system
-    
-    console.error(`[SECURITY ALERT] ${event.type} - Severity: ${event.severity}`);
+
+    console.error(
+      `[SECURITY ALERT] ${event.type} - Severity: ${event.severity}`
+    );
     console.error(`Source: ${event.source.ip} - ${event.details.message}`);
-    
+
     // Log to separate alert file
     const alertLog = path.join(this.securityLogPath, 'alerts.log');
     const alertData = `${new Date().toISOString()} [${event.severity}] ${event.type} - ${event.source.ip} - ${event.details.message}\n`;
@@ -297,15 +302,15 @@ export class SecurityMonitor extends EventEmitter {
     const date = new Date();
     const filename = `security-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}.jsonl`;
     const filepath = path.join(this.securityLogPath, filename);
-    
+
     fs.appendFileSync(filepath, JSON.stringify(event) + '\n');
   }
 
   // Clean up old events
   private cleanupOldEvents() {
-    const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 days
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days
     this.events = this.events.filter(e => e.timestamp.getTime() > cutoff);
-    
+
     // Clean up time windows
     for (const [key, times] of this.timeWindows.entries()) {
       const recentTimes = times.filter(t => t > cutoff);
@@ -323,7 +328,7 @@ export class SecurityMonitor extends EventEmitter {
     // - Fetch known bad IPs from threat feeds
     // - Update attack signatures
     // - Sync with external threat intelligence APIs
-    
+
     console.log('[SECURITY] Threat intelligence updated');
   }
 
@@ -355,12 +360,10 @@ export class SecurityMonitor extends EventEmitter {
       // Scan for suspicious patterns
       const suspiciousContent = this.scanForThreats(req);
       if (suspiciousContent) {
-        this.logEvent(
-          suspiciousContent.type,
-          suspiciousContent.severity,
-          req,
-          { message: suspiciousContent.message, payload: suspiciousContent.payload }
-        );
+        this.logEvent(suspiciousContent.type, suspiciousContent.severity, req, {
+          message: suspiciousContent.message,
+          payload: suspiciousContent.payload,
+        });
 
         if (suspiciousContent.severity >= SecuritySeverity.HIGH) {
           return res.status(400).json({ error: 'Invalid request' });
@@ -372,12 +375,19 @@ export class SecurityMonitor extends EventEmitter {
   }
 
   // Scan request for threats
-  private scanForThreats(req: Request): { type: SecurityEventType, severity: SecuritySeverity, message: string, payload?: any } | null {
+  private scanForThreats(
+    req: Request
+  ): {
+    type: SecurityEventType;
+    severity: SecuritySeverity;
+    message: string;
+    payload?: any;
+  } | null {
     const contentToScan = [
       JSON.stringify(req.body),
       JSON.stringify(req.query),
       req.path,
-      req.headers['user-agent'] || ''
+      req.headers['user-agent'] || '',
     ].join(' ');
 
     // Check for SQL injection patterns
@@ -387,7 +397,7 @@ export class SecurityMonitor extends EventEmitter {
           type: SecurityEventType.SQL_INJECTION_ATTEMPT,
           severity: SecuritySeverity.HIGH,
           message: 'Potential SQL injection detected',
-          payload: { pattern: pattern.toString() }
+          payload: { pattern: pattern.toString() },
         };
       }
     }
@@ -397,7 +407,7 @@ export class SecurityMonitor extends EventEmitter {
       return {
         type: SecurityEventType.XSS_ATTEMPT,
         severity: SecuritySeverity.HIGH,
-        message: 'Potential XSS attempt detected'
+        message: 'Potential XSS attempt detected',
       };
     }
 
@@ -406,7 +416,7 @@ export class SecurityMonitor extends EventEmitter {
       return {
         type: SecurityEventType.SUSPICIOUS_ACTIVITY,
         severity: SecuritySeverity.MEDIUM,
-        message: 'Path traversal attempt detected'
+        message: 'Path traversal attempt detected',
       };
     }
 
@@ -416,8 +426,8 @@ export class SecurityMonitor extends EventEmitter {
   // Get security metrics
   public getMetrics() {
     const now = Date.now();
-    const last24h = now - (24 * 60 * 60 * 1000);
-    const last1h = now - (60 * 60 * 1000);
+    const last24h = now - 24 * 60 * 60 * 1000;
+    const last1h = now - 60 * 60 * 1000;
 
     const events24h = this.events.filter(e => e.timestamp.getTime() > last24h);
     const events1h = this.events.filter(e => e.timestamp.getTime() > last1h);
@@ -432,7 +442,7 @@ export class SecurityMonitor extends EventEmitter {
         .filter(([_, score]) => score > 50)
         .map(([ip, score]) => ({ ip, score })),
       eventsByType: this.groupEventsByType(events24h),
-      eventsBySeverity: this.groupEventsBySeverity(events24h)
+      eventsBySeverity: this.groupEventsBySeverity(events24h),
     };
   }
 

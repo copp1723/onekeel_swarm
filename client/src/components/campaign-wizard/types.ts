@@ -1,7 +1,12 @@
 export type WizardStep =
-  | 'basics' | 'audience' | 'agent'
-  | 'offer'  | 'templates'| 'schedule'
-  | 'handover' | 'review';
+  | 'basics'
+  | 'audience'
+  | 'agent'
+  | 'offer'
+  | 'templates'
+  | 'schedule'
+  | 'handover'
+  | 'review';
 
 export interface Agent {
   id: string;
@@ -71,7 +76,7 @@ export interface CampaignData {
     buyingSignals: string[];
     escalationPhrases: string[];
     goalCompletionRequired: string[];
-    handoverRecipients: Array<{name: string, email: string}>;
+    handoverRecipients: Array<{ name: string; email: string }>;
   };
 }
 

@@ -10,32 +10,32 @@ const router = Router();
 // Get all conversations
 router.get('/', async (req, res) => {
   try {
-    const { 
-      leadId, 
-      channel, 
-      status, 
+    const {
+      leadId,
+      channel,
+      status,
       agentType,
-      limit = 50, 
-      offset = 0, 
-      sort = 'startedAt', 
-      order = 'desc' 
+      limit = 50,
+      offset = 0,
+      sort = 'startedAt',
+      order = 'desc',
     } = req.query;
 
     // Build query conditions
     const conditions = [];
-    
+
     if (leadId) {
       conditions.push(eq(conversations.leadId, leadId as string));
     }
-    
+
     if (channel) {
       conditions.push(eq(conversations.channel, channel as any));
     }
-    
+
     if (status) {
       conditions.push(eq(conversations.status, status as string));
     }
-    
+
     if (agentType) {
       conditions.push(eq(conversations.agentType, agentType as any));
     }
@@ -49,8 +49,8 @@ router.get('/', async (req, res) => {
           firstName: leads.firstName,
           lastName: leads.lastName,
           email: leads.email,
-          phone: leads.phone
-        }
+          phone: leads.phone,
+        },
       })
       .from(conversations)
       .leftJoin(leads, eq(conversations.leadId, leads.id))
@@ -84,7 +84,7 @@ router.get('/', async (req, res) => {
     // Format results
     const conversationList = results.map(r => ({
       ...r.conversation,
-      lead: r.lead
+      lead: r.lead,
     }));
 
     res.json({
@@ -92,7 +92,7 @@ router.get('/', async (req, res) => {
       conversations: conversationList,
       total: count,
       offset: Number(offset),
-      limit: Number(limit)
+      limit: Number(limit),
     });
   } catch (error) {
     console.error('Error fetching conversations:', error);
@@ -101,8 +101,8 @@ router.get('/', async (req, res) => {
       error: {
         code: 'CONVERSATION_FETCH_ERROR',
         message: 'Failed to fetch conversations',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -111,7 +111,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [result] = await db
       .select({
         conversation: conversations,
@@ -120,8 +120,8 @@ router.get('/:id', async (req, res) => {
           firstName: leads.firstName,
           lastName: leads.lastName,
           email: leads.email,
-          phone: leads.phone
-        }
+          phone: leads.phone,
+        },
       })
       .from(conversations)
       .leftJoin(leads, eq(conversations.leadId, leads.id))
@@ -133,8 +133,8 @@ router.get('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
-          message: 'Conversation not found'
-        }
+          message: 'Conversation not found',
+        },
       });
     }
 
@@ -142,8 +142,8 @@ router.get('/:id', async (req, res) => {
       success: true,
       conversation: {
         ...result.conversation,
-        lead: result.lead
-      }
+        lead: result.lead,
+      },
     });
   } catch (error) {
     console.error('Error fetching conversation:', error);
@@ -152,8 +152,8 @@ router.get('/:id', async (req, res) => {
       error: {
         code: 'CONVERSATION_FETCH_ERROR',
         message: 'Failed to fetch conversation',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -163,107 +163,119 @@ const createConversationSchema = z.object({
   leadId: z.string().uuid().optional(),
   channel: z.enum(['email', 'sms', 'chat']),
   agentType: z.enum(['email', 'sms', 'chat', 'voice']).optional(),
-  messages: z.array(z.object({
-    role: z.enum(['user', 'assistant', 'system']),
-    content: z.string(),
-    timestamp: z.string().datetime().optional()
-  })).default([]),
-  metadata: z.record(z.any()).optional()
-});
-
-router.post('/', validateRequest({ body: createConversationSchema }), async (req, res) => {
-  try {
-    const conversationData = req.body;
-    
-    const [newConversation] = await db
-      .insert(conversations)
-      .values({
-        ...conversationData,
-        status: 'active',
-        startedAt: new Date(),
-        lastMessageAt: new Date()
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant', 'system']),
+        content: z.string(),
+        timestamp: z.string().datetime().optional(),
       })
-      .returning();
-
-    res.status(201).json({
-      success: true,
-      conversation: newConversation
-    });
-  } catch (error) {
-    console.error('Error creating conversation:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'CONVERSATION_CREATE_ERROR',
-        message: 'Failed to create conversation',
-        category: 'database'
-      }
-    });
-  }
+    )
+    .default([]),
+  metadata: z.record(z.any()).optional(),
 });
+
+router.post(
+  '/',
+  validateRequest({ body: createConversationSchema }),
+  async (req, res) => {
+    try {
+      const conversationData = req.body;
+
+      const [newConversation] = await db
+        .insert(conversations)
+        .values({
+          ...conversationData,
+          status: 'active',
+          startedAt: new Date(),
+          lastMessageAt: new Date(),
+        })
+        .returning();
+
+      res.status(201).json({
+        success: true,
+        conversation: newConversation,
+      });
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'CONVERSATION_CREATE_ERROR',
+          message: 'Failed to create conversation',
+          category: 'database',
+        },
+      });
+    }
+  }
+);
 
 // Add message to conversation
 const addMessageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system']),
-  content: z.string().min(1)
+  content: z.string().min(1),
 });
 
-router.post('/:id/messages', validateRequest({ body: addMessageSchema }), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { role, content } = req.body;
-    
-    // Get current conversation
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(eq(conversations.id, id))
-      .limit(1);
+router.post(
+  '/:id/messages',
+  validateRequest({ body: addMessageSchema }),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role, content } = req.body;
 
-    if (!conversation) {
-      return res.status(404).json({
+      // Get current conversation
+      const [conversation] = await db
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, id))
+        .limit(1);
+
+      if (!conversation) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            code: 'CONVERSATION_NOT_FOUND',
+            message: 'Conversation not found',
+          },
+        });
+      }
+
+      // Add message to messages array
+      const messages = (conversation.messages as any[]) || [];
+      messages.push({
+        role,
+        content,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Update conversation
+      const [updatedConversation] = await db
+        .update(conversations)
+        .set({
+          messages,
+          lastMessageAt: new Date(),
+        })
+        .where(eq(conversations.id, id))
+        .returning();
+
+      res.json({
+        success: true,
+        conversation: updatedConversation,
+      });
+    } catch (error) {
+      console.error('Error adding message:', error);
+      res.status(500).json({
         success: false,
         error: {
-          code: 'CONVERSATION_NOT_FOUND',
-          message: 'Conversation not found'
-        }
+          code: 'MESSAGE_ADD_ERROR',
+          message: 'Failed to add message to conversation',
+          category: 'database',
+        },
       });
     }
-
-    // Add message to messages array
-    const messages = conversation.messages as any[] || [];
-    messages.push({
-      role,
-      content,
-      timestamp: new Date().toISOString()
-    });
-
-    // Update conversation
-    const [updatedConversation] = await db
-      .update(conversations)
-      .set({
-        messages,
-        lastMessageAt: new Date()
-      })
-      .where(eq(conversations.id, id))
-      .returning();
-
-    res.json({
-      success: true,
-      conversation: updatedConversation
-    });
-  } catch (error) {
-    console.error('Error adding message:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'MESSAGE_ADD_ERROR',
-        message: 'Failed to add message to conversation',
-        category: 'database'
-      }
-    });
   }
-});
+);
 
 // Update conversation status
 router.patch('/:id/status', async (req, res) => {
@@ -278,13 +290,13 @@ router.patch('/:id/status', async (req, res) => {
         error: {
           code: 'INVALID_STATUS',
           message: 'Invalid conversation status',
-          validStatuses
-        }
+          validStatuses,
+        },
       });
     }
 
     const updates: any = {
-      status
+      status,
     };
 
     if (status === 'completed' || status === 'abandoned') {
@@ -302,14 +314,14 @@ router.patch('/:id/status', async (req, res) => {
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
-          message: 'Conversation not found'
-        }
+          message: 'Conversation not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      conversation: updatedConversation
+      conversation: updatedConversation,
     });
   } catch (error) {
     console.error('Error updating conversation status:', error);
@@ -318,8 +330,8 @@ router.patch('/:id/status', async (req, res) => {
       error: {
         code: 'CONVERSATION_UPDATE_ERROR',
         message: 'Failed to update conversation status',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -328,7 +340,7 @@ router.patch('/:id/status', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [deletedConversation] = await db
       .delete(conversations)
       .where(eq(conversations.id, id))
@@ -339,14 +351,14 @@ router.delete('/:id', async (req, res) => {
         success: false,
         error: {
           code: 'CONVERSATION_NOT_FOUND',
-          message: 'Conversation not found'
-        }
+          message: 'Conversation not found',
+        },
       });
     }
 
     res.json({
       success: true,
-      message: 'Conversation deleted successfully'
+      message: 'Conversation deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting conversation:', error);
@@ -355,8 +367,8 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'CONVERSATION_DELETE_ERROR',
         message: 'Failed to delete conversation',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });
@@ -370,14 +382,14 @@ router.get('/stats/summary', async (req, res) => {
         activeConversations: sql<number>`count(*) filter (where status = 'active')::int`,
         completedConversations: sql<number>`count(*) filter (where status = 'completed')::int`,
         abandonedConversations: sql<number>`count(*) filter (where status = 'abandoned')::int`,
-        avgMessagesPerConversation: sql<number>`avg(jsonb_array_length(messages))::int`
+        avgMessagesPerConversation: sql<number>`avg(jsonb_array_length(messages))::int`,
       })
       .from(conversations);
 
     const channelStats = await db
       .select({
         channel: conversations.channel,
-        count: sql<number>`count(*)::int`
+        count: sql<number>`count(*)::int`,
       })
       .from(conversations)
       .groupBy(conversations.channel);
@@ -386,8 +398,8 @@ router.get('/stats/summary', async (req, res) => {
       success: true,
       stats: {
         ...stats[0],
-        byChannel: channelStats
-      }
+        byChannel: channelStats,
+      },
     });
   } catch (error) {
     console.error('Error fetching conversation stats:', error);
@@ -396,8 +408,8 @@ router.get('/stats/summary', async (req, res) => {
       error: {
         code: 'STATS_FETCH_ERROR',
         message: 'Failed to fetch conversation statistics',
-        category: 'database'
-      }
+        category: 'database',
+      },
     });
   }
 });

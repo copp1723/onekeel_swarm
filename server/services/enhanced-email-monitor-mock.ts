@@ -67,13 +67,13 @@ class EnhancedEmailMonitor {
       {
         subject: 'Car loan inquiry',
         from: 'test@example.com',
-        body: 'I need information about car loans'
+        body: 'I need information about car loans',
       },
       {
         subject: 'Re: Your loan application',
         from: 'customer@example.com',
-        body: 'Thanks for the information'
-      }
+        body: 'Thanks for the information',
+      },
     ];
 
     const email = mockEmails[Math.floor(Math.random() * mockEmails.length)];
@@ -87,8 +87,13 @@ class EnhancedEmailMonitor {
     });
   }
 
-  private async processTrigger(trigger: EmailTrigger, email: any): Promise<void> {
-    logger.info(`📧 Processing trigger: ${trigger.action} for ${email.subject}`);
+  private async processTrigger(
+    trigger: EmailTrigger,
+    email: any
+  ): Promise<void> {
+    logger.info(
+      `📧 Processing trigger: ${trigger.action} for ${email.subject}`
+    );
 
     try {
       switch (trigger.action) {
@@ -111,7 +116,7 @@ class EnhancedEmailMonitor {
     const leadData: LeadData = {
       email: email.from,
       name: 'Mock Lead',
-      notes: `Created from email: ${email.subject}`
+      notes: `Created from email: ${email.subject}`,
     };
 
     logger.info(`📧 Mock lead created: ${leadData.email}`);
@@ -121,7 +126,7 @@ class EnhancedEmailMonitor {
     return {
       running: this.running,
       triggerCount: this.triggers.length,
-      mode: 'mock'
+      mode: 'mock',
     };
   }
 }

@@ -1,12 +1,20 @@
 import { auditLogRepository as AuditLogRepository } from '../db';
-import { getCurrentContext, RequestContext } from '../middleware/request-context';
+import {
+  getCurrentContext,
+  RequestContext,
+} from '../middleware/request-context';
 import { Request } from 'express';
 
 /**
  * Security change type definition
  */
 export interface SecurityChange {
-  type: 'role_change' | 'permission_change' | 'status_change' | 'password_change' | 'mfa_change';
+  type:
+    | 'role_change'
+    | 'permission_change'
+    | 'status_change'
+    | 'password_change'
+    | 'mfa_change';
   resource: string;
   resourceId?: string;
   before?: any;
@@ -16,7 +24,7 @@ export interface SecurityChange {
 
 /**
  * AuditLogger service for tracking security-related events
- * 
+ *
  * This service provides a high-level API for logging security events
  * and user actions that are relevant for compliance and security auditing.
  */
@@ -31,7 +39,7 @@ export class AuditLogger {
   }
   /**
    * Log user creation event
-   * 
+   *
    * @param adminId - ID of the admin who created the user
    * @param newUserId - ID of the newly created user
    * @param userData - Optional user data (sensitive fields will be redacted)
@@ -41,7 +49,7 @@ export class AuditLogger {
     try {
       // Filter sensitive data
       const filteredData = this.filterSensitiveData(userData || {});
-      
+
       return await AuditLogRepository.create({
         userId: adminId,
         action: 'create',
@@ -49,7 +57,7 @@ export class AuditLogger {
         resourceId: newUserId,
         changes: filteredData,
         ipAddress: this.getRequestIp(),
-        userAgent: this.getRequestUserAgent()
+        userAgent: this.getRequestUserAgent(),
       });
     } catch (error) {
       console.error('Failed to log user creation:', error);
@@ -60,7 +68,7 @@ export class AuditLogger {
 
   /**
    * Log security change event
-   * 
+   *
    * @param userId - ID of the user who made the change
    * @param change - Security change details
    * @returns The created audit log entry
@@ -71,11 +79,11 @@ export class AuditLogger {
       if (change.before) {
         change.before = this.filterSensitiveData(change.before);
       }
-      
+
       if (change.after) {
         change.after = this.filterSensitiveData(change.after);
       }
-      
+
       return await AuditLogRepository.create({
         userId,
         action: 'update',
@@ -85,10 +93,10 @@ export class AuditLogger {
           type: change.type,
           before: change.before,
           after: change.after,
-          details: change.details
+          details: change.details,
         },
         ipAddress: this.getRequestIp(),
-        userAgent: this.getRequestUserAgent()
+        userAgent: this.getRequestUserAgent(),
       });
     } catch (error) {
       console.error('Failed to log security change:', error);
@@ -99,14 +107,19 @@ export class AuditLogger {
 
   /**
    * Log system access event
-   * 
+   *
    * @param userId - ID of the user accessing the resource
    * @param resource - Resource being accessed
    * @param resourceId - Optional ID of the specific resource
    * @param details - Optional additional details
    * @returns The created audit log entry
    */
-  async logSystemAccess(userId: string, resource: string, resourceId?: string, details?: any) {
+  async logSystemAccess(
+    userId: string,
+    resource: string,
+    resourceId?: string,
+    details?: any
+  ) {
     try {
       return await AuditLogRepository.create({
         userId,
@@ -115,7 +128,7 @@ export class AuditLogger {
         resourceId,
         changes: details ? this.filterSensitiveData(details) : undefined,
         ipAddress: this.getRequestIp(),
-        userAgent: this.getRequestUserAgent()
+        userAgent: this.getRequestUserAgent(),
       });
     } catch (error) {
       console.error('Failed to log system access:', error);
@@ -126,14 +139,19 @@ export class AuditLogger {
 
   /**
    * Log authentication event (login/logout)
-   * 
+   *
    * @param userId - ID of the user
    * @param action - 'login' or 'logout'
    * @param success - Whether the authentication was successful
    * @param details - Optional additional details
    * @returns The created audit log entry
    */
-  async logAuthEvent(userId: string, action: 'login' | 'logout', success: boolean, details?: any) {
+  async logAuthEvent(
+    userId: string,
+    action: 'login' | 'logout',
+    success: boolean,
+    details?: any
+  ) {
     try {
       return await AuditLogRepository.create({
         userId,
@@ -141,10 +159,10 @@ export class AuditLogger {
         resource: 'auth',
         changes: {
           success,
-          ...(details ? this.filterSensitiveData(details) : {})
+          ...(details ? this.filterSensitiveData(details) : {}),
         },
         ipAddress: this.getRequestIp(),
-        userAgent: this.getRequestUserAgent()
+        userAgent: this.getRequestUserAgent(),
       });
     } catch (error) {
       console.error(`Failed to log ${action} event:`, error);
@@ -155,7 +173,7 @@ export class AuditLogger {
 
   /**
    * Get security audit report for a specific time period
-   * 
+   *
    * @param days - Number of days to include in the report
    * @returns Security audit report data
    */
@@ -163,46 +181,42 @@ export class AuditLogger {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      
-      const [
-        loginAttempts,
-        securityChanges,
-        userCreations,
-        systemAccess
-      ] = await Promise.all([
-        AuditLogRepository.getLoginAttempts({ startDate }),
-        AuditLogRepository.findAll({ 
-          resource: 'security',
-          startDate
-        }),
-        AuditLogRepository.findAll({
-          resource: 'user',
-          action: 'create',
-          startDate
-        }),
-        AuditLogRepository.findAll({
-          action: 'view',
-          startDate
-        })
-      ]);
-      
+
+      const [loginAttempts, securityChanges, userCreations, systemAccess] =
+        await Promise.all([
+          AuditLogRepository.getLoginAttempts({ startDate }),
+          AuditLogRepository.findAll({
+            resource: 'security',
+            startDate,
+          }),
+          AuditLogRepository.findAll({
+            resource: 'user',
+            action: 'create',
+            startDate,
+          }),
+          AuditLogRepository.findAll({
+            action: 'view',
+            startDate,
+          }),
+        ]);
+
       return {
         period: {
           start: startDate,
-          end: new Date()
+          end: new Date(),
         },
         summary: {
           loginAttempts: loginAttempts.length,
           securityChanges: securityChanges.length,
           userCreations: userCreations.length,
-          systemAccess: systemAccess.length
+          systemAccess: systemAccess.length,
         },
         details: {
           loginAttempts,
           securityChanges,
           userCreations,
-          systemAccess
-        }
+          systemAccess,
+        },
       };
     } catch (error) {
       console.error('Failed to generate security audit report:', error);
@@ -212,20 +226,29 @@ export class AuditLogger {
 
   /**
    * Filter sensitive data from objects
-   * 
+   *
    * @param data - Data to filter
    * @returns Filtered data with sensitive fields redacted
    */
   private filterSensitiveData(data: any): any {
     if (!data || typeof data !== 'object') return data;
-    
+
     const sensitiveFields = [
-      'password', 'passwordHash', 'refreshToken', 'apiKey', 'secret',
-      'token', 'accessToken', 'jwt', 'credential', 'pin', 'otp'
+      'password',
+      'passwordHash',
+      'refreshToken',
+      'apiKey',
+      'secret',
+      'token',
+      'accessToken',
+      'jwt',
+      'credential',
+      'pin',
+      'otp',
     ];
-    
+
     const filtered = Array.isArray(data) ? [...data] : { ...data };
-    
+
     for (const key in filtered) {
       if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
         filtered[key] = '[REDACTED]';
@@ -233,7 +256,7 @@ export class AuditLogger {
         filtered[key] = this.filterSensitiveData(filtered[key]);
       }
     }
-    
+
     return filtered;
   }
 

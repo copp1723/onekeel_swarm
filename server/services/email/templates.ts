@@ -5,7 +5,7 @@ export interface EmailTemplate {
   html: string;
   text: string;
   variables: string[];
-  category: "welcome" | "followup" | "reminder" | "approval" | "custom";
+  category: 'welcome' | 'followup' | 'reminder' | 'approval' | 'custom';
 }
 
 export interface CampaignConfig {
@@ -33,38 +33,38 @@ class EmailTemplateManager {
   private initializeDefaultTemplates() {
     const templates: EmailTemplate[] = [
       {
-        id: "welcome_onekeel",
-        name: "Welcome - OneKeel Platform",
-        category: "welcome",
-        subject: "Welcome to OneKeel, {{firstName}}!",
-        variables: ["firstName", "teamName"],
+        id: 'welcome_onekeel',
+        name: 'Welcome - OneKeel Platform',
+        category: 'welcome',
+        subject: 'Welcome to OneKeel, {{firstName}}!',
+        variables: ['firstName', 'teamName'],
         html: this.getWelcomeOneKeelTemplate(),
         text: this.getWelcomeOneKeelTextTemplate(),
       },
       {
-        id: "followup_24h",
-        name: "Follow-up - 24 Hours",
-        category: "followup",
+        id: 'followup_24h',
+        name: 'Follow-up - 24 Hours',
+        category: 'followup',
         subject: "{{firstName}}, let's get your team organized",
-        variables: ["firstName", "teamName"],
+        variables: ['firstName', 'teamName'],
         html: this.getFollowup24hTemplate(),
         text: this.getFollowup24hTextTemplate(),
       },
       {
-        id: "followup_3day",
-        name: "Follow-up - 3 Days",
-        category: "followup",
-        subject: "{{firstName}}, your team is waiting",
-        variables: ["firstName", "teamName"],
+        id: 'followup_3day',
+        name: 'Follow-up - 3 Days',
+        category: 'followup',
+        subject: '{{firstName}}, your team is waiting',
+        variables: ['firstName', 'teamName'],
         html: this.getFollowup3DayTemplate(),
         text: this.getFollowup3DayTextTemplate(),
       },
       {
-        id: "reminder_weekly",
-        name: "Weekly Reminder",
-        category: "reminder",
-        subject: "Weekly update: {{teamName}} progress",
-        variables: ["firstName", "teamName", "progressMetrics"],
+        id: 'reminder_weekly',
+        name: 'Weekly Reminder',
+        category: 'reminder',
+        subject: 'Weekly update: {{teamName}} progress',
+        variables: ['firstName', 'teamName', 'progressMetrics'],
         html: this.getWeeklyReminderTemplate(),
         text: this.getWeeklyReminderTextTemplate(),
       },
@@ -78,23 +78,23 @@ class EmailTemplateManager {
   private initializeDefaultCampaigns() {
     const campaigns: CampaignConfig[] = [
       {
-        id: "onboarding_sequence",
-        name: "User Onboarding Sequence",
-        description: "Automated onboarding sequence for new users",
+        id: 'onboarding_sequence',
+        name: 'User Onboarding Sequence',
+        description: 'Automated onboarding sequence for new users',
         templates: [
-          this.templates.get("welcome_onekeel")!,
-          this.templates.get("followup_24h")!,
-          this.templates.get("followup_3day")!,
+          this.templates.get('welcome_onekeel')!,
+          this.templates.get('followup_24h')!,
+          this.templates.get('followup_3day')!,
         ],
         triggerConditions: {
-          leadStatus: ["new", "registered"],
+          leadStatus: ['new', 'registered'],
         },
       },
       {
-        id: "team_engagement",
-        name: "Team Engagement Campaign",
-        description: "Keep teams engaged with regular updates",
-        templates: [this.templates.get("reminder_weekly")!],
+        id: 'team_engagement',
+        name: 'Team Engagement Campaign',
+        description: 'Keep teams engaged with regular updates',
+        templates: [this.templates.get('reminder_weekly')!],
         triggerConditions: {
           daysSinceLastContact: 7,
         },
@@ -107,14 +107,17 @@ class EmailTemplateManager {
   }
 
   // Template creation and management methods
-  createTemplate(template: Omit<EmailTemplate, "id">): EmailTemplate {
+  createTemplate(template: Omit<EmailTemplate, 'id'>): EmailTemplate {
     const id = `custom_${Date.now()}`;
     const newTemplate: EmailTemplate = { ...template, id };
     this.templates.set(id, newTemplate);
     return newTemplate;
   }
 
-  updateTemplate(id: string, updates: Partial<EmailTemplate>): EmailTemplate | null {
+  updateTemplate(
+    id: string,
+    updates: Partial<EmailTemplate>
+  ): EmailTemplate | null {
     const template = this.templates.get(id);
     if (!template) return null;
 
@@ -135,12 +138,14 @@ class EmailTemplateManager {
     return Array.from(this.templates.values());
   }
 
-  getTemplatesByCategory(category: EmailTemplate["category"]): EmailTemplate[] {
-    return Array.from(this.templates.values()).filter(t => t.category === category);
+  getTemplatesByCategory(category: EmailTemplate['category']): EmailTemplate[] {
+    return Array.from(this.templates.values()).filter(
+      t => t.category === category
+    );
   }
 
   // Campaign management methods
-  createCampaign(campaign: Omit<CampaignConfig, "id">): CampaignConfig {
+  createCampaign(campaign: Omit<CampaignConfig, 'id'>): CampaignConfig {
     const id = `campaign_${Date.now()}`;
     const newCampaign: CampaignConfig = { ...campaign, id };
     this.campaigns.set(id, newCampaign);

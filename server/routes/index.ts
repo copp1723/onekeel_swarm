@@ -47,7 +47,7 @@ router.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     routes: [
       '/auth',
-      '/agents', 
+      '/agents',
       '/agent-templates',
       '/campaigns',
       '/email',
@@ -61,8 +61,8 @@ router.get('/health', (req, res) => {
       '/navigation',
       '/services',
       '/templates',
-      '/import'
-    ]
+      '/import',
+    ],
   });
 });
 
@@ -77,12 +77,12 @@ router.get('/docs', (req, res) => {
         description: 'Authentication and authorization endpoints',
         endpoints: [
           'POST /auth/login',
-          'POST /auth/register', 
+          'POST /auth/register',
           'POST /auth/refresh',
           'POST /auth/logout',
           'GET /auth/me',
-          'POST /auth/change-password'
-        ]
+          'POST /auth/change-password',
+        ],
       },
       '/agents': {
         description: 'AI agent configuration and management',
@@ -94,11 +94,12 @@ router.get('/docs', (req, res) => {
           'DELETE /agents/:id',
           'GET /agents/type/:type',
           'GET /agents/active/:type',
-          'GET /agents/decisions/lead/:leadId'
-        ]
+          'GET /agents/decisions/lead/:leadId',
+        ],
       },
       '/agent-templates': {
-        description: 'Preconfigured agent templates with sophisticated system prompts',
+        description:
+          'Preconfigured agent templates with sophisticated system prompts',
         endpoints: [
           'GET /agent-templates',
           'GET /agent-templates/:id',
@@ -107,8 +108,8 @@ router.get('/docs', (req, res) => {
           'PUT /agent-templates/:id',
           'DELETE /agent-templates/:id',
           'POST /agent-templates/:id/clone',
-          'POST /agent-templates/:id/create-agent'
-        ]
+          'POST /agent-templates/:id/create-agent',
+        ],
       },
       '/campaigns': {
         description: 'Campaign management and execution',
@@ -119,8 +120,8 @@ router.get('/docs', (req, res) => {
           'PUT /campaigns/:id',
           'DELETE /campaigns/:id',
           'GET /campaigns/:id/stats',
-          'POST /campaigns/execution/trigger'
-        ]
+          'POST /campaigns/execution/trigger',
+        ],
       },
       '/email': {
         description: 'Email templates, scheduling, and monitoring',
@@ -131,8 +132,8 @@ router.get('/docs', (req, res) => {
           'DELETE /email/templates/:id',
           'POST /email/schedule',
           'GET /email/schedules',
-          'POST /email/send'
-        ]
+          'POST /email/send',
+        ],
       },
       '/leads': {
         description: 'Lead management and tracking',
@@ -145,11 +146,12 @@ router.get('/docs', (req, res) => {
           'GET /leads/stats',
           'GET /leads/:id/details',
           'GET /leads/:id/timeline',
-          'POST /leads/:id/send-message'
-        ]
+          'POST /leads/:id/send-message',
+        ],
       },
       '/contacts': {
-        description: 'Contact management and tracking (dual terminology support)',
+        description:
+          'Contact management and tracking (dual terminology support)',
         endpoints: [
           'GET /contacts',
           'GET /contacts/:id',
@@ -158,8 +160,8 @@ router.get('/docs', (req, res) => {
           'DELETE /contacts/:id',
           'POST /contacts/import',
           'PATCH /contacts/:id/status',
-          'GET /contacts/meta/terminology'
-        ]
+          'GET /contacts/meta/terminology',
+        ],
       },
       '/conversations': {
         description: 'Conversation management across channels',
@@ -169,8 +171,8 @@ router.get('/docs', (req, res) => {
           'POST /conversations',
           'POST /conversations/:id/messages',
           'PATCH /conversations/:id/status',
-          'GET /conversations/lead/:leadId'
-        ]
+          'GET /conversations/lead/:leadId',
+        ],
       },
       '/clients': {
         description: 'Client management and configuration',
@@ -179,8 +181,8 @@ router.get('/docs', (req, res) => {
           'GET /clients/:id',
           'POST /clients',
           'PUT /clients/:id',
-          'DELETE /clients/:id'
-        ]
+          'DELETE /clients/:id',
+        ],
       },
       '/users': {
         description: 'User management and administration',
@@ -189,8 +191,8 @@ router.get('/docs', (req, res) => {
           'GET /users/:id',
           'PUT /users/:id',
           'PATCH /users/:id/toggle',
-          'GET /users/:id/activity'
-        ]
+          'GET /users/:id/activity',
+        ],
       },
       '/monitoring': {
         description: 'System monitoring and health checks',
@@ -199,8 +201,8 @@ router.get('/docs', (req, res) => {
           'GET /monitoring/performance',
           'GET /monitoring/dashboard',
           'GET /monitoring/stats',
-          'GET /monitoring/alerts'
-        ]
+          'GET /monitoring/alerts',
+        ],
       },
       '/feature-flags': {
         description: 'Feature flag management and evaluation',
@@ -214,16 +216,16 @@ router.get('/docs', (req, res) => {
           'DELETE /feature-flags/admin/:flagKey',
           'POST /feature-flags/admin/:flagKey/disable',
           'POST /feature-flags/admin/:flagKey/enable',
-          'GET /feature-flags/health'
-        ]
+          'GET /feature-flags/health',
+        ],
       },
       '/navigation': {
         description: 'Navigation configuration and route aliases',
         endpoints: [
           'GET /navigation/config',
           'GET /navigation/route-aliases',
-          'GET /navigation/breadcrumbs'
-        ]
+          'GET /navigation/breadcrumbs',
+        ],
       },
       '/services': {
         description: 'Service configuration and management',
@@ -231,8 +233,8 @@ router.get('/docs', (req, res) => {
           'GET /services/config',
           'PUT /services/config/:service',
           'POST /services/test/:service',
-          'GET /services/health/:service'
-        ]
+          'GET /services/health/:service',
+        ],
       },
       '/templates': {
         description: 'Email and SMS template management',
@@ -242,17 +244,14 @@ router.get('/docs', (req, res) => {
           'POST /templates',
           'PUT /templates/:id',
           'DELETE /templates/:id',
-          'POST /templates/:id/duplicate'
-        ]
+          'POST /templates/:id/duplicate',
+        ],
       },
       '/import': {
         description: 'Data import functionality',
-        endpoints: [
-          'POST /import/analyze',
-          'POST /import/leads'
-        ]
-      }
-    }
+        endpoints: ['POST /import/analyze', 'POST /import/leads'],
+      },
+    },
   });
 });
 
@@ -281,5 +280,5 @@ export {
   navigationRoutes,
   serviceConfigRoutes,
   templatesRoutes,
-  importRoutes
+  importRoutes,
 };

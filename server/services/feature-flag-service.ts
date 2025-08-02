@@ -1,11 +1,11 @@
 import { db } from '../db/client';
 import { featureFlags, featureFlagUserOverrides, users } from '../db/schema';
 import { eq, and, inArray, sql } from 'drizzle-orm';
-import type { 
-  FeatureFlag, 
-  NewFeatureFlag, 
+import type {
+  FeatureFlag,
+  NewFeatureFlag,
   FeatureFlagUserOverride,
-  NewFeatureFlagUserOverride 
+  NewFeatureFlagUserOverride,
 } from '../db/schema';
 
 // Feature Flag Context for evaluating flags
@@ -39,13 +39,19 @@ export class FeatureFlagService {
   }
 
   // Evaluate a single feature flag
-  async isEnabled(flagKey: string, context: FeatureFlagContext): Promise<boolean> {
+  async isEnabled(
+    flagKey: string,
+    context: FeatureFlagContext
+  ): Promise<boolean> {
     const evaluation = await this.evaluateFlag(flagKey, context);
     return evaluation.enabled;
   }
 
   // Get detailed evaluation information
-  async evaluateFlag(flagKey: string, context: FeatureFlagContext): Promise<FeatureFlagEvaluation> {
+  async evaluateFlag(
+    flagKey: string,
+    context: FeatureFlagContext
+  ): Promise<FeatureFlagEvaluation> {
     try {
       // Get flag configuration
       const flag = await this.getFlag(flagKey);
@@ -53,7 +59,7 @@ export class FeatureFlagService {
         return {
           enabled: false,
           reason: 'Flag not found',
-          source: 'default'
+          source: 'default',
         };
       }
 
@@ -62,7 +68,7 @@ export class FeatureFlagService {
         return {
           enabled: false,
           reason: 'Flag globally disabled',
-          source: 'default'
+          source: 'default',
         };
       }
 
@@ -72,18 +78,24 @@ export class FeatureFlagService {
         return {
           enabled: false,
           reason: `Environment ${context.environment} not targeted`,
-          source: 'default'
+          source: 'default',
         };
       }
 
       // Check user override first
       if (context.userId) {
-        const userOverride = await this.getUserOverride(flag.id, context.userId);
-        if (userOverride && (!userOverride.expiresAt || userOverride.expiresAt > new Date())) {
+        const userOverride = await this.getUserOverride(
+          flag.id,
+          context.userId
+        );
+        if (
+          userOverride &&
+          (!userOverride.expiresAt || userOverride.expiresAt > new Date())
+        ) {
           return {
             enabled: userOverride.enabled,
             reason: userOverride.reason || 'User override',
-            source: 'user_override'
+            source: 'user_override',
           };
         }
       }
@@ -95,7 +107,7 @@ export class FeatureFlagService {
           return {
             enabled: false,
             reason: `Role ${context.userRole} not targeted`,
-            source: 'role_targeting'
+            source: 'role_targeting',
           };
         }
       }
@@ -104,12 +116,12 @@ export class FeatureFlagService {
       if (flag.rolloutPercentage < 100) {
         const hash = this.getUserHash(context.userId || 'anonymous', flagKey);
         const threshold = flag.rolloutPercentage / 100;
-        
+
         if (hash > threshold) {
           return {
             enabled: false,
             reason: `User not in ${flag.rolloutPercentage}% rollout`,
-            source: 'rollout'
+            source: 'rollout',
           };
         }
       }
@@ -118,21 +130,22 @@ export class FeatureFlagService {
       return {
         enabled: true,
         reason: 'All conditions met',
-        source: 'default'
+        source: 'default',
       };
-
     } catch (error) {
       console.error(`Error evaluating flag ${flagKey}:`, error);
       return {
         enabled: false,
         reason: 'Evaluation error',
-        source: 'default'
+        source: 'default',
       };
     }
   }
 
   // Get all flags for a context
-  async getAllFlags(context: FeatureFlagContext): Promise<Record<string, boolean>> {
+  async getAllFlags(
+    context: FeatureFlagContext
+  ): Promise<Record<string, boolean>> {
     try {
       const flags = await db
         .select()
@@ -140,7 +153,7 @@ export class FeatureFlagService {
         .where(eq(featureFlags.enabled, true));
 
       const result: Record<string, boolean> = {};
-      
+
       for (const flag of flags) {
         const evaluation = await this.evaluateFlag(flag.key, context);
         result[flag.key] = evaluation.enabled;
@@ -160,7 +173,7 @@ export class FeatureFlagService {
       .values({
         ...flagData,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
 
@@ -168,12 +181,15 @@ export class FeatureFlagService {
     return flag;
   }
 
-  async updateFlag(flagKey: string, updates: Partial<NewFeatureFlag>): Promise<FeatureFlag | null> {
+  async updateFlag(
+    flagKey: string,
+    updates: Partial<NewFeatureFlag>
+  ): Promise<FeatureFlag | null> {
     const [flag] = await db
       .update(featureFlags)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(featureFlags.key, flagKey))
       .returning();
@@ -201,9 +217,9 @@ export class FeatureFlagService {
 
   // User override methods
   async setUserOverride(
-    flagKey: string, 
-    userId: string, 
-    enabled: boolean, 
+    flagKey: string,
+    userId: string,
+    enabled: boolean,
     reason?: string,
     expiresAt?: Date
   ): Promise<FeatureFlagUserOverride> {
@@ -215,10 +231,12 @@ export class FeatureFlagService {
     // Delete existing override
     await db
       .delete(featureFlagUserOverrides)
-      .where(and(
-        eq(featureFlagUserOverrides.flagId, flag.id),
-        eq(featureFlagUserOverrides.userId, userId)
-      ));
+      .where(
+        and(
+          eq(featureFlagUserOverrides.flagId, flag.id),
+          eq(featureFlagUserOverrides.userId, userId)
+        )
+      );
 
     // Create new override
     const [override] = await db
@@ -229,7 +247,7 @@ export class FeatureFlagService {
         enabled,
         reason,
         expiresAt,
-        createdAt: new Date()
+        createdAt: new Date(),
       })
       .returning();
 
@@ -244,20 +262,25 @@ export class FeatureFlagService {
 
     const [deleted] = await db
       .delete(featureFlagUserOverrides)
-      .where(and(
-        eq(featureFlagUserOverrides.flagId, flag.id),
-        eq(featureFlagUserOverrides.userId, userId)
-      ))
+      .where(
+        and(
+          eq(featureFlagUserOverrides.flagId, flag.id),
+          eq(featureFlagUserOverrides.userId, userId)
+        )
+      )
       .returning();
 
     return !!deleted;
   }
 
   // Emergency methods
-  async disableFlag(flagKey: string, reason: string = 'Emergency disable'): Promise<boolean> {
-    const flag = await this.updateFlag(flagKey, { 
+  async disableFlag(
+    flagKey: string,
+    reason: string = 'Emergency disable'
+  ): Promise<boolean> {
+    const flag = await this.updateFlag(flagKey, {
       enabled: false,
-      rolloutPercentage: 0
+      rolloutPercentage: 0,
     });
 
     if (flag) {
@@ -269,10 +292,13 @@ export class FeatureFlagService {
     return false;
   }
 
-  async enableFlag(flagKey: string, rolloutPercentage: number = 100): Promise<boolean> {
-    const flag = await this.updateFlag(flagKey, { 
+  async enableFlag(
+    flagKey: string,
+    rolloutPercentage: number = 100
+  ): Promise<boolean> {
+    const flag = await this.updateFlag(flagKey, {
       enabled: true,
-      rolloutPercentage
+      rolloutPercentage,
     });
 
     return !!flag;
@@ -290,7 +316,7 @@ export class FeatureFlagService {
     // Check cache first
     const cached = this.flagCache.get(flagKey);
     const expiry = this.cacheExpiry.get(flagKey);
-    
+
     if (cached && expiry && Date.now() < expiry) {
       return cached;
     }
@@ -310,14 +336,19 @@ export class FeatureFlagService {
     return flag || null;
   }
 
-  private async getUserOverride(flagId: string, userId: string): Promise<FeatureFlagUserOverride | null> {
+  private async getUserOverride(
+    flagId: string,
+    userId: string
+  ): Promise<FeatureFlagUserOverride | null> {
     const [override] = await db
       .select()
       .from(featureFlagUserOverrides)
-      .where(and(
-        eq(featureFlagUserOverrides.flagId, flagId),
-        eq(featureFlagUserOverrides.userId, userId)
-      ))
+      .where(
+        and(
+          eq(featureFlagUserOverrides.flagId, flagId),
+          eq(featureFlagUserOverrides.userId, userId)
+        )
+      )
       .limit(1);
 
     return override || null;
@@ -332,23 +363,26 @@ export class FeatureFlagService {
   private getUserHash(userId: string, flagKey: string): number {
     const str = `${userId}:${flagKey}`;
     let hash = 0;
-    
+
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     // Convert to 0-1 range
     return Math.abs(hash) / 2147483647;
   }
 
   // Bulk operations
-  async bulkEvaluate(flagKeys: string[], context: FeatureFlagContext): Promise<Record<string, boolean>> {
+  async bulkEvaluate(
+    flagKeys: string[],
+    context: FeatureFlagContext
+  ): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {};
-    
+
     await Promise.all(
-      flagKeys.map(async (key) => {
+      flagKeys.map(async key => {
         results[key] = await this.isEnabled(key, context);
       })
     );
@@ -365,7 +399,11 @@ export class FeatureFlagService {
   }
 
   // Health check
-  async healthCheck(): Promise<{ status: string; flagsCount: number; cacheSize: number }> {
+  async healthCheck(): Promise<{
+    status: string;
+    flagsCount: number;
+    cacheSize: number;
+  }> {
     try {
       const [{ count }] = await db
         .select({ count: sql<number>`count(*)::int` })
@@ -374,13 +412,13 @@ export class FeatureFlagService {
       return {
         status: 'healthy',
         flagsCount: count,
-        cacheSize: this.flagCache.size
+        cacheSize: this.flagCache.size,
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         flagsCount: 0,
-        cacheSize: this.flagCache.size
+        cacheSize: this.flagCache.size,
       };
     }
   }
@@ -391,7 +429,7 @@ export const featureFlagService = FeatureFlagService.getInstance();
 
 // Convenience function for middleware
 export const isFeatureEnabled = async (
-  flagKey: string, 
+  flagKey: string,
   context: FeatureFlagContext
 ): Promise<boolean> => {
   return await featureFlagService.isEnabled(flagKey, context);

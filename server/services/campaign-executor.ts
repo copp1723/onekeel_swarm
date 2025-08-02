@@ -36,10 +36,16 @@ class CampaignExecutor {
   /**
    * Launch a campaign - start sending emails to all leads
    */
-  async launchCampaign(campaignId: string): Promise<{ success: boolean; message: string }> {
+  async launchCampaign(
+    campaignId: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
       // Get campaign details
-      const campaign = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+      const campaign = await db
+        .select()
+        .from(campaigns)
+        .where(eq(campaigns.id, campaignId))
+        .limit(1);
       if (!campaign.length) {
         return { success: false, message: 'Campaign not found' };
       }
@@ -64,7 +70,7 @@ class CampaignExecutor {
           email: leads.email,
           firstName: leads.firstName,
           lastName: leads.lastName,
-          customData: leads.customData
+          customData: leads.customData,
         })
         .from(leadCampaignEnrollments)
         .innerJoin(leads, eq(leadCampaignEnrollments.leadId, leads.id))
@@ -82,18 +88,20 @@ class CampaignExecutor {
         sentCount: 0,
         failedCount: 0,
         startedAt: new Date(),
-        currentStep: 1
+        currentStep: 1,
       };
 
       this.runningCampaigns.set(campaignId, execution);
 
       // Start processing in background
-      this.processCampaign(campaignId, campaignData, enrollments).catch(error => {
-        console.error(`Campaign ${campaignId} failed:`, error);
-        execution.status = 'failed';
-        execution.errorMessage = error.message;
-        execution.completedAt = new Date();
-      });
+      this.processCampaign(campaignId, campaignData, enrollments).catch(
+        error => {
+          console.error(`Campaign ${campaignId} failed:`, error);
+          execution.status = 'failed';
+          execution.errorMessage = error.message;
+          execution.completedAt = new Date();
+        }
+      );
 
       return { success: true, message: 'Campaign launched successfully' };
     } catch (error) {
@@ -105,9 +113,13 @@ class CampaignExecutor {
   /**
    * Process campaign - send emails to all leads
    */
-  private async processCampaign(campaignId: string, campaignData: any, enrollments: any[]): Promise<void> {
+  private async processCampaign(
+    campaignId: string,
+    campaignData: any,
+    enrollments: any[]
+  ): Promise<void> {
     const execution = this.runningCampaigns.get(campaignId)!;
-    
+
     try {
       const settings = campaignData.settings || {};
       const templates = settings.templates || [];
@@ -122,7 +134,7 @@ class CampaignExecutor {
       if (!template) {
         throw new Error('Template is empty or invalid');
       }
-      
+
       // Process enrollments in batches to avoid overwhelming the email service
       const batchSize = 10;
       for (let i = 0; i < enrollments.length; i += batchSize) {
@@ -130,7 +142,9 @@ class CampaignExecutor {
 
         // Process batch
         const results = await Promise.allSettled(
-          batch.map(enrollment => this.sendEmailToLead(campaignId, enrollment, template))
+          batch.map(enrollment =>
+            this.sendEmailToLead(campaignId, enrollment, template)
+          )
         );
 
         // Update counters
@@ -149,12 +163,14 @@ class CampaignExecutor {
       // Mark as completed
       execution.status = 'completed';
       execution.completedAt = new Date();
-      
-      console.log(`Campaign ${campaignId} completed: ${execution.sentCount} sent, ${execution.failedCount} failed`);
-      
+
+      console.log(
+        `Campaign ${campaignId} completed: ${execution.sentCount} sent, ${execution.failedCount} failed`
+      );
     } catch (error) {
       execution.status = 'failed';
-      execution.errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      execution.errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       execution.completedAt = new Date();
       throw error;
     }
@@ -163,14 +179,18 @@ class CampaignExecutor {
   /**
    * Send email to individual lead
    */
-  private async sendEmailToLead(campaignId: string, enrollment: any, template: any): Promise<{ success: boolean; error?: string }> {
+  private async sendEmailToLead(
+    campaignId: string,
+    enrollment: any,
+    template: any
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Prepare template variables
       const variables = {
         firstName: enrollment.firstName || 'there',
         lastName: enrollment.lastName || '',
         email: enrollment.email,
-        ...enrollment.customData
+        ...enrollment.customData,
       };
 
       // Render template if it's a template ID, otherwise use content directly
@@ -188,16 +208,17 @@ class CampaignExecutor {
         to: enrollment.email,
         subject,
         html,
-        text
+        text,
       });
 
       if (result.success) {
         // Update enrollment status in database
-        await db.update(leadCampaignEnrollments)
+        await db
+          .update(leadCampaignEnrollments)
           .set({
             status: 'active',
             lastProcessedAt: new Date(),
-            currentStep: (enrollment.currentStep || 0) + 1
+            currentStep: (enrollment.currentStep || 0) + 1,
           })
           .where(eq(leadCampaignEnrollments.id, enrollment.enrollmentId));
       }
@@ -205,14 +226,20 @@ class CampaignExecutor {
       return { success: result.success, error: result.error };
     } catch (error) {
       console.error(`Failed to send email to ${enrollment.email}:`, error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
   /**
    * Simple variable replacement
    */
-  private replaceVariables(content: string, variables: Record<string, any>): string {
+  private replaceVariables(
+    content: string,
+    variables: Record<string, any>
+  ): string {
     let result = content;
     Object.entries(variables).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
@@ -231,7 +258,9 @@ class CampaignExecutor {
   /**
    * Stop a running campaign
    */
-  async stopCampaign(campaignId: string): Promise<{ success: boolean; message: string }> {
+  async stopCampaign(
+    campaignId: string
+  ): Promise<{ success: boolean; message: string }> {
     const execution = this.runningCampaigns.get(campaignId);
     if (!execution) {
       return { success: false, message: 'Campaign is not running' };
@@ -239,7 +268,7 @@ class CampaignExecutor {
 
     execution.status = 'paused';
     execution.completedAt = new Date();
-    
+
     return { success: true, message: 'Campaign stopped' };
   }
 
@@ -255,9 +284,12 @@ class CampaignExecutor {
    */
   cleanup(): void {
     const completed = Array.from(this.runningCampaigns.entries())
-      .filter(([_, execution]) => execution.status === 'completed' || execution.status === 'failed')
+      .filter(
+        ([_, execution]) =>
+          execution.status === 'completed' || execution.status === 'failed'
+      )
       .filter(([_, execution]) => {
-        const hoursSinceCompletion = execution.completedAt 
+        const hoursSinceCompletion = execution.completedAt
           ? (Date.now() - execution.completedAt.getTime()) / (1000 * 60 * 60)
           : 0;
         return hoursSinceCompletion > 1; // Keep for 1 hour after completion
@@ -272,6 +304,9 @@ class CampaignExecutor {
 export const campaignExecutor = new CampaignExecutor();
 
 // Cleanup completed campaigns every hour
-setInterval(() => {
-  campaignExecutor.cleanup();
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    campaignExecutor.cleanup();
+  },
+  60 * 60 * 1000
+);
