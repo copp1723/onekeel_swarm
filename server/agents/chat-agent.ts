@@ -14,7 +14,7 @@ export class ChatAgent extends BaseAgent {
       const visitorName = nameMatch ? nameMatch[1] : 'there';
       
       if (prompt.includes('initial greeting')) {
-        return `Hello ${visitorName}! Welcome to CCL-3. I'm here to help you find the perfect solution. What brings you here today?`;
+        return `Hello ${visitorName}! Welcome to OneKeel Swarm. I'm here to help you find the perfect solution. What brings you here today?`;
       }
       
       return `I understand your interest! Let me help you with that. Could you tell me a bit more about your specific needs so I can provide the best information?`;

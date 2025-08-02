@@ -53,7 +53,7 @@ export const LoginForm: React.FC = () => {
             <Brain className="h-8 w-8 text-blue-600" />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Complete Car Loans
+            OneKeel Swarm
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             AI Marketing Automation Platform
@@ -145,7 +145,7 @@ export const LoginForm: React.FC = () => {
 
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            Complete Car Loans AI Marketing Platform
+            OneKeel Swarm AI Marketing Platform
           </p>
         </div>
       </div>

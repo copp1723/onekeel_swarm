@@ -49,7 +49,7 @@ router.get('/templates', async (req, res) => {
       {
         id: 'template-1',
         name: 'Welcome Email',
-        subject: 'Welcome to Complete Car Loans',
+        subject: 'Welcome to OneKeel Swarm',
         content: 'Thank you for your interest in our auto loan services.',
         category: 'initial_contact',
         active: true,

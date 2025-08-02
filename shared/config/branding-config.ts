@@ -22,11 +22,11 @@ export interface ClientBrandingData {
 }
 
 export const DEFAULT_BRANDING: CCLBrandingConfig = {
-  companyName: 'CCL-3 SWARM',
+  companyName: 'OneKeel Swarm',
   primaryColor: '#2563eb',
   secondaryColor: '#1d4ed8',
-  emailFromName: 'CCL-3 SWARM',
-  supportEmail: 'support@ccl3swarm.com'
+  emailFromName: 'OneKeel Swarm',
+  supportEmail: 'support@onekeelswarm.com'
 }
 
 const CLIENT_BRANDINGS: Record<string, CCLBrandingConfig> = {
