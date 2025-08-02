@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "./node_modules/.bin/vite build",
+    "build": "vite build",
+    "build:safe": "node_modules/.bin/vite build",
     "build:widget": "vite build --config vite.config.chatwidget.ts",
     "preview": "vite preview"
   },
@@ -41,12 +45,12 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/socket.io-client": "^1.4.36",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.9.2",
-    "vite": "^5.3.1"
+    "vite": "^5.4.19"
   }
 }
