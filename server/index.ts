@@ -25,7 +25,7 @@ import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { configureCsrf } from './middleware/csrf';
-import { enhancedEmailMonitor } from './services/enhanced-email-monitor';
+
 import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
 import { StartupService } from './services/startup-service';
@@ -395,30 +395,12 @@ async function initializeApp() {
       });
     }, 1000); // Wait 1 second after server starts
 
-    // Start enhanced email monitor (optional service)
-    enhancedEmailMonitor
-      .start()
-      .catch(error =>
-        logger.warn(
-          'Enhanced email monitor not available - continuing without it',
-          { error: (error as Error).message }
-        )
-      );
-
-    // Start email monitor if configured
-    if (
-      process.env.IMAP_HOST &&
-      process.env.IMAP_USER &&
-      process.env.IMAP_PASSWORD
-    ) {
-      const { emailMonitor } = await import('./services/email-monitor');
-      emailMonitor
-        .start()
-        .catch((error: Error) =>
-          logger.error('Email monitor failed to start', error)
-        );
-    } else {
-      logger.info('Email monitor not started - IMAP configuration missing');
+    // Initialize outbound email watchdog
+    try {
+      const { outboundEmailWatchdog } = await import('./services/outbound-email-watchdog');
+      logger.info('🚫 Outbound Email Watchdog initialized - emails will be monitored before sending');
+    } catch (error) {
+      logger.warn('Outbound email watchdog not available', { error: (error as Error).message });
     }
 
     // Initialize cron jobs

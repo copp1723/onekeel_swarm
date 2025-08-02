@@ -4,7 +4,7 @@ import { executionScheduler } from './ExecutionScheduler';
 import { leadAssignmentService } from './LeadAssignmentService';
 import { executionStorage } from './ExecutionStorage';
 import { logger } from '../../utils/logger';
-import { emailMonitor } from '../email-monitor-mock';
+
 
 /**
  * Main orchestrator for campaign execution system
@@ -51,18 +51,8 @@ export class CampaignOrchestrator {
   async start(): Promise<void> {
     logger.info('Starting Campaign Execution Engine');
 
-    // Start email monitoring (optional - gracefully handle failures)
-    try {
-      await emailMonitor.start();
-      logger.info('✅ Email monitoring started for campaign execution');
-    } catch (error) {
-      logger.warn(
-        'Email monitoring not available for campaign execution - continuing without email monitoring',
-        {
-          error: (error as Error).message,
-        }
-      );
-    }
+    // Email monitoring removed - using outbound email watchdog instead
+    logger.info('✅ Campaign execution using outbound email watchdog for email control');
 
     // Start execution monitor
     await executionMonitor.start();
@@ -78,14 +68,7 @@ export class CampaignOrchestrator {
     // Stop execution monitor
     await executionMonitor.stop();
 
-    // Stop email monitor
-    try {
-      await emailMonitor.stop();
-    } catch (error) {
-      logger.warn('Error stopping email monitor', {
-        error: (error as Error).message,
-      });
-    }
+    // Email monitoring removed - no cleanup needed for outbound watchdog
 
     logger.info('✅ Campaign execution engine stopped');
   }

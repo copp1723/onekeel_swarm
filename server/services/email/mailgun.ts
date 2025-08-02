@@ -1,5 +1,6 @@
 import formData from 'form-data';
 import Mailgun from 'mailgun.js';
+import { outboundEmailWatchdog, OutboundEmailData } from '../outbound-email-watchdog';
 
 const mailgun = new Mailgun(formData);
 
@@ -37,6 +38,8 @@ export interface EmailResult {
   success: boolean;
   messageId?: string;
   error?: string;
+  blocked?: boolean;
+  riskScore?: number;
 }
 
 export class MailgunService {
@@ -49,10 +52,47 @@ export class MailgunService {
   }
 
   /**
-   * Send a single email
+   * Send a single email with outbound watchdog validation
    */
   async sendEmail(emailData: EmailData): Promise<EmailResult> {
     try {
+      // 🚨 OUTBOUND EMAIL WATCHDOG - Validate before sending
+      const watchdogData: OutboundEmailData = {
+        to: emailData.to,
+        from: emailData.from || this.defaultFrom,
+        subject: emailData.subject,
+        html: emailData.html,
+        text: emailData.text || '',
+        metadata: emailData,
+      };
+
+      const validation = await outboundEmailWatchdog.validateOutboundEmail(watchdogData);
+
+      // Block email if not allowed
+      if (!validation.allowed) {
+        console.warn(`🚫 Email BLOCKED by watchdog:`, {
+          to: emailData.to,
+          subject: emailData.subject,
+          reasons: validation.reasons,
+          riskScore: validation.riskScore,
+        });
+
+        return {
+          success: false,
+          error: `Email blocked: ${validation.reasons.join(', ')}`,
+          blocked: true,
+          riskScore: validation.riskScore,
+        };
+      }
+
+      // Log if email has warnings but is allowed
+      if (validation.riskScore > 0) {
+        console.warn(`⚠️ Email has risk score ${validation.riskScore}:`, {
+          to: emailData.to,
+          reasons: validation.reasons,
+        });
+      }
+
       // Simple HTML sanitization
       const sanitizedHtml = emailData.html
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -70,14 +110,15 @@ export class MailgunService {
         this.domain,
         messageData
       );
-      console.log(`Email sent to ${emailData.to}:`, result.id);
+      console.log(`✅ Email sent to ${emailData.to}:`, result.id);
 
       return {
         success: true,
         messageId: result.id,
+        riskScore: validation.riskScore,
       };
     } catch (error) {
-      console.error(`Failed to send email to ${emailData.to}:`, error);
+      console.error(`❌ Failed to send email to ${emailData.to}:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

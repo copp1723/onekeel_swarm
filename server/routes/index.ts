@@ -17,6 +17,7 @@ import navigationRoutes from './navigation-aliases';
 import serviceConfigRoutes from './service-config';
 import templatesRoutes from './templates';
 import importRoutes from './import';
+import emailWatchdogRoutes from './email-watchdog';
 
 const router = Router();
 
@@ -37,6 +38,8 @@ router.use('/services', serviceConfigRoutes); // Service configuration and manag
 router.use('/navigation', navigationRoutes); // Navigation configuration and aliases
 router.use('/templates', templatesRoutes); // Email and SMS templates
 router.use('/import', importRoutes); // CSV import functionality
+router.use('/email-watchdog', emailWatchdogRoutes); // Outbound email blocking and monitoring
+router.use('/email-watchdog', emailWatchdogRoutes); // Outbound email blocking and monitoring
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {
@@ -62,6 +65,7 @@ router.get('/health', (req, res) => {
       '/services',
       '/templates',
       '/import',
+      '/email-watchdog',
     ],
   });
 });
