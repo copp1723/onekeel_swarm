@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Target, Plus, Wand2 } from 'lucide-react';
 import { CampaignEditor } from '@/components/email-agent/CampaignEditor';
 import { CampaignWizard } from '@/components/campaign-wizard';
+import { apiClient } from '@/utils/api-client';
 
 export const CampaignsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -12,7 +13,7 @@ export const CampaignsView: React.FC = () => {
 
   useEffect(() => {
     // Load agents
-    fetch('/api/agents')
+    apiClient.get('/api/agents')
       .then(res => res.json())
       .then(data => setAgents(data.agents || []))
       .catch(console.error);

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { apiClient } from '../utils/api-client';
 
 interface User {
   id: string;
@@ -51,12 +52,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const validateToken = async (token: string) => {
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiClient.get('/api/auth/me');
 
       if (response.ok) {
         const data = await response.json();
@@ -83,13 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('[LOGIN DEBUG] Sending login request:', { username, password: '***' });
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username, password })
-      });
+      const response = await apiClient.post('/api/auth/login', { username, password });
 
       console.log('[LOGIN DEBUG] Response status:', response.status);
 

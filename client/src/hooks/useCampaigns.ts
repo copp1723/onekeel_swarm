@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiClient } from '@/utils/api-client';
 
 interface Campaign {
   id: string;
@@ -23,7 +24,7 @@ export function useCampaigns() {
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/campaigns');
+      const response = await apiClient.get('/api/campaigns');
       if (!response.ok) {
         throw new Error('Failed to fetch campaigns');
       }

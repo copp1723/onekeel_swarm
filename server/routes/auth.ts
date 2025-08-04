@@ -22,6 +22,17 @@ const loginSchema = z.object({
   password: z.string().min(1)
 });
 
+// CSRF token endpoint
+router.get('/csrf', async (req: AuthenticatedRequest, res: TypedResponse<{ csrfToken: string }>) => {
+  // The CSRF middleware will have already set the token in the response header
+  // This endpoint just provides a way for the client to explicitly request a token
+  const csrfToken = req.csrfToken || '';
+  
+  return res.json(
+    ApiResponseBuilder.success({ csrfToken }, 'CSRF token generated')
+  );
+});
+
 // Login endpoint with secure database authentication
 router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<LoginResponse>) => {
   try {
