@@ -35,7 +35,7 @@ export class MailgunService {
 
   constructor() {
     this.domain = process.env.MAILGUN_DOMAIN || "mail.onekeel.com";
-    this.defaultFrom = `Support <support@${this.domain}>`;
+    this.defaultFrom = process.env.MAIL_FROM || process.env.MAILGUN_FROM_EMAIL || `Support <support@${this.domain}>`;
   }
 
   /**
