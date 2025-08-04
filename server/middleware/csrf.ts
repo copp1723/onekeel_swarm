@@ -66,8 +66,12 @@ export function configureCsrf() {
         return next();
       }
       
-      // Skip for health checks and public endpoints
-      if (req.path === '/health' || req.path.startsWith('/api/public/')) {
+      // Skip for health checks, public endpoints, and auth endpoints
+      if (req.path === '/health' || 
+          req.path.startsWith('/api/public/') ||
+          req.path === '/api/auth/login' ||
+          req.path === '/api/auth/register' ||
+          req.path === '/api/auth/csrf') {
         return next();
       }
       

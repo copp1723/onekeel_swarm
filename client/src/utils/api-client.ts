@@ -60,8 +60,9 @@ class ApiClient {
       requestHeaders['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    // Add CSRF token for state-changing requests
-    if (!skipCsrf && !['GET', 'HEAD', 'OPTIONS'].includes(options.method || 'GET')) {
+    // Add CSRF token for state-changing requests (except auth endpoints)
+    const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+    if (!skipCsrf && !isAuthEndpoint && !['GET', 'HEAD', 'OPTIONS'].includes(options.method || 'GET')) {
       const csrfToken = await this.getCsrfToken();
       if (csrfToken) {
         requestHeaders['X-CSRF-Token'] = csrfToken;
@@ -81,21 +82,28 @@ class ApiClient {
       this.csrfToken = newCsrfToken;
     }
 
-    // Handle CSRF errors
+    // Handle CSRF errors without consuming the response body
     if (response.status === 403) {
-      const data = await response.json().catch(() => ({}));
-      if (data.code === 'CSRF_TOKEN_EXPIRED' || data.code === 'CSRF_TOKEN_NOT_FOUND') {
-        // Clear the token and retry once
-        this.csrfToken = null;
-        const retryToken = await this.getCsrfToken();
-        if (retryToken) {
-          requestHeaders['X-CSRF-Token'] = retryToken;
-          return fetch(url, {
-            ...restOptions,
-            headers: requestHeaders,
-            credentials: 'include'
-          });
+      // Check if it's a CSRF error by looking at the response headers or trying to clone
+      const clonedResponse = response.clone();
+      try {
+        const data = await clonedResponse.json();
+        if (data.code === 'CSRF_TOKEN_EXPIRED' || data.code === 'CSRF_TOKEN_NOT_FOUND' || data.code === 'CSRF_TOKEN_MISSING') {
+          // Clear the token and retry once
+          this.csrfToken = null;
+          const retryToken = await this.getCsrfToken();
+          if (retryToken) {
+            requestHeaders['X-CSRF-Token'] = retryToken;
+            return fetch(url, {
+              ...restOptions,
+              headers: requestHeaders,
+              credentials: 'include'
+            });
+          }
         }
+      } catch (e) {
+        // If we can't parse the response, just return it as-is
+        console.error('Failed to parse 403 response:', e);
       }
     }
 
