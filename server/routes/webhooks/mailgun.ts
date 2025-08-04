@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 import crypto from 'crypto';
 import { logger } from '../../utils/logger';
 import { LeadsRepository, CommunicationsRepository } from '../../db';

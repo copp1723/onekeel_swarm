@@ -15,6 +15,7 @@ import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
 import featureFlagsRoutes from './feature-flags';
 import navigationRoutes from './navigation-aliases';
+import mailgunWebhookRoutes from './webhooks/mailgun';
 
 const router = Router();
 
@@ -47,6 +48,9 @@ router.use('/users', authenticate, authorize('admin'), usersRoutes);
 router.use('/monitoring', authenticate, authorize('admin', 'manager'), monitoringRoutes);
 router.use('/feature-flags', authenticate, authorize('admin'), featureFlagsRoutes);
 router.use('/navigation', authenticate, navigationRoutes); // Navigation configuration and aliases
+
+// Public webhook endpoints (no auth required)
+router.use('/webhooks', mailgunWebhookRoutes);
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {
