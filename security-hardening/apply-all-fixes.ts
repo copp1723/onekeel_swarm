@@ -11,9 +11,16 @@ import { envValidator } from './env-validator';
 
 // Import fixed modules from Agent 1
 import authRoutes from '../security-fixes/fix-1-remove-hardcoded-credentials';
-import { authenticate, authorize } from '../security-fixes/fix-2-remove-auth-bypass';
+import {
+  authenticate,
+  authorize,
+} from '../security-fixes/fix-2-remove-auth-bypass';
 import { tokenService } from '../security-fixes/fix-3-secure-jwt-config';
-import { validateRequest, sanitizeRequestBody, schemas } from '../security-fixes/fix-5-input-validation-mass-assignment';
+import {
+  validateRequest,
+  sanitizeRequestBody,
+  schemas,
+} from '../security-fixes/fix-5-input-validation-mass-assignment';
 
 export async function applySecurityHardening(app: Application): Promise<void> {
   console.log('🔒 Applying comprehensive security hardening...\n');
@@ -22,11 +29,14 @@ export async function applySecurityHardening(app: Application): Promise<void> {
   await envValidator.validate();
   const envReport = envValidator.getReport();
   if (!envReport.valid && process.env.NODE_ENV === 'production') {
-    throw new Error('Environment validation failed. Cannot start in production.');
+    throw new Error(
+      'Environment validation failed. Cannot start in production.'
+    );
   }
 
   // 2. Apply security headers (should be one of the first middlewares)
-  const headerConfig = process.env.NODE_ENV === 'production' ? 'strict' : 'moderate';
+  const headerConfig =
+    process.env.NODE_ENV === 'production' ? 'strict' : 'moderate';
   app.use(securityHeaders(headerConfig));
   console.log('✅ Security headers applied');
 
@@ -36,11 +46,13 @@ export async function applySecurityHardening(app: Application): Promise<void> {
 
   // 4. Apply rate limiting
   // Global rate limit
-  app.use(createRateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100,
-    message: 'Too many requests from this IP, please try again later.'
-  }).middleware());
+  app.use(
+    createRateLimiter({
+      windowMs: 60 * 1000, // 1 minute
+      max: 100,
+      message: 'Too many requests from this IP, please try again later.',
+    }).middleware()
+  );
 
   // Specific rate limits for sensitive endpoints
   app.use('/api/auth/login', RateLimitPresets.auth.middleware());
@@ -69,7 +81,7 @@ export async function applySecurityHardening(app: Application): Promise<void> {
       console.error('Internal error:', err);
       return res.status(500).json({
         error: 'Internal server error',
-        code: 'INTERNAL_ERROR'
+        code: 'INTERNAL_ERROR',
       });
     }
 
@@ -77,7 +89,7 @@ export async function applySecurityHardening(app: Application): Promise<void> {
     res.status(err.status || 500).json({
       error: err.message,
       code: err.code || 'INTERNAL_ERROR',
-      stack: err.stack
+      stack: err.stack,
     });
   });
 
@@ -86,22 +98,22 @@ export async function applySecurityHardening(app: Application): Promise<void> {
   console.log('✅ Secure authentication routes applied');
 
   // 8. Security event handlers
-  securityMonitor.on('security-event', (event) => {
+  securityMonitor.on('security-event', event => {
     console.log(`[SECURITY EVENT] ${event.type} - ${event.details.message}`);
   });
 
-  securityMonitor.on('ip-blocked', (data) => {
+  securityMonitor.on('ip-blocked', data => {
     console.log(`[IP BLOCKED] ${data.ip} for ${data.duration}ms`);
   });
 
   // 9. Graceful shutdown handler
   process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully...');
-    
+
     // Save security metrics
     const metrics = securityMonitor.getMetrics();
     console.log('Security metrics:', metrics);
-    
+
     // Close connections
     process.exit(0);
   });
@@ -111,23 +123,24 @@ export async function applySecurityHardening(app: Application): Promise<void> {
 
 // Example of how to secure a route with all protections
 export function secureRoute(router: express.Router) {
-  router.post('/api/campaigns',
+  router.post(
+    '/api/campaigns',
     // Authentication
     authenticate,
-    
+
     // Authorization
     authorize('admin', 'manager'),
-    
+
     // Rate limiting
     createRateLimiter({
       windowMs: 60 * 1000,
       max: 10,
-      message: 'Too many campaign creations'
+      message: 'Too many campaign creations',
     }).middleware(),
-    
+
     // Input validation
     validateRequest({ body: schemas.createCampaignSchema }),
-    
+
     // Handler
     async (req: Request, res: Response) => {
       try {
@@ -158,18 +171,18 @@ export const securityConfig = {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: parseInt(process.env.SESSION_TIMEOUT || '3600000'),
-      sameSite: 'strict' as const
-    }
+      sameSite: 'strict' as const,
+    },
   },
-  
+
   // CORS configuration
   cors: {
     origin: (origin: string | undefined, callback: Function) => {
       const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
-      
+
       // Allow requests with no origin (like mobile apps)
       if (!origin) return callback(null, true);
-      
+
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -177,13 +190,13 @@ export const securityConfig = {
       }
     },
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
   },
-  
+
   // File upload configuration
   fileUpload: {
     limits: {
-      fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760')
+      fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'),
     },
     abortOnLimit: true,
     responseOnLimit: 'File too large',
@@ -194,29 +207,23 @@ export const securityConfig = {
     // Security options
     safeFileNames: true,
     preserveExtension: 4,
-    debug: process.env.NODE_ENV === 'development'
-  }
+    debug: process.env.NODE_ENV === 'development',
+  },
 };
 
 // Export security utilities
-export { 
+export {
   securityMonitor,
   SecurityEventType,
-  SecuritySeverity 
+  SecuritySeverity,
 } from './security-monitor';
 
-export {
-  createRateLimiter,
-  RateLimitPresets
-} from './advanced-rate-limiter';
+export { createRateLimiter, RateLimitPresets } from './advanced-rate-limiter';
 
-export {
-  securityHeaders,
-  SecurityHeaderPresets
-} from './security-headers';
+export { securityHeaders, SecurityHeaderPresets } from './security-headers';
 
 export {
   validateRequest,
   sanitizeRequestBody,
-  schemas
+  schemas,
 } from '../security-fixes/fix-5-input-validation-mass-assignment';

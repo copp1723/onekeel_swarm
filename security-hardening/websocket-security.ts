@@ -6,7 +6,11 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage } from 'http';
 import { tokenService } from '../security-fixes/fix-3-secure-jwt-config';
-import { securityMonitor, SecurityEventType, SecuritySeverity } from './security-monitor';
+import {
+  securityMonitor,
+  SecurityEventType,
+  SecuritySeverity,
+} from './security-monitor';
 import { createHash } from 'crypto';
 
 interface AuthenticatedWebSocket extends WebSocket {
@@ -43,7 +47,7 @@ export class SecureWebSocketServer {
       heartbeatInterval: config.heartbeatInterval || 30000, // 30 seconds
       connectionTimeout: config.connectionTimeout || 60000, // 1 minute
       requireAuthentication: config.requireAuthentication !== false,
-      allowedOrigins: config.allowedOrigins || []
+      allowedOrigins: config.allowedOrigins || [],
     };
 
     this.setupWebSocketServer();
@@ -52,154 +56,164 @@ export class SecureWebSocketServer {
 
   private setupWebSocketServer() {
     // Handle new connections
-    this.wss.on('connection', (ws: AuthenticatedWebSocket, request: IncomingMessage) => {
-      const ip = this.getClientIP(request);
-      ws.connectionId = createHash('sha256').update(`${ip}-${Date.now()}-${Math.random()}`).digest('hex');
+    this.wss.on(
+      'connection',
+      (ws: AuthenticatedWebSocket, request: IncomingMessage) => {
+        const ip = this.getClientIP(request);
+        ws.connectionId = createHash('sha256')
+          .update(`${ip}-${Date.now()}-${Math.random()}`)
+          .digest('hex');
 
-      // Check if IP is blocked
-      if (securityMonitor.isIPBlocked(ip)) {
-        securityMonitor.logEvent(
-          SecurityEventType.SUSPICIOUS_ACTIVITY,
-          SecuritySeverity.HIGH,
-          request as any,
-          { message: 'Blocked IP attempted WebSocket connection' }
-        );
-        ws.close(1008, 'Policy Violation');
-        return;
-      }
-
-      // Validate origin
-      if (!this.validateOrigin(request)) {
-        securityMonitor.logEvent(
-          SecurityEventType.SUSPICIOUS_ACTIVITY,
-          SecuritySeverity.MEDIUM,
-          request as any,
-          { message: `Invalid origin: ${request.headers.origin}` }
-        );
-        ws.close(1008, 'Invalid Origin');
-        return;
-      }
-
-      // Check connection rate limit
-      if (!this.checkConnectionRateLimit(ip)) {
-        securityMonitor.logEvent(
-          SecurityEventType.RATE_LIMIT_EXCEEDED,
-          SecuritySeverity.MEDIUM,
-          request as any,
-          { message: 'WebSocket connection rate limit exceeded' }
-        );
-        ws.close(1008, 'Too Many Connections');
-        return;
-      }
-
-      // Set up connection
-      ws.isAuthenticated = false;
-      ws.lastActivity = Date.now();
-      ws.messageCount = 0;
-
-      // Authentication timeout
-      const authTimeout = setTimeout(() => {
-        if (!ws.isAuthenticated && this.config.requireAuthentication) {
-          ws.close(1008, 'Authentication Timeout');
+        // Check if IP is blocked
+        if (securityMonitor.isIPBlocked(ip)) {
+          securityMonitor.logEvent(
+            SecurityEventType.SUSPICIOUS_ACTIVITY,
+            SecuritySeverity.HIGH,
+            request as any,
+            { message: 'Blocked IP attempted WebSocket connection' }
+          );
+          ws.close(1008, 'Policy Violation');
+          return;
         }
-      }, 10000); // 10 seconds to authenticate
 
-      // Handle messages
-      ws.on('message', async (data: Buffer) => {
-        try {
-          // Update activity
-          ws.lastActivity = Date.now();
+        // Validate origin
+        if (!this.validateOrigin(request)) {
+          securityMonitor.logEvent(
+            SecurityEventType.SUSPICIOUS_ACTIVITY,
+            SecuritySeverity.MEDIUM,
+            request as any,
+            { message: `Invalid origin: ${request.headers.origin}` }
+          );
+          ws.close(1008, 'Invalid Origin');
+          return;
+        }
 
-          // Check message size
-          if (data.length > this.config.maxMessageSize) {
-            securityMonitor.logEvent(
-              SecurityEventType.SUSPICIOUS_ACTIVITY,
-              SecuritySeverity.LOW,
-              request as any,
-              { message: `Oversized WebSocket message: ${data.length} bytes` }
-            );
-            ws.close(1009, 'Message Too Big');
-            return;
+        // Check connection rate limit
+        if (!this.checkConnectionRateLimit(ip)) {
+          securityMonitor.logEvent(
+            SecurityEventType.RATE_LIMIT_EXCEEDED,
+            SecuritySeverity.MEDIUM,
+            request as any,
+            { message: 'WebSocket connection rate limit exceeded' }
+          );
+          ws.close(1008, 'Too Many Connections');
+          return;
+        }
+
+        // Set up connection
+        ws.isAuthenticated = false;
+        ws.lastActivity = Date.now();
+        ws.messageCount = 0;
+
+        // Authentication timeout
+        const authTimeout = setTimeout(() => {
+          if (!ws.isAuthenticated && this.config.requireAuthentication) {
+            ws.close(1008, 'Authentication Timeout');
           }
+        }, 10000); // 10 seconds to authenticate
 
-          // Parse message
-          let message;
+        // Handle messages
+        ws.on('message', async (data: Buffer) => {
           try {
-            message = JSON.parse(data.toString());
-          } catch (e) {
-            ws.send(JSON.stringify({ error: 'Invalid JSON' }));
-            return;
+            // Update activity
+            ws.lastActivity = Date.now();
+
+            // Check message size
+            if (data.length > this.config.maxMessageSize) {
+              securityMonitor.logEvent(
+                SecurityEventType.SUSPICIOUS_ACTIVITY,
+                SecuritySeverity.LOW,
+                request as any,
+                { message: `Oversized WebSocket message: ${data.length} bytes` }
+              );
+              ws.close(1009, 'Message Too Big');
+              return;
+            }
+
+            // Parse message
+            let message;
+            try {
+              message = JSON.parse(data.toString());
+            } catch (e) {
+              ws.send(JSON.stringify({ error: 'Invalid JSON' }));
+              return;
+            }
+
+            // Handle authentication
+            if (message.type === 'auth' && !ws.isAuthenticated) {
+              clearTimeout(authTimeout);
+              await this.handleAuthentication(ws, message, request);
+              return;
+            }
+
+            // Require authentication for other messages
+            if (this.config.requireAuthentication && !ws.isAuthenticated) {
+              ws.send(JSON.stringify({ error: 'Not authenticated' }));
+              return;
+            }
+
+            // Check message rate limit
+            if (!this.checkMessageRateLimit(ws)) {
+              securityMonitor.logEvent(
+                SecurityEventType.RATE_LIMIT_EXCEEDED,
+                SecuritySeverity.LOW,
+                request as any,
+                { message: `Message rate limit exceeded for user ${ws.userId}` }
+              );
+              ws.send(JSON.stringify({ error: 'Rate limit exceeded' }));
+              return;
+            }
+
+            // Validate message structure
+            if (!this.validateMessage(message)) {
+              ws.send(JSON.stringify({ error: 'Invalid message format' }));
+              return;
+            }
+
+            // Process message (implement your business logic here)
+            await this.handleMessage(ws, message, request);
+          } catch (error) {
+            console.error('WebSocket message error:', error);
+            ws.send(JSON.stringify({ error: 'Internal error' }));
           }
+        });
 
-          // Handle authentication
-          if (message.type === 'auth' && !ws.isAuthenticated) {
-            clearTimeout(authTimeout);
-            await this.handleAuthentication(ws, message, request);
-            return;
-          }
+        // Handle close
+        ws.on('close', () => {
+          this.handleDisconnection(ws);
+        });
 
-          // Require authentication for other messages
-          if (this.config.requireAuthentication && !ws.isAuthenticated) {
-            ws.send(JSON.stringify({ error: 'Not authenticated' }));
-            return;
-          }
+        // Handle errors
+        ws.on('error', error => {
+          console.error('WebSocket error:', error);
+          securityMonitor.logEvent(
+            SecurityEventType.SUSPICIOUS_ACTIVITY,
+            SecuritySeverity.LOW,
+            request as any,
+            { message: `WebSocket error: ${error.message}` }
+          );
+        });
 
-          // Check message rate limit
-          if (!this.checkMessageRateLimit(ws)) {
-            securityMonitor.logEvent(
-              SecurityEventType.RATE_LIMIT_EXCEEDED,
-              SecuritySeverity.LOW,
-              request as any,
-              { message: `Message rate limit exceeded for user ${ws.userId}` }
-            );
-            ws.send(JSON.stringify({ error: 'Rate limit exceeded' }));
-            return;
-          }
-
-          // Validate message structure
-          if (!this.validateMessage(message)) {
-            ws.send(JSON.stringify({ error: 'Invalid message format' }));
-            return;
-          }
-
-          // Process message (implement your business logic here)
-          await this.handleMessage(ws, message, request);
-
-        } catch (error) {
-          console.error('WebSocket message error:', error);
-          ws.send(JSON.stringify({ error: 'Internal error' }));
-        }
-      });
-
-      // Handle close
-      ws.on('close', () => {
-        this.handleDisconnection(ws);
-      });
-
-      // Handle errors
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-        securityMonitor.logEvent(
-          SecurityEventType.SUSPICIOUS_ACTIVITY,
-          SecuritySeverity.LOW,
-          request as any,
-          { message: `WebSocket error: ${error.message}` }
+        // Send welcome message
+        ws.send(
+          JSON.stringify({
+            type: 'welcome',
+            requiresAuth: this.config.requireAuthentication,
+            timestamp: Date.now(),
+          })
         );
-      });
-
-      // Send welcome message
-      ws.send(JSON.stringify({
-        type: 'welcome',
-        requiresAuth: this.config.requireAuthentication,
-        timestamp: Date.now()
-      }));
-    });
+      }
+    );
   }
 
-  private async handleAuthentication(ws: AuthenticatedWebSocket, message: any, request: IncomingMessage) {
+  private async handleAuthentication(
+    ws: AuthenticatedWebSocket,
+    message: any,
+    request: IncomingMessage
+  ) {
     try {
       const { token } = message;
-      
+
       if (!token) {
         ws.send(JSON.stringify({ error: 'Missing token' }));
         return;
@@ -207,7 +221,7 @@ export class SecureWebSocketServer {
 
       // Verify token
       const decoded = tokenService.verifyAccessToken(token);
-      
+
       if (!decoded) {
         securityMonitor.logEvent(
           SecurityEventType.AUTHENTICATION_FAILURE,
@@ -237,27 +251,34 @@ export class SecureWebSocketServer {
       this.connections.set(decoded.userId, userConnections);
 
       // Send success
-      ws.send(JSON.stringify({
-        type: 'auth_success',
-        userId: decoded.userId,
-        connectionId: ws.connectionId
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'auth_success',
+          userId: decoded.userId,
+          connectionId: ws.connectionId,
+        })
+      );
 
       console.log(`WebSocket authenticated: ${decoded.userId}`);
-
     } catch (error) {
       securityMonitor.logEvent(
         SecurityEventType.AUTHENTICATION_FAILURE,
         SecuritySeverity.MEDIUM,
         request as any,
-        { message: `WebSocket authentication error: ${error instanceof Error ? error.message : 'Unknown error'}` }
+        {
+          message: `WebSocket authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        }
       );
       ws.send(JSON.stringify({ error: 'Authentication failed' }));
       ws.close(1008, 'Authentication Error');
     }
   }
 
-  private async handleMessage(ws: AuthenticatedWebSocket, message: any, request: IncomingMessage) {
+  private async handleMessage(
+    ws: AuthenticatedWebSocket,
+    message: any,
+    request: IncomingMessage
+  ) {
     // Increment message count
     ws.messageCount = (ws.messageCount || 0) + 1;
 
@@ -270,9 +291,9 @@ export class SecureWebSocketServer {
         SecurityEventType.SUSPICIOUS_ACTIVITY,
         SecuritySeverity.MEDIUM,
         request as any,
-        { 
+        {
           message: `Suspicious WebSocket message pattern detected for user ${ws.userId}`,
-          payload: sanitized
+          payload: sanitized,
         }
       );
     }
@@ -281,11 +302,13 @@ export class SecureWebSocketServer {
     console.log(`Message from ${ws.userId}:`, sanitized);
 
     // Echo sanitized message (example)
-    ws.send(JSON.stringify({
-      type: 'message_received',
-      data: sanitized,
-      timestamp: Date.now()
-    }));
+    ws.send(
+      JSON.stringify({
+        type: 'message_received',
+        data: sanitized,
+        timestamp: Date.now(),
+      })
+    );
   }
 
   private handleDisconnection(ws: AuthenticatedWebSocket) {
@@ -303,36 +326,36 @@ export class SecureWebSocketServer {
 
   private validateOrigin(request: IncomingMessage): boolean {
     const origin = request.headers.origin;
-    
+
     // No origin header (could be non-browser client)
     if (!origin) return true;
-    
+
     // Check against allowed origins
     if (this.config.allowedOrigins.length > 0) {
       return this.config.allowedOrigins.includes(origin);
     }
-    
+
     // In production, always validate origin
     if (process.env.NODE_ENV === 'production') {
       const allowedOrigin = process.env.CORS_ORIGIN?.split(',') || [];
       return allowedOrigin.includes(origin);
     }
-    
+
     return true;
   }
 
   private checkConnectionRateLimit(ip: string): boolean {
     const now = Date.now();
     const connections = this.connectionRateLimiter.get(ip) || [];
-    
+
     // Remove old entries (older than 1 minute)
     const recentConnections = connections.filter(time => now - time < 60000);
-    
+
     // Check limit (max 5 connections per minute per IP)
     if (recentConnections.length >= 5) {
       return false;
     }
-    
+
     recentConnections.push(now);
     this.connectionRateLimiter.set(ip, recentConnections);
     return true;
@@ -342,15 +365,15 @@ export class SecureWebSocketServer {
     const key = ws.userId || ws.connectionId!;
     const now = Date.now();
     const messages = this.messageRateLimiter.get(key) || [];
-    
+
     // Remove old entries (older than 1 minute)
     const recentMessages = messages.filter(time => now - time < 60000);
-    
+
     // Check limit
     if (recentMessages.length >= this.config.maxMessagesPerMinute) {
       return false;
     }
-    
+
     recentMessages.push(now);
     this.messageRateLimiter.set(key, recentMessages);
     return true;
@@ -360,11 +383,17 @@ export class SecureWebSocketServer {
     // Basic structure validation
     if (!message || typeof message !== 'object') return false;
     if (!message.type || typeof message.type !== 'string') return false;
-    
+
     // Validate against known message types
-    const allowedTypes = ['auth', 'message', 'ping', 'subscribe', 'unsubscribe'];
+    const allowedTypes = [
+      'auth',
+      'message',
+      'ping',
+      'subscribe',
+      'unsubscribe',
+    ];
     if (!allowedTypes.includes(message.type)) return false;
-    
+
     // Additional validation based on type
     switch (message.type) {
       case 'message':
@@ -380,12 +409,12 @@ export class SecureWebSocketServer {
   private sanitizeMessage(message: any): any {
     // Deep clone and sanitize
     const sanitized = JSON.parse(JSON.stringify(message));
-    
+
     // Remove potentially dangerous fields
     delete sanitized.__proto__;
     delete sanitized.constructor;
     delete sanitized.prototype;
-    
+
     // Sanitize string values
     const sanitizeString = (str: string): string => {
       return str
@@ -393,7 +422,7 @@ export class SecureWebSocketServer {
         .replace(/javascript:/gi, '') // Remove javascript: protocol
         .substring(0, 1000); // Limit length
     };
-    
+
     const sanitizeObject = (obj: any): any => {
       for (const key in obj) {
         if (typeof obj[key] === 'string') {
@@ -404,44 +433,47 @@ export class SecureWebSocketServer {
       }
       return obj;
     };
-    
+
     return sanitizeObject(sanitized);
   }
 
   private detectSuspiciousPatterns(message: any): boolean {
     const stringified = JSON.stringify(message);
-    
+
     // Check for common attack patterns
     const suspiciousPatterns = [
       /<script/i,
       /javascript:/i,
       /on\w+\s*=/i, // Event handlers
-      /\.\.\//,     // Path traversal
-      /\${/,        // Template injection
-      /eval\s*\(/,  // Eval usage
-      /__proto__/,  // Prototype pollution
+      /\.\.\//, // Path traversal
+      /\${/, // Template injection
+      /eval\s*\(/, // Eval usage
+      /__proto__/, // Prototype pollution
     ];
-    
+
     return suspiciousPatterns.some(pattern => pattern.test(stringified));
   }
 
   private startHeartbeat() {
     setInterval(() => {
       const now = Date.now();
-      
+
       this.wss.clients.forEach((ws: AuthenticatedWebSocket) => {
         // Check if connection is alive
-        if (ws.lastActivity && now - ws.lastActivity > this.config.connectionTimeout) {
+        if (
+          ws.lastActivity &&
+          now - ws.lastActivity > this.config.connectionTimeout
+        ) {
           ws.terminate();
           return;
         }
-        
+
         // Send ping
         if (ws.readyState === WebSocket.OPEN) {
           ws.ping();
         }
       });
-      
+
       // Cleanup old rate limit entries
       this.cleanupRateLimiters();
     }, this.config.heartbeatInterval);
@@ -450,7 +482,7 @@ export class SecureWebSocketServer {
   private cleanupRateLimiters() {
     const now = Date.now();
     const cutoff = now - 120000; // 2 minutes
-    
+
     // Cleanup connection rate limiter
     for (const [ip, times] of this.connectionRateLimiter.entries()) {
       const recent = times.filter(time => time > cutoff);
@@ -460,7 +492,7 @@ export class SecureWebSocketServer {
         this.connectionRateLimiter.set(ip, recent);
       }
     }
-    
+
     // Cleanup message rate limiter
     for (const [key, times] of this.messageRateLimiter.entries()) {
       const recent = times.filter(time => time > cutoff);
@@ -481,9 +513,12 @@ export class SecureWebSocketServer {
   }
 
   // Public methods
-  public broadcast(message: any, filter?: (ws: AuthenticatedWebSocket) => boolean) {
+  public broadcast(
+    message: any,
+    filter?: (ws: AuthenticatedWebSocket) => boolean
+  ) {
     const data = JSON.stringify(message);
-    
+
     this.wss.clients.forEach((ws: AuthenticatedWebSocket) => {
       if (ws.readyState === WebSocket.OPEN && ws.isAuthenticated) {
         if (!filter || filter(ws)) {
@@ -517,13 +552,17 @@ export class SecureWebSocketServer {
   public getMetrics() {
     return {
       totalConnections: this.wss.clients.size,
-      authenticatedConnections: Array.from(this.wss.clients).filter((ws: AuthenticatedWebSocket) => ws.isAuthenticated).length,
-      connectionsPerUser: Array.from(this.connections.entries()).map(([userId, conns]) => ({
-        userId,
-        connections: conns.size
-      })),
+      authenticatedConnections: Array.from(this.wss.clients).filter(
+        (ws: AuthenticatedWebSocket) => ws.isAuthenticated
+      ).length,
+      connectionsPerUser: Array.from(this.connections.entries()).map(
+        ([userId, conns]) => ({
+          userId,
+          connections: conns.size,
+        })
+      ),
       rateLimitedIPs: this.connectionRateLimiter.size,
-      rateLimitedUsers: this.messageRateLimiter.size
+      rateLimitedUsers: this.messageRateLimiter.size,
     };
   }
 }
@@ -534,12 +573,12 @@ export function websocketUpgrade(_secureWss: SecureWebSocketServer) {
     if (req.headers.upgrade === 'websocket') {
       // Additional security checks before upgrade
       const ip = req.ip || req.connection.remoteAddress;
-      
+
       if (securityMonitor.isIPBlocked(ip)) {
         res.status(403).send('Forbidden');
         return;
       }
-      
+
       // Let the WebSocket server handle the upgrade
       next();
     } else {

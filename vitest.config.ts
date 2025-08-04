@@ -16,14 +16,14 @@ export default defineConfig({
         'tests/**',
         'dist/**',
         '**/*.d.ts',
-        'client/**'
-      ]
-    }
+        'client/**',
+      ],
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './server'),
-      '@client': path.resolve(__dirname, './client/src')
-    }
-  }
+      '@client': path.resolve(__dirname, './client/src'),
+    },
+  },
 });

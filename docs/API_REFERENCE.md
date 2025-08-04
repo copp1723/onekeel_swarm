@@ -15,6 +15,7 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/endpoin
 Retrieve all configured agents.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -41,6 +42,7 @@ Retrieve all configured agents.
 Create a new agent configuration.
 
 **Request:**
+
 ```json
 {
   "name": "Customer Service Agent",
@@ -64,6 +66,7 @@ Create a new agent configuration.
 Get detailed status for a specific agent.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -84,6 +87,7 @@ Get detailed status for a specific agent.
 Retrieve all campaigns.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -105,6 +109,7 @@ Retrieve all campaigns.
 Create a new campaign.
 
 **Request:**
+
 ```json
 {
   "name": "New Product Launch",
@@ -125,12 +130,14 @@ Create a new campaign.
 Retrieve leads with filtering and pagination.
 
 **Query Parameters:**
+
 - `status`: Filter by lead status (new, contacted, qualified, closed)
 - `campaignId`: Filter by campaign
 - `limit`: Number of results (default: 50)
 - `offset`: Pagination offset
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -162,6 +169,7 @@ Retrieve leads with filtering and pagination.
 Submit a new lead.
 
 **Request:**
+
 ```json
 {
   "email": "prospect@company.com",
@@ -179,6 +187,7 @@ Submit a new lead.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -197,6 +206,7 @@ Submit a new lead.
 Get detailed information for a specific lead.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -226,6 +236,7 @@ Get detailed information for a specific lead.
 Handle real-time chat interactions.
 
 **Request:**
+
 ```json
 {
   "message": "I'm interested in your services",
@@ -235,6 +246,7 @@ Handle real-time chat interactions.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -252,6 +264,7 @@ Handle real-time chat interactions.
 Retrieve conversation history.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -284,6 +297,7 @@ Retrieve conversation history.
 Send email to a lead or list of leads.
 
 **Request:**
+
 ```json
 {
   "to": ["lead1@example.com", "lead2@example.com"],
@@ -298,6 +312,7 @@ Send email to a lead or list of leads.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -315,6 +330,7 @@ Send email to a lead or list of leads.
 Retrieve available email templates.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -337,6 +353,7 @@ Retrieve available email templates.
 System health status.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -372,6 +389,7 @@ System health status.
 Performance metrics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -404,21 +422,24 @@ Performance metrics.
 Real-time chat connection at `ws://your-domain.com/ws/chat`
 
 **Connection:**
+
 ```javascript
-const ws = new WebSocket("ws://localhost:5000/ws/chat");
+const ws = new WebSocket('ws://localhost:5000/ws/chat');
 
 // Send message
-ws.send(JSON.stringify({
-  type: "message",
-  content: "Hello, I need help",
-  sessionId: "session_123",
-  leadId: "lead_123"
-}));
+ws.send(
+  JSON.stringify({
+    type: 'message',
+    content: 'Hello, I need help',
+    sessionId: 'session_123',
+    leadId: 'lead_123',
+  })
+);
 
 // Receive response
-ws.onmessage = (event) => {
+ws.onmessage = event => {
   const data = JSON.parse(event.data);
-  console.log("Agent response:", data.content);
+  console.log('Agent response:', data.content);
 };
 ```
 
@@ -464,23 +485,24 @@ All API endpoints return standardized error responses:
 
 ### Common Error Codes
 
-| Code | Description | HTTP Status |
-|------|-------------|-------------|
-| `AUTH_REQUIRED` | Authentication required | 401 |
-| `INVALID_TOKEN` | Invalid API token | 401 |
-| `VALIDATION_ERROR` | Request validation failed | 400 |
-| `NOT_FOUND` | Resource not found | 404 |
-| `RATE_LIMITED` | Too many requests | 429 |
-| `INTERNAL_ERROR` | Server error | 500 |
+| Code               | Description               | HTTP Status |
+| ------------------ | ------------------------- | ----------- |
+| `AUTH_REQUIRED`    | Authentication required   | 401         |
+| `INVALID_TOKEN`    | Invalid API token         | 401         |
+| `VALIDATION_ERROR` | Request validation failed | 400         |
+| `NOT_FOUND`        | Resource not found        | 404         |
+| `RATE_LIMITED`     | Too many requests         | 429         |
+| `INTERNAL_ERROR`   | Server error              | 500         |
 
 ## Rate Limits
 
 - **General API**: 100 requests per minute
-- **Chat API**: 60 requests per minute per session  
+- **Chat API**: 60 requests per minute per session
 - **Email API**: 10 requests per minute
 - **System Monitoring**: 120 requests per minute
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -490,11 +512,13 @@ X-RateLimit-Reset: 1705329000
 ## Testing
 
 ### Health Check
+
 ```bash
 curl http://localhost:5000/api/system/health
 ```
 
 ### Create Test Lead
+
 ```bash
 curl -X POST http://localhost:5000/api/leads \
   -H "Content-Type: application/json" \
@@ -503,6 +527,7 @@ curl -X POST http://localhost:5000/api/leads \
 ```
 
 ### Send Test Message
+
 ```bash
 curl -X POST http://localhost:5000/api/chat \
   -H "Content-Type: application/json" \

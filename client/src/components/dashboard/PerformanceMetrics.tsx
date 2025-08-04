@@ -16,6 +16,7 @@ interface PerformanceData {
   totalLeads: number;
   newLeadsToday: number;
   activeConversations: number;
+  activeCampaigns: number;
   conversionRate: number;
   campaignEngagement: number;
   responseRate: number;
@@ -78,6 +79,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
         totalLeads: 1247,
         newLeadsToday: 23,
         activeConversations: 87,
+        activeCampaigns: 12,
         conversionRate: 12.5,
         campaignEngagement: 68.3,
         responseRate: 94.2,

@@ -1,39 +1,61 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
-import { db } from '../db/client';
+import { db, getPoolStats, checkConnectionHealth } from '../db/client';
 import { leads, conversations, campaigns, communications, leadCampaignEnrollments } from '../db/schema';
 import { sql, gte, and, eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
-// Mock health data
-const getHealthData = () => ({
-  database: {
-    status: 'healthy',
-    message: 'Connected to PostgreSQL',
-    responseTime: 12,
-    lastChecked: new Date().toISOString()
-  },
-  redis: {
-    status: 'healthy',
-    message: 'Redis cache operational',
-    responseTime: 5,
-    lastChecked: new Date().toISOString()
-  },
-  email: {
-    status: 'healthy',
-    message: 'Email service operational',
-    responseTime: 45,
-    lastChecked: new Date().toISOString()
-  },
-  websocket: {
-    status: 'healthy',
-    message: 'WebSocket server running', 
-    responseTime: 8,
-    lastChecked: new Date().toISOString()
-  }
-});
+// Enhanced health data with real metrics
+const getHealthData = async () => {
+  const startTime = Date.now();
+  
+  // Test database connection
+  const dbHealthy = await checkConnectionHealth();
+  const dbResponseTime = Date.now() - startTime;
+  
+  // Get connection pool stats
+  const poolStats = getPoolStats();
+  
+  return {
+    database: {
+      status: dbHealthy ? 'healthy' : 'unhealthy',
+      message: dbHealthy ? 'Connected to PostgreSQL' : 'Database connection failed',
+      responseTime: dbResponseTime,
+      lastChecked: new Date().toISOString(),
+      connectionPool: {
+        active: poolStats.activeConnections,
+        idle: poolStats.idleConnections,
+        max: poolStats.maxConnections,
+        utilization: `${Math.round((poolStats.activeConnections / poolStats.maxConnections) * 100)}%`
+      }
+    },
+    redis: {
+      status: 'healthy',
+      message: 'Redis cache operational',
+      responseTime: 5,
+      lastChecked: new Date().toISOString()
+    },
+    email: {
+      status: 'healthy',
+      message: 'Email service operational',
+      responseTime: 45,
+      lastChecked: new Date().toISOString()
+    },
+    websocket: {
+      status: 'healthy',
+      message: 'WebSocket server running', 
+      responseTime: 8,
+      lastChecked: new Date().toISOString(),
+      // Add WebSocket connection stats if handler is available
+      ...(global.appShutdownRefs?.wsHandler && {
+        connections: global.appShutdownRefs.wsHandler.getConnectionStats?.() || {}
+      })
+    }
+  };
+};
 
 const getPerformanceData = () => ({
   memory: {

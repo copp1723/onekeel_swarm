@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo, Suspense, lazy } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -6,18 +6,20 @@ import {
   LogOut
 } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
-import { EnhancedDashboardView } from '@/views/EnhancedDashboardView';
-import { LeadsView } from '@/views/LeadsView';
-import { ConversationsView } from '@/views/ConversationsView';
-import { BrandingManagementView } from '@/views/BrandingManagementView';
-import { AgentsView } from '@/views/AgentsView';
-import { CampaignsView } from '@/views/CampaignsView';
-import { ClientManagementView } from '@/views/ClientManagementView';
-import { TemplateLibraryView } from '@/views/TemplateLibraryView';
-import { AgentTemplatesView } from '@/views/AgentTemplatesView';
-import { UsersView } from '@/views/UsersView';
-import { FeatureFlagDashboard } from '@/components/FeatureFlagDashboard';
-import { EmailSettingsView } from '@/views/EmailSettingsView';
+
+// Lazy load view components for code splitting
+const EnhancedDashboardView = lazy(() => import('@/views/EnhancedDashboardView'));
+const LeadsView = lazy(() => import('@/views/LeadsView'));
+const ConversationsView = lazy(() => import('@/views/ConversationsView'));
+const BrandingManagementView = lazy(() => import('@/views/BrandingManagementView'));
+const AgentsView = lazy(() => import('@/views/AgentsView'));
+const CampaignsView = lazy(() => import('@/views/CampaignsView'));
+const ClientManagementView = lazy(() => import('@/views/ClientManagementView'));
+const TemplateLibraryView = lazy(() => import('@/views/TemplateLibraryView'));
+const AgentTemplatesView = lazy(() => import('@/views/AgentTemplatesView'));
+const UsersView = lazy(() => import('@/views/UsersView'));
+const FeatureFlagDashboard = lazy(() => import('@/components/FeatureFlagDashboard'));
+const EmailSettingsView = lazy(() => import('@/views/EmailSettingsView'));
 
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -28,14 +30,31 @@ import { NavigationBar } from '@/components/navigation/NavigationBar';
 import { useTerminology } from '@/hooks/useTerminology';
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
 
-function AppContent() {
+const AppContent = memo(function AppContent() {
   const [showImport, setShowImport] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [wsConnected] = useState(true);
   const { activeClient } = useClient();
-  const branding = activeClient?.brand_config || DEFAULT_BRANDING;
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const terminology = useTerminology();
+  
+  // Memoize branding configuration to prevent unnecessary re-renders
+  const branding = useMemo(() => {
+    return activeClient?.brand_config || DEFAULT_BRANDING;
+  }, [activeClient?.brand_config]);
+  
+  // Memoize callbacks to prevent child re-renders
+  const handleShowImportToggle = useCallback(() => {
+    setShowImport(prev => !prev);
+  }, []);
+  
+  const handleViewChange = useCallback((view: ViewType) => {
+    setActiveView(view);
+  }, []);
+  
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
 
   if (isLoading) {
     return (
@@ -62,7 +81,7 @@ function AppContent() {
                 <h1 className="text-2xl font-bold text-gray-900">{terminology.importBulk}</h1>
                 <p className="text-gray-600">Upload and map your CSV data</p>
               </div>
-              <Button variant="outline" onClick={() => setShowImport(false)}>
+              <Button variant="outline" onClick={handleShowImportToggle}>
                 Back to Dashboard
               </Button>
             </div>
@@ -111,7 +130,7 @@ function AppContent() {
               <span className="text-sm text-gray-600">
                 Welcome, {user?.firstName || user?.username}
               </span>
-              <Button variant="outline" onClick={logout} className="flex items-center space-x-2">
+              <Button variant="outline" onClick={handleLogout} className="flex items-center space-x-2">
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
               </Button>
@@ -123,29 +142,54 @@ function AppContent() {
       {/* Navigation */}
       <NavigationBar 
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={handleViewChange}
         brandingColor={branding.primaryColor}
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {activeView === 'dashboard' && <EnhancedDashboardView />}
-        {activeView === 'conversations' && <ConversationsView />}
-        {activeView === 'leads' && <LeadsView />}
-        {activeView === 'branding' && <BrandingManagementView />}
-        {activeView === 'agents' && <AgentsView />}
-        {activeView === 'agent-templates' && <AgentTemplatesView />}
-        {activeView === 'campaigns' && <CampaignsView />}
-        {activeView === 'clients' && <ClientManagementView />}
-        {activeView === 'templates' && <TemplateLibraryView />}
-        {activeView === 'users' && <UsersView />}
-        {activeView === 'feature-flags' && <FeatureFlagDashboard />}
-        {activeView === 'email-settings' && <EmailSettingsView />}
+        <Suspense fallback={<ViewLoadingFallback />}>
+          <ViewRenderer activeView={activeView} />
+        </Suspense>
       </div>
     </div>
   );
-}
+});
 
-export default function App() {
+// Memoized view renderer to prevent unnecessary component mounting/unmounting
+const ViewRenderer = memo(function ViewRenderer({ activeView }: { activeView: ViewType }) {
+  // Use a switch statement for better performance than multiple conditionals
+  switch (activeView) {
+    case 'dashboard':
+      return <EnhancedDashboardView />;
+    case 'conversations':
+      return <ConversationsView />;
+    case 'leads':
+      return <LeadsView />;
+    case 'branding':
+      return <BrandingManagementView />;
+    case 'agents':
+      return <AgentsView />;
+    case 'agent-templates':
+      return <AgentTemplatesView />;
+    case 'campaigns':
+      return <CampaignsView />;
+    case 'clients':
+      return <ClientManagementView />;
+    case 'templates':
+      return <TemplateLibraryView />;
+    case 'users':
+      return <UsersView />;
+    case 'feature-flags':
+      return <FeatureFlagDashboard />;
+    case 'email-settings':
+      return <EmailSettingsView />;
+    default:
+      return <EnhancedDashboardView />;
+  }
+});
+
+// Memoized main App component
+const App = memo(function App() {
   return (
     <AuthProvider>
       <ClientProvider>
@@ -153,4 +197,18 @@ export default function App() {
       </ClientProvider>
     </AuthProvider>
   );
-}
+});
+
+// Loading fallback component for Suspense
+const ViewLoadingFallback = memo(function ViewLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600">Loading view...</p>
+      </div>
+    </div>
+  );
+});
+
+export default App;

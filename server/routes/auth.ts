@@ -5,6 +5,14 @@ import { UsersRepository } from '../db';
 import { tokenService } from '../services/token-service';
 import { sessionService } from '../services/session-service';
 import { authenticate } from '../middleware/auth';
+import { 
+  ApiResponseBuilder, 
+  AuthenticatedRequest, 
+  TypedResponse, 
+  LoginRequest, 
+  LoginResponse 
+} from '../../shared/types/api';
+import { safeCastToUser } from '../../shared/types/database';
 
 const router = Router();
 
@@ -15,18 +23,13 @@ const loginSchema = z.object({
 });
 
 // Login endpoint with secure database authentication
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<LoginResponse>) => {
   try {
     const validationResult = loginSchema.safeParse(req.body);
     if (!validationResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid login data',
-          details: validationResult.error.errors
-        }
-      });
+      return res.status(400).json(
+        ApiResponseBuilder.validationError('Invalid login data', validationResult.error.errors)
+      );
     }
 
     const { username, password } = validationResult.data;
@@ -39,25 +42,17 @@ router.post('/login', async (req, res) => {
     
     // Check if user exists and is active
     if (!user || !user.active) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
-      });
+      return res.status(401).json(
+        ApiResponseBuilder.authError('Invalid username or password')
+      );
     }
     
     // Verify password using bcrypt
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid username or password'
-        }
-      });
+      return res.status(401).json(
+        ApiResponseBuilder.authError('Invalid username or password')
+      );
     }
     
     // Generate secure JWT tokens
@@ -109,7 +104,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Get current user endpoint with secure authentication
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', authenticate, async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     // User is already authenticated by middleware
     if (!req.user) {
@@ -165,7 +160,7 @@ router.get('/me', authenticate, async (req, res) => {
 });
 
 // Logout endpoint with token revocation
-router.post('/logout', authenticate, async (req, res) => {
+router.post('/logout', authenticate, async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
@@ -199,7 +194,7 @@ router.post('/logout', authenticate, async (req, res) => {
 });
 
 // Refresh token endpoint with secure token rotation
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     const { refreshToken } = req.body;
     

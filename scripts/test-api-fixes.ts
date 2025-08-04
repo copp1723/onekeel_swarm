@@ -9,21 +9,24 @@ async function testAPI(name: string, endpoint: string, options: any = {}) {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options.headers,
       },
-      ...options
+      ...options,
     });
 
     const data = await response.json();
-    
+
     if (response.ok) {
       console.log(`✅ ${name}: SUCCESS (${response.status})`);
-      console.log(`   Response:`, JSON.stringify(data).substring(0, 100) + '...');
+      console.log(
+        `   Response:`,
+        JSON.stringify(data).substring(0, 100) + '...'
+      );
     } else {
       console.log(`❌ ${name}: FAILED (${response.status})`);
       console.log(`   Error:`, data.error || data);
     }
-    
+
     return { success: response.ok, data };
   } catch (error) {
     console.log(`❌ ${name}: ERROR`);
@@ -40,24 +43,27 @@ async function runTests() {
     method: 'POST',
     body: JSON.stringify({
       flagKey: 'ui.contacts-terminology',
-      context: { environment: 'development' }
-    })
+      context: { environment: 'development' },
+    }),
   });
 
   await testAPI('Feature Flags - All', '/feature-flags/all', {
-    method: 'POST', 
+    method: 'POST',
     body: JSON.stringify({
-      context: { environment: 'development' }
-    })
+      context: { environment: 'development' },
+    }),
   });
 
-  await testAPI('Feature Flags - Check', '/feature-flags/check/ui.agent-templates');
+  await testAPI(
+    'Feature Flags - Check',
+    '/feature-flags/check/ui.agent-templates'
+  );
 
   // Test Agents API
   await testAPI('Agents - List', '/agents');
   await testAPI('Agents - Get by ID', '/agents/agent-1');
 
-  // Test Campaigns API  
+  // Test Campaigns API
   await testAPI('Campaigns - List', '/campaigns');
   await testAPI('Campaigns - Metrics', '/campaigns/metrics');
 

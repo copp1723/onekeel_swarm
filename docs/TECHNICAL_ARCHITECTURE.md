@@ -85,19 +85,16 @@ robust data processing capabilities.
 **Agent Responsibilities:**
 
 1. **VisitorIdentifierAgent**
-
    - Tracks website visitor behavior
    - Identifies potential leads
    - Triggers engagement workflows
 
 2. **RealtimeChatAgent**
-
    - Manages chat widget interactions
    - Integrates with OpenAI for responses
    - Handles session management
 
 3. **EmailReengagementAgent**
-
    - Processes bulk email campaigns
    - Manages Mailgun integration
    - Tracks delivery and engagement
@@ -112,7 +109,7 @@ robust data processing capabilities.
 ```typescript
 interface AgentMessage {
   agentId: string;
-  type: "lead_identified" | "chat_session" | "email_sent";
+  type: 'lead_identified' | 'chat_session' | 'email_sent';
   payload: any;
   timestamp: Date;
 }
@@ -367,7 +364,7 @@ CREATE TABLE system_agents (
 
 ```typescript
 interface SystemHealth {
-  status: "healthy" | "degraded" | "unhealthy";
+  status: 'healthy' | 'degraded' | 'unhealthy';
   uptime: number;
   memoryUsage: NodeJS.MemoryUsage;
   agents: AgentStatus[];
@@ -405,13 +402,11 @@ interface SystemHealth {
 ### Planned Improvements
 
 1. **Microservice Decomposition**
-
    - Separate chat service
    - Dedicated email service
    - Agent orchestration service
 
 2. **Advanced Analytics**
-
    - Conversation quality metrics
    - Lead conversion tracking
    - A/B testing framework

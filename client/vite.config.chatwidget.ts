@@ -7,10 +7,13 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/components/chat-widget/ChatWidgetStandalone.tsx'),
+      entry: path.resolve(
+        __dirname,
+        'src/components/chat-widget/ChatWidgetStandalone.tsx'
+      ),
       name: 'CCLChatWidget',
       fileName: 'chat-widget.bundle',
-      formats: ['iife']
+      formats: ['iife'],
     },
     rollupOptions: {
       // Ensure React is included in the bundle
@@ -21,13 +24,13 @@ export default defineConfig({
         // Inline all assets
         assetFileNames: 'chat-widget.[ext]',
         // Single file output
-        inlineDynamicImports: true
-      }
+        inlineDynamicImports: true,
+      },
     },
     // Output to public directory
     outDir: 'public',
     emptyOutDir: false,
     // Inline CSS
-    cssCodeSplit: false
-  }
+    cssCodeSplit: false,
+  },
 });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/auth';
 
 // Import all route modules
 import authRoutes from './auth';
@@ -17,20 +18,20 @@ import navigationRoutes from './navigation-aliases';
 
 const router = Router();
 
-// Mount all routes with their respective prefixes
-router.use('/auth', authRoutes);
-router.use('/agents', agentsRoutes);
-router.use('/agent-templates', agentTemplatesRoutes);
-router.use('/campaigns', campaignsRoutes);
-router.use('/email', emailRoutes);
-router.use('/leads', leadsRoutes);
-router.use('/contacts', contactsRoutes); // Dual terminology support
-router.use('/conversations', conversationsRoutes);
-router.use('/clients', clientsRoutes);
-router.use('/users', usersRoutes);
-router.use('/monitoring', monitoringRoutes);
-router.use('/feature-flags', featureFlagsRoutes);
-router.use('/navigation', navigationRoutes); // Navigation configuration and aliases
+// CRITICAL SECURITY FIX: Mount all routes with authentication except public ones
+router.use('/auth', authRoutes); // Public auth endpoints
+router.use('/agents', authenticate, authorize('admin', 'manager', 'agent'), agentsRoutes);
+router.use('/agent-templates', authenticate, authorize('admin', 'manager'), agentTemplatesRoutes);
+router.use('/campaigns', authenticate, authorize('admin', 'manager', 'agent'), campaignsRoutes);
+router.use('/email', authenticate, authorize('admin', 'manager', 'agent'), emailRoutes);
+router.use('/leads', authenticate, authorize('admin', 'manager', 'agent'), leadsRoutes);
+router.use('/contacts', authenticate, authorize('admin', 'manager', 'agent'), contactsRoutes); // Dual terminology support
+router.use('/conversations', authenticate, authorize('admin', 'manager', 'agent'), conversationsRoutes);
+router.use('/clients', authenticate, authorize('admin', 'manager'), clientsRoutes);
+router.use('/users', authenticate, authorize('admin'), usersRoutes);
+router.use('/monitoring', authenticate, authorize('admin', 'manager'), monitoringRoutes);
+router.use('/feature-flags', authenticate, authorize('admin'), featureFlagsRoutes);
+router.use('/navigation', authenticate, navigationRoutes); // Navigation configuration and aliases
 
 // Health check endpoint at root level
 router.get('/health', (req, res) => {

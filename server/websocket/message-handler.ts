@@ -3,38 +3,78 @@ import { nanoid } from 'nanoid';
 import { LeadProcessor } from '../services/lead-processor';
 import { logger } from '../utils/logger';
 
+// Performance monitoring for WebSocket connections
+interface ConnectionMetrics {
+  connectTime: number;
+  messageCount: number;
+  lastActivity: number;
+  memoryUsage?: number;
+}
+
 interface ExtendedWebSocket {
   connectionId: string;
   sessionId: string | null;
   leadId: string | null;
   userId: string | null;
+  metrics: ConnectionMetrics;
+  pingTimer?: NodeJS.Timeout;
+  cleanupHandlers: Array<() => void>;
 }
 
 export class WebSocketMessageHandler {
   private wss: WebSocketServer;
   private leadProcessor: LeadProcessor;
   private broadcastCallback: (data: any) => void;
+  private connections: Map<string, ExtendedWebSocket> = new Map();
+  private cleanupInterval: NodeJS.Timeout;
+  private memoryMonitorInterval: NodeJS.Timeout;
 
   constructor(wss: WebSocketServer, leadProcessor: LeadProcessor, broadcastCallback: (data: any) => void) {
     this.wss = wss;
     this.leadProcessor = leadProcessor;
     this.broadcastCallback = broadcastCallback;
+    
+    // Start cleanup and monitoring intervals
+    this.startPerformanceMonitoring();
+    this.setupGlobalCleanup();
   }
 
   setupConnection(ws: any, req: any) {
     logger.info('New WebSocket connection established');
     
-    // Store connection metadata
+    // Store connection metadata with performance tracking
     const connectionId = nanoid();
-    (ws as ExtendedWebSocket).connectionId = connectionId;
-    (ws as ExtendedWebSocket).sessionId = null;
-    (ws as ExtendedWebSocket).leadId = null;
-    (ws as ExtendedWebSocket).userId = null;
+    const extendedWs = ws as ExtendedWebSocket;
+    extendedWs.connectionId = connectionId;
+    extendedWs.sessionId = null;
+    extendedWs.leadId = null;
+    extendedWs.userId = null;
+    extendedWs.metrics = {
+      connectTime: Date.now(),
+      messageCount: 0,
+      lastActivity: Date.now()
+    };
+    extendedWs.cleanupHandlers = [];
+    
+    // Track connection
+    this.connections.set(connectionId, extendedWs);
+    
+    // Set up ping/pong heartbeat
+    this.setupHeartbeat(extendedWs);
 
     ws.on('message', async (message: Buffer) => {
       try {
+        // Update activity tracking
+        const extendedWs = ws as ExtendedWebSocket;
+        extendedWs.metrics.messageCount++;
+        extendedWs.metrics.lastActivity = Date.now();
+        
         const data = JSON.parse(message.toString());
-        logger.debug('WebSocket message received', { data });
+        logger.debug('WebSocket message received', { 
+          connectionId: extendedWs.connectionId,
+          messageCount: extendedWs.metrics.messageCount,
+          data 
+        });
 
         // Handle different message types
         switch (data.type) {
@@ -81,6 +121,21 @@ export class WebSocketMessageHandler {
     });
 
     ws.on('close', () => {
+      this.handleConnectionClose(ws);
+    });
+    
+    // Handle pong messages for heartbeat
+    ws.on('pong', () => {
+      const extendedWs = ws as ExtendedWebSocket;
+      extendedWs.metrics.lastActivity = Date.now();
+    });
+    
+    // Handle connection errors
+    ws.on('error', (error) => {
+      logger.error('WebSocket connection error', {
+        connectionId: (ws as ExtendedWebSocket).connectionId,
+        error: error.message
+      });
       this.handleConnectionClose(ws);
     });
   }
@@ -204,15 +259,154 @@ export class WebSocketMessageHandler {
   }
 
   private handleConnectionClose(ws: any) {
-    logger.info('WebSocket connection closed');
+    const extendedWs = ws as ExtendedWebSocket;
+    const connectionId = extendedWs.connectionId;
+    const connectionDuration = Date.now() - extendedWs.metrics.connectTime;
     
-    // Notify if this was an active chat
-    if ((ws as ExtendedWebSocket).sessionId) {
-      this.broadcastCallback({
-        type: 'chat:disconnected',
-        sessionId: (ws as ExtendedWebSocket).sessionId,
-        leadId: (ws as ExtendedWebSocket).leadId
+    logger.info('WebSocket connection closed', {
+      connectionId,
+      duration: connectionDuration,
+      messageCount: extendedWs.metrics.messageCount
+    });
+    
+    // Run all cleanup handlers
+    if (extendedWs.cleanupHandlers) {
+      extendedWs.cleanupHandlers.forEach(handler => {
+        try {
+          handler();
+        } catch (error) {
+          logger.error('Error in cleanup handler', { error });
+        }
       });
     }
+    
+    // Clear ping timer
+    if (extendedWs.pingTimer) {
+      clearInterval(extendedWs.pingTimer);
+    }
+    
+    // Remove from connections map
+    this.connections.delete(connectionId);
+    
+    // Notify if this was an active chat
+    if (extendedWs.sessionId) {
+      this.broadcastCallback({
+        type: 'chat:disconnected',
+        sessionId: extendedWs.sessionId,
+        leadId: extendedWs.leadId
+      });
+    }
+    
+    // Force garbage collection if available
+    if (global.gc && this.connections.size % 10 === 0) {
+      global.gc();
+    }
+  }
+  
+  /**
+   * Setup heartbeat mechanism to detect dead connections
+   */
+  private setupHeartbeat(ws: ExtendedWebSocket) {
+    ws.pingTimer = setInterval(() => {
+      if (ws.readyState === 1) { // WebSocket.OPEN
+        ws.ping();
+        
+        // Check if connection is stale (no activity for 2 minutes)
+        const timeSinceActivity = Date.now() - ws.metrics.lastActivity;
+        if (timeSinceActivity > 120000) {
+          logger.warn('Closing stale WebSocket connection', {
+            connectionId: ws.connectionId,
+            timeSinceActivity
+          });
+          ws.close(1001, 'Connection timeout');
+        }
+      }
+    }, 30000); // Ping every 30 seconds
+  }
+  
+  /**
+   * Start performance monitoring for connections
+   */
+  private startPerformanceMonitoring() {
+    this.memoryMonitorInterval = setInterval(() => {
+      const connectionCount = this.connections.size;
+      const totalMessages = Array.from(this.connections.values())
+        .reduce((sum, conn) => sum + conn.metrics.messageCount, 0);
+      
+      logger.debug('WebSocket performance metrics', {
+        activeConnections: connectionCount,
+        totalMessages,
+        memoryUsage: process.memoryUsage()
+      });
+      
+      // Alert if too many connections
+      if (connectionCount > 100) {
+        logger.warn('High WebSocket connection count', { connectionCount });
+      }
+    }, 60000); // Check every minute
+  }
+  
+  /**
+   * Setup global cleanup handlers
+   */
+  private setupGlobalCleanup() {
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const staleConnections: string[] = [];
+      
+      this.connections.forEach((ws, connectionId) => {
+        const timeSinceActivity = now - ws.metrics.lastActivity;
+        
+        // Mark connections inactive for more than 5 minutes as stale
+        if (timeSinceActivity > 300000 && ws.readyState !== 1) {
+          staleConnections.push(connectionId);
+        }
+      });
+      
+      // Clean up stale connections
+      staleConnections.forEach(connectionId => {
+        const ws = this.connections.get(connectionId);
+        if (ws) {
+          logger.info('Cleaning up stale WebSocket connection', { connectionId });
+          this.handleConnectionClose(ws);
+        }
+      });
+    }, 120000); // Check every 2 minutes
+  }
+  
+  /**
+   * Get connection statistics
+   */
+  public getConnectionStats() {
+    const connections = Array.from(this.connections.values());
+    const now = Date.now();
+    
+    return {
+      totalConnections: connections.length,
+      totalMessages: connections.reduce((sum, conn) => sum + conn.metrics.messageCount, 0),
+      averageConnectionAge: connections.length > 0 
+        ? connections.reduce((sum, conn) => sum + (now - conn.metrics.connectTime), 0) / connections.length 
+        : 0,
+      staleConnections: connections.filter(conn => (now - conn.metrics.lastActivity) > 300000).length
+    };
+  }
+  
+  /**
+   * Cleanup all resources
+   */
+  public cleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    if (this.memoryMonitorInterval) {
+      clearInterval(this.memoryMonitorInterval);
+    }
+    
+    // Close all connections
+    this.connections.forEach((ws) => {
+      this.handleConnectionClose(ws);
+    });
+    
+    this.connections.clear();
   }
 }

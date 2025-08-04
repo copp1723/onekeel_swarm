@@ -2,7 +2,7 @@
 
 /**
  * Security Implementation Verification Script
- * 
+ *
  * This script verifies that all security vulnerabilities have been fixed
  * and the authentication system is properly implemented.
  */
@@ -20,7 +20,12 @@ interface SecurityCheck {
 class SecurityVerifier {
   private checks: SecurityCheck[] = [];
 
-  addCheck(name: string, description: string, status: 'PASS' | 'FAIL' | 'WARNING', details: string) {
+  addCheck(
+    name: string,
+    description: string,
+    status: 'PASS' | 'FAIL' | 'WARNING',
+    details: string
+  ) {
     this.checks.push({ name, description, status, details });
   }
 
@@ -34,12 +39,12 @@ class SecurityVerifier {
 
   verifyAuthRoutes() {
     console.log('🔍 Verifying auth routes security...');
-    
+
     const authRoutesPath = path.join(process.cwd(), 'server/routes/auth.ts');
     const content = this.readFile(authRoutesPath);
 
     // Check 1: No hardcoded credentials
-    const hasHardcodedCredentials = 
+    const hasHardcodedCredentials =
       content.includes('admin@onekeel.com') ||
       content.includes('password123') ||
       content.includes('hardcoded-jwt-token') ||
@@ -62,8 +67,9 @@ class SecurityVerifier {
     }
 
     // Check 2: No SKIP_AUTH bypass
-    const hasSkipAuth = content.includes('SKIP_AUTH') || content.includes('skipAuth');
-    
+    const hasSkipAuth =
+      content.includes('SKIP_AUTH') || content.includes('skipAuth');
+
     if (hasSkipAuth) {
       this.addCheck(
         'AUTH_ROUTES_SKIP_AUTH',
@@ -81,8 +87,9 @@ class SecurityVerifier {
     }
 
     // Check 3: Uses bcrypt
-    const usesBcrypt = content.includes('bcrypt.compare') || content.includes('bcryptjs');
-    
+    const usesBcrypt =
+      content.includes('bcrypt.compare') || content.includes('bcryptjs');
+
     if (usesBcrypt) {
       this.addCheck(
         'AUTH_ROUTES_BCRYPT',
@@ -100,8 +107,9 @@ class SecurityVerifier {
     }
 
     // Check 4: Uses database authentication
-    const usesDatabase = content.includes('UsersRepository') && content.includes('findByEmail');
-    
+    const usesDatabase =
+      content.includes('UsersRepository') && content.includes('findByEmail');
+
     if (usesDatabase) {
       this.addCheck(
         'AUTH_ROUTES_DATABASE',
@@ -121,13 +129,17 @@ class SecurityVerifier {
 
   verifyAuthMiddleware() {
     console.log('🔍 Verifying auth middleware security...');
-    
-    const middlewarePath = path.join(process.cwd(), 'server/middleware/auth.ts');
+
+    const middlewarePath = path.join(
+      process.cwd(),
+      'server/middleware/auth.ts'
+    );
     const content = this.readFile(middlewarePath);
 
     // Check 1: No SKIP_AUTH bypass
-    const hasSkipAuth = content.includes('SKIP_AUTH') || content.includes('skipAuth');
-    
+    const hasSkipAuth =
+      content.includes('SKIP_AUTH') || content.includes('skipAuth');
+
     if (hasSkipAuth) {
       this.addCheck(
         'AUTH_MIDDLEWARE_SKIP_AUTH',
@@ -146,7 +158,7 @@ class SecurityVerifier {
 
     // Check 2: Uses token service
     const usesTokenService = content.includes('tokenService');
-    
+
     if (usesTokenService) {
       this.addCheck(
         'AUTH_MIDDLEWARE_TOKEN_SERVICE',
@@ -166,13 +178,17 @@ class SecurityVerifier {
 
   verifyUserRepository() {
     console.log('🔍 Verifying user repository implementation...');
-    
+
     const dbPath = path.join(process.cwd(), 'server/db/index.ts');
     const content = this.readFile(dbPath);
 
     // Check required methods
-    const requiredMethods = ['findByEmail', 'findByUsername', 'updateLastLogin'];
-    
+    const requiredMethods = [
+      'findByEmail',
+      'findByUsername',
+      'updateLastLogin',
+    ];
+
     for (const method of requiredMethods) {
       if (content.includes(method)) {
         this.addCheck(
@@ -194,9 +210,12 @@ class SecurityVerifier {
 
   verifyServices() {
     console.log('🔍 Verifying security services...');
-    
+
     // Check token service exists
-    const tokenServicePath = path.join(process.cwd(), 'server/services/token-service.ts');
+    const tokenServicePath = path.join(
+      process.cwd(),
+      'server/services/token-service.ts'
+    );
     if (fs.existsSync(tokenServicePath)) {
       this.addCheck(
         'TOKEN_SERVICE_EXISTS',
@@ -214,7 +233,10 @@ class SecurityVerifier {
     }
 
     // Check session service exists
-    const sessionServicePath = path.join(process.cwd(), 'server/services/session-service.ts');
+    const sessionServicePath = path.join(
+      process.cwd(),
+      'server/services/session-service.ts'
+    );
     if (fs.existsSync(sessionServicePath)) {
       this.addCheck(
         'SESSION_SERVICE_EXISTS',
@@ -234,13 +256,13 @@ class SecurityVerifier {
 
   verifyCreateAdminScript() {
     console.log('🔍 Verifying create-admin script...');
-    
+
     const scriptPath = path.join(process.cwd(), 'scripts/create-admin.ts');
     const content = this.readFile(scriptPath);
 
     // Check uses bcryptjs (not bcrypt)
     const usesBcryptjs = content.includes('bcryptjs');
-    
+
     if (usesBcryptjs) {
       this.addCheck(
         'CREATE_ADMIN_BCRYPTJS',
@@ -268,7 +290,8 @@ class SecurityVerifier {
     let warningCount = 0;
 
     for (const check of this.checks) {
-      const icon = check.status === 'PASS' ? '✅' : check.status === 'FAIL' ? '❌' : '⚠️';
+      const icon =
+        check.status === 'PASS' ? '✅' : check.status === 'FAIL' ? '❌' : '⚠️';
       console.log(`${icon} ${check.name}: ${check.description}`);
       console.log(`   ${check.details}`);
       console.log('');
@@ -279,13 +302,19 @@ class SecurityVerifier {
     }
 
     console.log('='.repeat(60));
-    console.log(`📊 SUMMARY: ${passCount} PASS | ${failCount} FAIL | ${warningCount} WARNING`);
+    console.log(
+      `📊 SUMMARY: ${passCount} PASS | ${failCount} FAIL | ${warningCount} WARNING`
+    );
     console.log('='.repeat(60));
 
     if (failCount === 0) {
-      console.log('🎉 ALL SECURITY CHECKS PASSED! System is ready for production.');
+      console.log(
+        '🎉 ALL SECURITY CHECKS PASSED! System is ready for production.'
+      );
     } else {
-      console.log('🚨 SECURITY ISSUES FOUND! Please fix failing checks before deployment.');
+      console.log(
+        '🚨 SECURITY ISSUES FOUND! Please fix failing checks before deployment.'
+      );
     }
 
     return failCount === 0;
@@ -301,7 +330,7 @@ class SecurityVerifier {
     this.verifyCreateAdminScript();
 
     const allPassed = this.printResults();
-    
+
     if (allPassed) {
       console.log('\n✅ SECURITY IMPLEMENTATION COMPLETE AND VERIFIED');
       console.log('🚀 Ready for production deployment!');

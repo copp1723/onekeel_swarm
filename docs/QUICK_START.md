@@ -19,19 +19,26 @@ npm run setup:quick
 
 Open two terminal windows:
 
-**Terminal 1 - Backend:**
-```bash
-npm run dev:quick
-```
-This starts the backend server on http://localhost:5000
+**Option 1 - Both servers (recommended):**
 
-**Terminal 2 - Frontend:**
 ```bash
-npm run dev
+npm run dev:full
 ```
-This starts the React frontend on http://localhost:5173
+
+This starts both backend (http://localhost:5001) and frontend (http://localhost:5173)
+
+**Option 2 - Separate terminals:**
+
+```bash
+# Terminal 1 - Backend
+npm run dev:server
+
+# Terminal 2 - Frontend
+npm run dev:client
+```
 
 ### 3. Open Your Browser
+
 Go to http://localhost:5173 and you should see your dashboard!
 
 ## What Works Right Now
@@ -39,7 +46,7 @@ Go to http://localhost:5173 and you should see your dashboard!
 - ✅ Dashboard with real-time stats
 - ✅ Lead management (create, view, edit)
 - ✅ Multi-agent system (Chat, Email, SMS, Overlord)
-- ✅ Campaign management and scheduling  
+- ✅ Campaign management and scheduling
 - ✅ Activity feed and monitoring
 - ✅ Chat widget integration
 - ✅ Email template editor
@@ -59,7 +66,7 @@ OPENAI_API_KEY=your-openai-key-here
 MAILGUN_API_KEY=your-mailgun-key
 MAILGUN_DOMAIN=your-domain.com
 
-# SMS Service (Twilio) 
+# SMS Service (Twilio)
 TWILIO_ACCOUNT_SID=your-twilio-sid
 TWILIO_AUTH_TOKEN=your-twilio-token
 TWILIO_PHONE_NUMBER=+1234567890
@@ -72,6 +79,7 @@ SESSION_SECRET=your-session-secret-here
 ## Creating Your First Agent
 
 ### 1. Navigate to Agent Management
+
 1. Open dashboard at `http://localhost:5173`
 2. Click "**Agents**" in the sidebar
 3. Click "**Add Agent**" button
@@ -91,7 +99,7 @@ SESSION_SECRET=your-session-secret-here
     },
     "goals": [
       "assess_customer_needs",
-      "determine_budget_range", 
+      "determine_budget_range",
       "understand_timeline",
       "capture_contact_info",
       "schedule_appointment"
@@ -117,8 +125,9 @@ SESSION_SECRET=your-session-secret-here
 ## Setting Up Your First Campaign
 
 ### 1. Create Campaign
+
 1. Navigate to "**Campaigns**" tab
-2. Click "**New Campaign**" 
+2. Click "**New Campaign**"
 3. Fill in campaign details:
 
 ```json
@@ -145,6 +154,7 @@ SESSION_SECRET=your-session-secret-here
 ## Lead Intake Methods
 
 ### Method 1: API Integration
+
 ```bash
 curl -X POST http://localhost:5000/api/leads \
   -H "Content-Type: application/json" \
@@ -152,7 +162,7 @@ curl -X POST http://localhost:5000/api/leads \
   -d '{
     "email": "customer@example.com",
     "firstName": "John",
-    "lastName": "Doe", 
+    "lastName": "Doe",
     "phone": "555-123-4567",
     "source": "website_form",
     "campaignId": "lead-qualification"
@@ -160,18 +170,21 @@ curl -X POST http://localhost:5000/api/leads \
 ```
 
 ### Method 2: CSV Upload
+
 1. Go to "**Leads**" → "**Import**"
 2. Upload CSV with columns: `email`, `firstName`, `lastName`, `phone`
 3. Map fields and select target campaign
 4. Click "**Start Import**"
 
 ### Method 3: Chat Widget
+
 Add to your website:
+
 ```html
 <script>
   window.SWARM_CONFIG = {
     apiUrl: 'http://localhost:5000',
-    agentId: 'sarah-sales-expert'
+    agentId: 'sarah-sales-expert',
   };
 </script>
 <script src="http://localhost:5000/chat-widget.js"></script>
@@ -180,16 +193,19 @@ Add to your website:
 ## System Monitoring
 
 ### Health Check
+
 ```bash
 curl http://localhost:5000/api/system/health
 ```
 
 ### Agent Status
+
 ```bash
 curl http://localhost:5000/api/agents/status
 ```
 
 ### View Logs
+
 Check the terminal running your backend server for real-time logs.
 
 ## Next Steps
@@ -197,7 +213,7 @@ Check the terminal running your backend server for real-time logs.
 1. **Configure External Services**: Add your API keys for full functionality
 2. **Create Custom Agents**: Build agents for different use cases
 3. **Set Up Campaigns**: Configure qualification criteria and handover rules
-4. **Import Leads**: Start with a small batch to test the flow  
+4. **Import Leads**: Start with a small batch to test the flow
 5. **Monitor Performance**: Use the dashboard to track agent effectiveness
 
 ## Troubleshooting

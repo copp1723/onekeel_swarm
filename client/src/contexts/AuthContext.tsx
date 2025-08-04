@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 
 interface User {
   id: string;
@@ -75,7 +75,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  // Memoize login function to prevent unnecessary re-renders
+  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
@@ -115,23 +116,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
       return false;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  // Memoize logout function to prevent unnecessary re-renders
+  const logout = useCallback(() => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);
     setError(null);
-  };
+  }, []);
 
-  const value: AuthContextType = {
+  // Memoize context value to prevent unnecessary re-renders of consuming components
+  const value: AuthContextType = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
     login,
     logout,
     error
-  };
+  }), [user, isLoading, login, logout, error]);
 
   return (
     <AuthContext.Provider value={value}>

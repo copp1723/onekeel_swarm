@@ -1,8 +1,12 @@
-import { LeadsRepository, ConversationsRepository, AgentDecisionsRepository, CommunicationsRepository, CampaignsRepository } from '../db';
+import { LeadsRepository, ConversationsRepository, AgentDecisionsRepository, CommunicationsRepository, CampaignsRepository, leads, conversations, analyticsEvents } from '../db';
 import { getOverlordAgent, getEmailAgent, getSMSAgent, getChatAgent } from '../agents';
 import { logger } from '../utils/logger';
 import { feedbackService } from './feedback-service';
 import { queueManager } from '../workers/queue-manager';
+import { cacheService } from './cache-service';
+import { TransactionService } from './transaction-service';
+import { optimizedRepo } from './optimized-repository-service';
+import { eq } from 'drizzle-orm';
 
 /**
  * Lead processing service - the heart of the system
@@ -41,10 +45,16 @@ export class LeadProcessor {
       // 1. Get Overlord Agent instance
       const overlord = getOverlordAgent();
       
-      // 2. Get campaign data if available
+      // 2. Get campaign data if available (with caching)
       let campaign: any = undefined;
       if (lead.campaignId) {
-        campaign = await CampaignsRepository.findById(lead.campaignId) || undefined;
+        campaign = await cacheService.getCachedCampaign(lead.campaignId);
+        if (!campaign) {
+          campaign = await CampaignsRepository.findById(lead.campaignId);
+          if (campaign) {
+            await cacheService.cacheCampaign(lead.campaignId, campaign);
+          }
+        }
       }
       
       // 3. Make routing decision
@@ -98,19 +108,61 @@ export class LeadProcessor {
       );
     }
     
-    // 6. Save the conversation
-    const conversation = await ConversationsRepository.create(
-      lead.id,
-      channel,
-      channel as any // channel is also the agent type for email/sms/chat
-    );
-    
-    // Add the initial message to the conversation
-    await ConversationsRepository.addMessage(conversation.id, {
-      role: 'agent',
-      content: messageContent,
-      timestamp: new Date().toISOString()
+    // 6-9. Process lead assignment in transaction for consistency
+    const transactionResult = await TransactionService.processLeadTransaction(lead.id, {
+      createConversation: async (tx) => {
+        const [conversation] = await tx
+          .insert(conversations)
+          .values({
+            leadId: lead.id,
+            channel: channel as any,
+            agentType: channel as any,
+            messages: [{
+              role: 'agent',
+              content: messageContent,
+              timestamp: new Date().toISOString()
+            }],
+            status: 'active',
+            startedAt: new Date(),
+            lastMessageAt: new Date()
+          })
+          .returning();
+        return conversation;
+      },
+      updateLead: async (tx) => {
+        const newScore = Math.min(lead.qualificationScore + 10, 100);
+        const [updatedLead] = await tx
+          .update(leads)
+          .set({
+            qualificationScore: newScore,
+            assignedChannel: channel as any,
+            lastContactedAt: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(leads.id, lead.id))
+          .returning();
+        return updatedLead;
+      },
+      logDecision: async (tx) => {
+        const [event] = await tx
+          .insert(analyticsEvents)
+          .values({
+            eventType: 'lead_channel_assigned',
+            leadId: lead.id,
+            metadata: {
+              channel,
+              decision: decision.action,
+              reasoning: decision.reasoning,
+              messageGenerated: true
+            },
+            createdAt: new Date()
+          })
+          .returning();
+        return event;
+      }
     });
+
+    const conversation = transactionResult.conversation;
     
     // 7. Actually send the message
     const sendResult = await this.sendMessage(lead, channel, messageContent, subject, conversation.id);
@@ -118,7 +170,7 @@ export class LeadProcessor {
     // 8. Broadcast updates to WebSocket clients
     this.broadcast({
       type: 'lead_processed',
-      lead,
+      lead: transactionResult.lead,
       decision,
       conversation: {
         id: conversation.id,
@@ -127,10 +179,6 @@ export class LeadProcessor {
         status: sendResult.status
       }
     });
-    
-    // 9. Update lead qualification score based on initial engagement
-    const newScore = Math.min(lead.qualificationScore + 10, 100);
-    await LeadsRepository.updateQualificationScore(lead.id, newScore);
     
     // Send success feedback
     feedbackService.success(`Lead ${lead.firstName || ''} ${lead.lastName || ''} assigned to ${channel} channel`);

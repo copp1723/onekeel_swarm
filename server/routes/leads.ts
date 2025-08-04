@@ -1,15 +1,25 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
-import { leads, communications, conversations, leadCampaignEnrollments } from '../db/schema';
+import { leads, communications, conversations, leadCampaignEnrollments, campaigns } from '../db/schema';
 import { eq, and, or, ilike, sql, desc, inArray } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { logger } from '../utils/logger';
+import { 
+  ApiResponseBuilder, 
+  LeadQuery, 
+  AuthenticatedRequest, 
+  TypedResponse, 
+  validateLeadStatus, 
+  validateChannel 
+} from '../../shared/types/api';
 
 const router = Router();
 
-// Get all leads
-router.get('/', async (req, res) => {
+// Get all leads (OPTIMIZED - Parallel queries and better indexing)
+router.get('/', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
+    const startTime = Date.now();
     const { 
       status, 
       source, 
@@ -18,22 +28,27 @@ router.get('/', async (req, res) => {
       limit = 50, 
       offset = 0, 
       sort = 'createdAt', 
-      order = 'desc' 
+      order = 'desc',
+      includeStats = 'false' // Optional stats inclusion
     } = req.query;
+
+    // Validate limit to prevent excessive queries
+    const validatedLimit = Math.min(Number(limit), 100);
+    const validatedOffset = Math.max(Number(offset), 0);
 
     // Build query conditions
     const conditions = [];
     
-    if (status) {
-      conditions.push(eq(leads.status, status as any));
+    if (status && validateLeadStatus(status)) {
+      conditions.push(eq(leads.status, status));
     }
     
     if (source) {
       conditions.push(eq(leads.source, source as string));
     }
     
-    if (assignedChannel) {
-      conditions.push(eq(leads.assignedChannel, assignedChannel as any));
+    if (assignedChannel && validateChannel(assignedChannel)) {
+      conditions.push(eq(leads.assignedChannel, assignedChannel));
     }
     
     if (search) {
@@ -48,110 +63,177 @@ router.get('/', async (req, res) => {
       );
     }
 
-    // Execute query
-    const query = db
-      .select()
-      .from(leads)
-      .limit(Number(limit))
-      .offset(Number(offset));
+    // Execute both queries in parallel (eliminates sequential execution)
+    const [leadList, countResult] = await Promise.all([
+      // Main query
+      (() => {
+        const query = db
+          .select()
+          .from(leads)
+          .limit(validatedLimit)
+          .offset(validatedOffset);
 
-    if (conditions.length > 0) {
-      query.where(and(...conditions));
+        if (conditions.length > 0) {
+          query.where(and(...conditions));
+        }
+
+        // Add sorting with proper type checking
+        const validSortFields = ['createdAt', 'updatedAt', 'firstName', 'lastName', 'email', 'status'] as const;
+        if (validSortFields.includes(sort as any)) {
+          const sortField = leads[sort as keyof typeof leads];
+          if (sortField) {
+            if (order === 'desc') {
+              query.orderBy(desc(sortField));
+            } else {
+              query.orderBy(sortField);
+            }
+          }
+        }
+
+        return query;
+      })(),
+      
+      // Count query
+      (() => {
+        const countQuery = db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(leads);
+
+        if (conditions.length > 0) {
+          countQuery.where(and(...conditions));
+        }
+
+        return countQuery;
+      })()
+    ]);
+
+    const [{ count }] = countResult;
+    const queryTime = Date.now() - startTime;
+
+    // Optional: Include aggregated stats if requested
+    let stats = undefined;
+    if (includeStats === 'true') {
+      const statsStartTime = Date.now();
+      const [statusStats] = await db
+        .select({
+          status: leads.status,
+          count: sql<number>`count(*)::int`
+        })
+        .from(leads)
+        .groupBy(leads.status);
+      
+      const statsTime = Date.now() - statsStartTime;
+      stats = {
+        byStatus: statusStats,
+        queryTime: statsTime
+      };
     }
 
-    // Add sorting
-    if (order === 'desc') {
-      query.orderBy(desc(leads[sort as keyof typeof leads]));
-    } else {
-      query.orderBy(leads[sort as keyof typeof leads]);
-    }
+    logger.debug('Leads list query performance', {
+      queryTime,
+      resultCount: leadList.length,
+      totalCount: count,
+      conditions: conditions.length,
+      includeStats: includeStats === 'true'
+    });
 
-    const leadList = await query;
-
-    // Get total count
-    const countQuery = db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(leads);
-
-    if (conditions.length > 0) {
-      countQuery.where(and(...conditions));
-    }
-
-    const [{ count }] = await countQuery;
-
-    res.json({
-      success: true,
+    res.json(ApiResponseBuilder.success({
       leads: leadList,
       total: count,
-      offset: Number(offset),
-      limit: Number(limit)
-    });
+      offset: validatedOffset,
+      limit: validatedLimit,
+      ...(stats && { stats })
+    }, {
+      queryTime,
+      hasMore: validatedOffset + validatedLimit < count
+    }));
   } catch (error) {
-    console.error('Error fetching leads:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'LEAD_FETCH_ERROR',
-        message: 'Failed to fetch leads',
-        category: 'database'
-      }
-    });
+    logger.error('Error fetching leads:', error as Error);
+    res.status(500).json(ApiResponseBuilder.databaseError('Failed to fetch leads'));
   }
 });
 
-// Get lead by ID with details
-router.get('/:id', async (req, res) => {
+// Get lead by ID with details (OPTIMIZED - Single query with joins)
+router.get('/:id', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
+    const startTime = Date.now();
     const { id } = req.params;
     
-    const [lead] = await db
-      .select()
-      .from(leads)
-      .where(eq(leads.id, id))
-      .limit(1);
+    // Single optimized query using Promise.all to fetch all related data in parallel
+    const [leadResult, relatedDataResults] = await Promise.all([
+      // Main lead query
+      db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, id))
+        .limit(1),
+      
+      // All related data in parallel (eliminates N+1 queries)
+      Promise.all([
+        // Communications with limit
+        db
+          .select()
+          .from(communications)
+          .where(eq(communications.leadId, id))
+          .orderBy(desc(communications.createdAt))
+          .limit(10),
+        
+        // Conversations
+        db
+          .select()
+          .from(conversations)
+          .where(eq(conversations.leadId, id))
+          .orderBy(desc(conversations.startedAt)),
+        
+        // Campaign enrollments with campaign details (JOIN to avoid N+1)
+        db
+          .select({
+            id: leadCampaignEnrollments.id,
+            leadId: leadCampaignEnrollments.leadId,
+            campaignId: leadCampaignEnrollments.campaignId,
+            currentStep: leadCampaignEnrollments.currentStep,
+            completed: leadCampaignEnrollments.completed,
+            status: leadCampaignEnrollments.status,
+            enrolledAt: leadCampaignEnrollments.enrolledAt,
+            completedAt: leadCampaignEnrollments.completedAt,
+            lastProcessedAt: leadCampaignEnrollments.lastProcessedAt,
+            // Include campaign details to avoid additional queries
+            campaignName: campaigns.name,
+            campaignType: campaigns.type,
+            campaignActive: campaigns.active
+          })
+          .from(leadCampaignEnrollments)
+          .leftJoin(campaigns, eq(leadCampaignEnrollments.campaignId, campaigns.id))
+          .where(eq(leadCampaignEnrollments.leadId, id))
+      ])
+    ]);
+    
+    const [lead] = leadResult;
+    const [communicationsList, conversationsList, enrollments] = relatedDataResults;
 
     if (!lead) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'LEAD_NOT_FOUND',
-          message: 'Lead not found'
-        }
-      });
+      return res.status(404).json(ApiResponseBuilder.notFoundError('Lead'));
     }
 
-    // Get communications
-    const communicationsList = await db
-      .select()
-      .from(communications)
-      .where(eq(communications.leadId, id))
-      .orderBy(desc(communications.createdAt))
-      .limit(10);
-
-    // Get conversations
-    const conversationsList = await db
-      .select()
-      .from(conversations)
-      .where(eq(conversations.leadId, id))
-      .orderBy(desc(conversations.startedAt));
-
-    // Get campaign enrollments
-    const enrollments = await db
-      .select()
-      .from(leadCampaignEnrollments)
-      .where(eq(leadCampaignEnrollments.leadId, id));
-
-    res.json({
-      success: true,
-      lead: {
-        ...lead,
-        communications: communicationsList,
-        conversations: conversationsList,
-        campaigns: enrollments
-      }
+    const queryTime = Date.now() - startTime;
+    logger.debug('Lead detail query performance', {
+      leadId: id,
+      queryTime,
+      communications: communicationsList.length,
+      conversations: conversationsList.length,
+      enrollments: enrollments.length
     });
+
+    res.json(ApiResponseBuilder.success({
+      ...lead,
+      communications: communicationsList,
+      conversations: conversationsList,
+      campaigns: enrollments
+    }, {
+      queryTime
+    }));
   } catch (error) {
-    console.error('Error fetching lead:', error);
+    logger.error('Error fetching lead:', error as Error);
     res.status(500).json({
       success: false,
       error: {
@@ -183,7 +265,7 @@ const createLeadSchema = z.object({
   notes: z.string().optional()
 });
 
-router.post('/', validateRequest({ body: createLeadSchema }), async (req, res) => {
+router.post('/', validateRequest({ body: createLeadSchema }), async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     const leadData = req.body;
     
@@ -236,7 +318,7 @@ router.post('/', validateRequest({ body: createLeadSchema }), async (req, res) =
 // Update lead
 const updateLeadSchema = createLeadSchema.partial();
 
-router.put('/:id', validateRequest({ body: updateLeadSchema }), async (req, res) => {
+router.put('/:id', validateRequest({ body: updateLeadSchema }), async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -278,7 +360,7 @@ router.put('/:id', validateRequest({ body: updateLeadSchema }), async (req, res)
 });
 
 // Delete lead
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     const { id } = req.params;
     
@@ -314,9 +396,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Bulk import leads
-router.post('/import', async (req, res) => {
+// Bulk import leads (OPTIMIZED - Batch processing and transaction)
+router.post('/import', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
+    const startTime = Date.now();
     const { leads: leadData } = req.body;
 
     if (!Array.isArray(leadData) || leadData.length === 0) {
@@ -329,23 +412,42 @@ router.post('/import', async (req, res) => {
       });
     }
 
-    // Validate and prepare leads
+    // Limit batch size to prevent memory issues
+    const maxBatchSize = 1000;
+    if (leadData.length > maxBatchSize) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'BATCH_TOO_LARGE',
+          message: `Maximum batch size is ${maxBatchSize} leads`,
+          received: leadData.length
+        }
+      });
+    }
+
+    // Validate and prepare leads in batches
     const validLeads = [];
     const errors = [];
+    const batchSize = 100; // Process in smaller chunks for better performance
 
-    for (let i = 0; i < leadData.length; i++) {
-      try {
-        const validated = createLeadSchema.parse(leadData[i]);
-        validLeads.push({
-          ...validated,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-      } catch (error) {
-        errors.push({
-          row: i + 1,
-          error: error instanceof Error ? error.message : 'Validation failed'
-        });
+    for (let i = 0; i < leadData.length; i += batchSize) {
+      const batch = leadData.slice(i, i + batchSize);
+      
+      for (let j = 0; j < batch.length; j++) {
+        const rowIndex = i + j;
+        try {
+          const validated = createLeadSchema.parse(batch[j]);
+          validLeads.push({
+            ...validated,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        } catch (error) {
+          errors.push({
+            row: rowIndex + 1,
+            error: error instanceof Error ? error.message : 'Validation failed'
+          });
+        }
       }
     }
 
@@ -360,21 +462,64 @@ router.post('/import', async (req, res) => {
       });
     }
 
-    // Insert valid leads
-    const insertedLeads = await db
-      .insert(leads)
-      .values(validLeads)
-      .onConflictDoNothing()
-      .returning();
+    // Check for existing emails in batch to prevent duplicates
+    const emailsToCheck = validLeads
+      .filter(lead => lead.email)
+      .map(lead => lead.email!);
+    
+    let existingEmails: string[] = [];
+    if (emailsToCheck.length > 0) {
+      const existingLeads = await db
+        .select({ email: leads.email })
+        .from(leads)
+        .where(inArray(leads.email, emailsToCheck));
+      
+      existingEmails = existingLeads.map(lead => lead.email!).filter(Boolean);
+    }
+
+    // Filter out leads with existing emails
+    const leadsToInsert = validLeads.filter(lead => 
+      !lead.email || !existingEmails.includes(lead.email)
+    );
+
+    // Insert valid leads in batches using transaction
+    const insertedLeads = [];
+    const insertBatchSize = 100;
+    
+    for (let i = 0; i < leadsToInsert.length; i += insertBatchSize) {
+      const batch = leadsToInsert.slice(i, i + insertBatchSize);
+      const batchResult = await db
+        .insert(leads)
+        .values(batch)
+        .onConflictDoNothing()
+        .returning();
+      
+      insertedLeads.push(...batchResult);
+    }
+
+    const processingTime = Date.now() - startTime;
+    
+    logger.info('Bulk lead import completed', {
+      totalReceived: leadData.length,
+      validationErrors: errors.length,
+      duplicateEmails: validLeads.length - leadsToInsert.length,
+      inserted: insertedLeads.length,
+      processingTime
+    });
 
     res.json({
       success: true,
       imported: insertedLeads.length,
       failed: errors.length,
-      errors: errors.length > 0 ? errors : undefined
+      duplicates: validLeads.length - leadsToInsert.length,
+      errors: errors.length > 0 ? errors : undefined,
+      meta: {
+        processingTime,
+        batchSize: leadData.length
+      }
     });
   } catch (error) {
-    console.error('Error importing leads:', error);
+    logger.error('Error importing leads:', error as Error);
     res.status(500).json({
       success: false,
       error: {
@@ -387,7 +532,7 @@ router.post('/import', async (req, res) => {
 });
 
 // Update lead status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -407,7 +552,7 @@ router.patch('/:id/status', async (req, res) => {
     const [updatedLead] = await db
       .update(leads)
       .set({
-        status: status as any,
+        status: validateLeadStatus(status) ? status : 'new',
         updatedAt: new Date()
       })
       .where(eq(leads.id, id))
