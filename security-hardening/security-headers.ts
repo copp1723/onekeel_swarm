@@ -362,15 +362,17 @@ export class SecurityHeaders {
     const policyParts: string[] = [];
 
     for (const [feature, allowList] of Object.entries(features)) {
-      const allowListStr = allowList
-        .map(item => {
-          if (item === 'self') return 'self';
-          if (item === 'none') return '()';
-          return `"${item}"`;
-        })
-        .join(' ');
-
-      policyParts.push(`${feature}=(${allowListStr})`);
+      if (allowList.length === 0 || (allowList.length === 1 && allowList[0] === 'none')) {
+        policyParts.push(`${feature}=()`);
+      } else {
+        const allowListStr = allowList
+          .map(item => {
+            if (item === 'self') return 'self';
+            return `"${item}"`;
+          })
+          .join(' ');
+        policyParts.push(`${feature}=(${allowListStr})`);
+      }
     }
 
     return policyParts.join(', ');

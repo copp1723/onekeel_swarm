@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiClient } from '../utils/api-client';
 
 // Feature flag context type
 interface FeatureFlagContext {
@@ -29,13 +30,7 @@ class FeatureFlagClient {
     }
 
     try {
-      const response = await fetch('/api/feature-flags/evaluate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ flagKey, context }),
-      });
+      const response = await apiClient.post('/api/feature-flags/evaluate', { flagKey, context });
 
       if (!response.ok) {
         console.warn(`Feature flag evaluation failed for ${flagKey}:`, response.statusText);

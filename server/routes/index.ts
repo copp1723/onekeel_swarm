@@ -18,8 +18,23 @@ import navigationRoutes from './navigation-aliases';
 
 const router = Router();
 
+// Import feature flag service for public endpoint
+import { featureFlagService } from '../services/feature-flag-service';
+
 // CRITICAL SECURITY FIX: Mount all routes with authentication except public ones
 router.use('/auth', authRoutes); // Public auth endpoints
+
+// Public feature flag evaluation endpoint (no auth required)
+router.post('/feature-flags/evaluate', async (req, res) => {
+  try {
+    const { flagKey, context } = req.body;
+    const evaluation = await featureFlagService.evaluateFlag(flagKey, context);
+    res.json({ success: true, evaluation });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to evaluate feature flag' });
+  }
+});
+
 router.use('/agents', authenticate, authorize('admin', 'manager', 'agent'), agentsRoutes);
 router.use('/agent-templates', authenticate, authorize('admin', 'manager'), agentTemplatesRoutes);
 router.use('/campaigns', authenticate, authorize('admin', 'manager', 'agent'), campaignsRoutes);
