@@ -42,7 +42,6 @@ class CacheService {
         // Error handling
         retryDelayOnClusterDown: 300,
         enableReadyCheck: true,
-        maxRetriesPerRequest: null,
         
         // Performance settings
         compression: 'gzip',
