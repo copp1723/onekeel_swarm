@@ -94,6 +94,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Set user
         setUser(data.user);
         setIsLoading(false);
+        
+        // Force reload to ensure all components get auth state
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+        
         return true;
       } else {
         setError(data.error || 'Login failed');
