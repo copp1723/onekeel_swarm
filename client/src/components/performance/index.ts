@@ -1,5 +1,5 @@
 // Performance monitoring components and utilities
-export { default as PerformanceProfiler, PerformanceDashboard, usePerformanceProfiler } from './PerformanceProfiler';
+export { PerformanceProfiler, PerformanceDashboard, usePerformanceProfiler } from './PerformanceProfiler';
 export type { PerformanceEntry, PerformanceStats } from './PerformanceProfiler';
 
 // Virtual scrolling components
