@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    
+    <script>
+        // Create 192x192 icon
+        const canvas192 = document.getElementById('canvas192');
+        const ctx192 = canvas192.getContext('2d');
+        
+        // Blue background
+        ctx192.fillStyle = '#1e40af';
+        ctx192.fillRect(0, 0, 192, 192);
+        
+        // White text
+        ctx192.fillStyle = '#ffffff';
+        ctx192.font = 'bold 48px Arial';
+        ctx192.textAlign = 'center';
+        ctx192.textBaseline = 'middle';
+        ctx192.fillText('OK', 96, 96);
+        
+        // Create 512x512 icon
+        const canvas512 = document.getElementById('canvas512');
+        const ctx512 = canvas512.getContext('2d');
+        
+        // Blue background
+        ctx512.fillStyle = '#1e40af';
+        ctx512.fillRect(0, 0, 512, 512);
+        
+        // White text
+        ctx512.fillStyle = '#ffffff';
+        ctx512.font = 'bold 128px Arial';
+        ctx512.textAlign = 'center';
+        ctx512.textBaseline = 'middle';
+        ctx512.fillText('OK', 256, 256);
+        
+        // Convert to data URLs
+        const dataUrl192 = canvas192.toDataURL('image/png');
+        const dataUrl512 = canvas512.toDataURL('image/png');
+        
+        // Log the data URLs for manual saving
+        console.log('192x192 Data URL:', dataUrl192);
+        console.log('512x512 Data URL:', dataUrl512);
+        
+        // Create download links
+        const link192 = document.createElement('a');
+        link192.download = 'pwa-192x192.png';
+        link192.href = dataUrl192;
+        link192.textContent = 'Download 192x192';
+        
+        const link512 = document.createElement('a');
+        link512.download = 'pwa-512x512.png';
+        link512.href = dataUrl512;
+        link512.textContent = 'Download 512x512';
+        
+        document.body.appendChild(document.createElement('br'));
+        document.body.appendChild(link192);
+        document.body.appendChild(document.createElement('br'));
+        document.body.appendChild(link512);
+    </script>
+</body>
+</html>

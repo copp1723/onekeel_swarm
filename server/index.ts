@@ -29,6 +29,7 @@ import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { configureCsrf } from './middleware/csrf';
 import { securityHeaders } from '../security-hardening/security-headers';
+import { temporaryCSPFix } from './middleware/csp-temp-fix';
 
 import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
@@ -124,9 +125,28 @@ async function initializeApp() {
     wss = new WebSocketServer({ server });
   }
 
-  // SECURITY FIX: Apply security headers first
-  const securityLevel = config.nodeEnv === 'production' ? 'strict' : 'development';
-  app.use(securityHeaders(securityLevel));
+  // SECURITY FIX: Apply security headers with environment-specific CSP
+  if (config.nodeEnv === 'production') {
+    // Apply security headers first (without CSP)
+    app.use(securityHeaders({
+      contentSecurityPolicy: false, // Disable the built-in CSP
+      hsts: {
+        maxAge: 63072000, // 2 years
+        includeSubDomains: true,
+        preload: true,
+      },
+      frameguard: { action: 'DENY' },
+      noSniff: true,
+      xssFilter: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }));
+    
+    // Apply our temporary CSP fix that works with Vite
+    app.use(temporaryCSPFix());
+  } else {
+    // Use development preset
+    app.use(securityHeaders('development'));
+  }
 
   // Essential middleware
   app.use(express.json({ limit: '100kb' }));

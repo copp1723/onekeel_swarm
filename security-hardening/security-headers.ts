@@ -401,12 +401,13 @@ export const SecurityHeaderPresets = {
     contentSecurityPolicy: {
       directives: {
         ...defaultCspDirectives,
-        'script-src': ["'self'", "'strict-dynamic'"],
-        'style-src': ["'self'"],
-        'img-src': ["'self'", 'data:'],
-        'connect-src': ["'self'"],
-        'worker-src': ["'self'"],
+        'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow Vite-built scripts
+        'style-src': ["'self'", "'unsafe-inline'"], // Allow inline styles from Vite
+        'img-src': ["'self'", 'data:', 'https:'],
+        'connect-src': ["'self'", 'wss:', 'ws:'], // Allow WebSocket connections
+        'worker-src': ["'self'", 'blob:'], // Allow service workers
         'manifest-src': ["'self'"],
+        'font-src': ["'self'", 'data:'], // Allow font loading
       },
     },
     hsts: {
