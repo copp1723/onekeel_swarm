@@ -30,13 +30,13 @@ async function createAlphaAdmin() {
     await db.insert(users).values({
       email,
       username: 'admin',
-      password_hash: hashedPassword,
-      first_name: 'Alpha',
-      last_name: 'Admin',
+      passwordHash: hashedPassword,
+      firstName: 'Alpha',
+      lastName: 'Admin',
       role: 'admin',
       active: true,
-      created_at: new Date(),
-      updated_at: new Date()
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
     
     console.log('✅ Admin user created successfully!');
