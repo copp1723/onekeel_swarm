@@ -57,7 +57,7 @@ fi
 
 # Build the client
 echo "Building client application..."
-npx vite build --verbose
+npx vite build
 
 # Verify build output
 if [ ! -d "dist" ]; then
