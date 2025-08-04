@@ -92,7 +92,7 @@ export interface SecurityHeadersConfig {
 // Default CSP directives for a secure application
 const defaultCspDirectives = {
   'default-src': ["'self'"],
-  'script-src': ["'self'", "'strict-dynamic'"],
+  'script-src': ["'self'"],
   'style-src': ["'self'", "'unsafe-inline'"], // Consider using nonces instead
   'img-src': ["'self'", 'data:', 'https:'],
   'font-src': ["'self'"],
