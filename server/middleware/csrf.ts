@@ -66,14 +66,20 @@ export function configureCsrf() {
         return next();
       }
       
+      // Debug logging
+      console.log('[CSRF] Checking path:', req.path, 'Method:', req.method);
+      
       // Skip for health checks, public endpoints, auth endpoints, feature flags, and webhooks
+      // Note: req.path includes the full path including /api prefix
       if (req.path === '/health' || 
+          req.path === '/api/health' ||
           req.path.startsWith('/api/public/') ||
           req.path === '/api/auth/login' ||
           req.path === '/api/auth/register' ||
           req.path === '/api/auth/csrf' ||
           req.path === '/api/feature-flags/evaluate' ||
           req.path.startsWith('/api/webhooks/')) {
+        console.log('[CSRF] Skipping CSRF check for:', req.path);
         return next();
       }
       
