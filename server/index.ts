@@ -238,15 +238,15 @@ async function initializeApp() {
   // Apply terminology middleware before routes
   applyTerminologyMiddleware(app);
 
-  // Configure CSRF protection
+  // Register all routes FIRST (async)
+  await registerRoutes(app);
+
+  // Configure CSRF protection AFTER routes are registered
   const csrf = configureCsrf();
   // Inject CSRF tokens into GET requests
   app.use(csrf.inject);
   // Verify CSRF tokens on state-changing requests
   app.use('/api', csrf.verify);
-
-  // Register all routes (async)
-  await registerRoutes(app);
 
   // WebSocket handling
   if (wss) {
