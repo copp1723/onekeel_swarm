@@ -10,17 +10,18 @@ import { redis } from '../utils/redis-client';
 // Secure token configuration
 const TOKEN_CONFIG = {
   // Ensure strong secrets from environment
+  // Use JWT_SECRET for both if JWT_REFRESH_SECRET is not available (backward compatibility)
   accessSecret: process.env.JWT_SECRET,
-  refreshSecret: process.env.JWT_REFRESH_SECRET,
-  
+  refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+
   // Token expiration times
   accessTokenExpiry: '15m', // 15 minutes
   refreshTokenExpiry: '7d', // 7 days
-  
+
   // Security options
   issuer: 'onekeel-swarm',
   audience: 'onekeel-api',
-  
+
   // Algorithm
   algorithm: 'HS256' as jwt.Algorithm
 };
@@ -30,14 +31,14 @@ function validateSecrets() {
   if (!TOKEN_CONFIG.accessSecret || TOKEN_CONFIG.accessSecret.length < 32) {
     throw new Error('JWT_SECRET must be set and at least 32 characters long');
   }
-  
+
   if (!TOKEN_CONFIG.refreshSecret || TOKEN_CONFIG.refreshSecret.length < 32) {
-    throw new Error('JWT_REFRESH_SECRET must be set and at least 32 characters long');
+    throw new Error('JWT_REFRESH_SECRET (or JWT_SECRET) must be set and at least 32 characters long');
   }
-  
-  // Ensure secrets are different
+
+  // Only warn if secrets are the same (for backward compatibility)
   if (TOKEN_CONFIG.accessSecret === TOKEN_CONFIG.refreshSecret) {
-    throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be different');
+    console.warn('WARNING: Using same secret for access and refresh tokens. Consider setting JWT_REFRESH_SECRET for better security.');
   }
 }
 

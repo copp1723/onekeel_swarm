@@ -90,12 +90,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Store tokens
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        
+
         // Set user
         setUser(data.user);
         setIsLoading(false);
-        
-        // Force reload to ensure all components get auth state
+
+        // Clear service worker cache and reload to ensure fresh content
+        if ('serviceWorker' in navigator && 'caches' in window) {
+          try {
+            // Clear all caches
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+            // Unregister service worker
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+
+            console.log('Cleared service worker cache and registrations');
+          } catch (error) {
+            console.warn('Failed to clear service worker cache:', error);
+          }
+        }
+
+        // Force hard reload to bypass cache
         setTimeout(() => {
           window.location.reload();
         }, 100);

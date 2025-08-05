@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { UsersRepository } from '../db';
 import { isAuthenticated, generateToken, verifyPassword, hashPassword } from '../middleware/simple-auth';
+import { tokenService } from '../services/token-service';
 import {
   ApiResponseBuilder,
   AuthenticatedRequest,
@@ -64,16 +65,16 @@ router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<Login
       );
     }
     
-    // Generate simple JWT token
-    const accessToken = generateToken({
+    // Generate secure JWT tokens using token service
+    const tokens = await tokenService.generateTokens({
       id: user.id,
       email: user.email,
       role: user.role
     });
-    
+
     // Update last login timestamp
     await UsersRepository.updateLastLogin(user.id);
-    
+
     // Return user data and tokens (without password hash)
     const userResponse = {
       id: user.id,
@@ -84,12 +85,13 @@ router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<Login
       role: user.role,
       active: user.active
     };
-    
+
     return res.json({
       success: true,
       user: userResponse,
-      accessToken: accessToken,
-      expiresIn: 86400 // 24 hours in seconds
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: tokens.expiresIn
     });
     
   } catch (error) {
