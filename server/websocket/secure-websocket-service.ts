@@ -11,10 +11,10 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { logger } from '../utils/logger';
-import { securityConfig } from '../config/security';
-import { tokenService } from '../services/token-service';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { UsersRepository } from '../db';
 
 // WebSocket message schema
 const WebSocketMessageSchema = z.object({
@@ -187,8 +187,23 @@ export class SecureWebSocketService {
         return;
       }
 
-      const decoded = tokenService.verifyAccessToken(payload.token);
-      if (!decoded || !decoded.userId) {
+      let decoded: any;
+      try {
+        const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+        decoded = jwt.verify(payload.token, JWT_SECRET) as any;
+        
+        if (!decoded || !decoded.userId) {
+          this.sendError(client, 'Invalid token');
+          return;
+        }
+        
+        // Verify user still exists and is active
+        const user = await UsersRepository.findById(decoded.userId);
+        if (!user || !user.active) {
+          this.sendError(client, 'User account inactive');
+          return;
+        }
+      } catch (error) {
         this.sendError(client, 'Invalid token');
         return;
       }

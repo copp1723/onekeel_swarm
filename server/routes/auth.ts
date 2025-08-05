@@ -1,10 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 import { UsersRepository } from '../db';
-import { tokenService } from '../services/token-service';
-import { sessionService } from '../services/session-service';
-import { authenticate } from '../middleware/auth';
+import { isAuthenticated, generateToken, verifyPassword } from '../middleware/simple-auth';
 import { 
   ApiResponseBuilder, 
   AuthenticatedRequest, 
@@ -58,27 +55,20 @@ router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<Login
       );
     }
     
-    // Verify password using bcrypt
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    // Verify password
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(401).json(
         ApiResponseBuilder.authError('Invalid username or password')
       );
     }
     
-    // Generate secure JWT tokens
-    const tokens = await tokenService.generateTokens({
+    // Generate simple JWT token
+    const accessToken = generateToken({
       id: user.id,
       email: user.email,
       role: user.role
     });
-    
-    // Create session
-    const session = await sessionService.createSession(
-      user.id,
-      req.ip,
-      req.get('User-Agent')
-    );
     
     // Update last login timestamp
     await UsersRepository.updateLastLogin(user.id);
@@ -97,9 +87,8 @@ router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<Login
     return res.json({
       success: true,
       user: userResponse,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresIn: tokens.expiresIn
+      accessToken: accessToken,
+      expiresIn: 86400 // 24 hours in seconds
     });
     
   } catch (error) {
@@ -114,8 +103,8 @@ router.post('/login', async (req: AuthenticatedRequest, res: TypedResponse<Login
   }
 });
 
-// Get current user endpoint with secure authentication
-router.get('/me', authenticate, async (req: AuthenticatedRequest, res: TypedResponse) => {
+// Get current user endpoint with simplified authentication
+router.get('/me', isAuthenticated, async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
     // User is already authenticated by middleware
     if (!req.user) {
@@ -170,22 +159,11 @@ router.get('/me', authenticate, async (req: AuthenticatedRequest, res: TypedResp
   }
 });
 
-// Logout endpoint with token revocation
-router.post('/logout', authenticate, async (req: AuthenticatedRequest, res: TypedResponse) => {
+// Simple logout endpoint
+router.post('/logout', isAuthenticated, async (req: AuthenticatedRequest, res: TypedResponse) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      
-      // Revoke the access token
-      await tokenService.revokeToken(token);
-    }
-    
-    // Delete all sessions for the user
-    if (req.user) {
-      await sessionService.deleteAllUserSessions(req.user.id);
-    }
+    // In a simple system, logout is handled client-side by removing the token
+    // Server doesn't need to track token revocation for short-lived tokens
     
     return res.json({
       success: true,
@@ -204,51 +182,7 @@ router.post('/logout', authenticate, async (req: AuthenticatedRequest, res: Type
   }
 });
 
-// Refresh token endpoint with secure token rotation
-router.post('/refresh', async (req: AuthenticatedRequest, res: TypedResponse) => {
-  try {
-    const { refreshToken } = req.body;
-    
-    if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_REFRESH_TOKEN',
-          message: 'Refresh token is required'
-        }
-      });
-    }
-    
-    // Use token service to refresh tokens
-    const newTokens = await tokenService.refreshTokens(refreshToken);
-    
-    if (!newTokens) {
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: 'INVALID_REFRESH_TOKEN',
-          message: 'Invalid or expired refresh token'
-        }
-      });
-    }
-    
-    return res.json({
-      success: true,
-      accessToken: newTokens.accessToken,
-      refreshToken: newTokens.refreshToken,
-      expiresIn: newTokens.expiresIn
-    });
-    
-  } catch (error) {
-    console.error('Token refresh error:', error);
-    return res.status(500).json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An error occurred while refreshing tokens'
-      }
-    });
-  }
-});
+// Note: Refresh tokens removed in simplified system
+// Clients should re-authenticate when tokens expire
 
 export default router;

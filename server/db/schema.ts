@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm';
 // ENUMS
 // ============================================
 
-export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'agent', 'viewer']);
+export const userRoleEnum = pgEnum('user_role', ['admin', 'user']);
 export const leadStatusEnum = pgEnum('lead_status', ['new', 'contacted', 'qualified', 'converted', 'rejected']);
 export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
 export const communicationDirectionEnum = pgEnum('communication_direction', ['inbound', 'outbound']);
@@ -27,7 +27,7 @@ export const users = pgTable('users', {
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   firstName: varchar('first_name', { length: 255 }),
   lastName: varchar('last_name', { length: 255 }),
-  role: userRoleEnum('role').default('agent').notNull(),
+  role: userRoleEnum('role').default('user').notNull(),
   active: boolean('active').default(true).notNull(),
   lastLogin: timestamp('last_login'),
   metadata: jsonb('metadata').default({}),

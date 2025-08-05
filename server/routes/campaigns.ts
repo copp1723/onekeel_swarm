@@ -4,11 +4,12 @@ import { db } from '../db/client';
 import { campaigns, leadCampaignEnrollments, leads } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
+import { isAuthenticated } from '../middleware/simple-auth';
 
 const router = Router();
 
 // Get campaign metrics for reporting
-router.get('/metrics', async (req, res) => {
+router.get('/metrics', isAuthenticated, async (req, res) => {
   try {
     const { limit = 5, sort = 'recent' } = req.query;
     

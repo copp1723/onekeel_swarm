@@ -4,12 +4,12 @@ import { db } from '../db/client';
 import { users, auditLogs } from '../db/schema';
 import { eq, and, or, ilike, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
-import bcrypt from 'bcryptjs';
+import { isAuthenticated, isAdmin, ownsResourceOrAdmin, hashPassword } from '../middleware/simple-auth';
 
 const router = Router();
 
-// Get all users
-router.get('/', async (req, res) => {
+// Get all users (admin only)
+router.get('/', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const { 
       role, 
