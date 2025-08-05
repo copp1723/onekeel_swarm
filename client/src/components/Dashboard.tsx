@@ -1,20 +1,42 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { CampaignWizard } from './campaign-wizard/CampaignWizard';
+import LeadsView from '../views/LeadsView';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [showWizard, setShowWizard] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'leads'>('dashboard');
 
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-8">
               <h1 className="text-xl font-semibold text-gray-900">
-                OneKeel Swarm Dashboard
+                OneKeel Swarm
               </h1>
+              <nav className="flex space-x-4">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    currentView === 'dashboard'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setCurrentView('leads')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    currentView === 'leads'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Leads
+                </button>
+              </nav>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
@@ -33,7 +55,8 @@ export const Dashboard: React.FC = () => {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
+          {currentView === 'dashboard' ? (
+            <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 🎉 System Successfully Rebuilt!
@@ -52,10 +75,10 @@ export const Dashboard: React.FC = () => {
                 </ul>
               </div>
               <button
-                onClick={() => setShowWizard(true)}
+                onClick={() => setCurrentView('leads')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
               >
-                🚀 Create Campaign
+                📊 Manage Leads
               </button>
               <div className="mt-6 text-sm text-gray-500">
                 <p>User: {user?.username} ({user?.role})</p>
@@ -64,18 +87,11 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           </div>
+          ) : (
+            <LeadsView />
+          )}
         </div>
       </main>
-      
-      {showWizard && (
-        <CampaignWizard
-          onClose={() => setShowWizard(false)}
-          onComplete={(campaign) => {
-            console.log('Campaign created:', campaign);
-            setShowWizard(false);
-          }}
-        />
-      )}
     </div>
   );
 };

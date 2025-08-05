@@ -78,6 +78,18 @@ export const leads = pgTable('leads', {
   updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Lead campaign enrollments for tracking campaign participation
+export const leadCampaignEnrollments = pgTable('lead_campaign_enrollments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').notNull().references(() => leads.id, { onDelete: 'cascade' }),
+  campaignId: uuid('campaign_id').notNull().references(() => campaigns.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('active'), // active, paused, completed
+  completed: boolean('completed').default(false),
+  enrolledAt: timestamp('enrolled_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  metadata: jsonb('metadata').default({}),
+});
+
 // Email templates for campaign wizard
 export const templates = pgTable('templates', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -103,12 +115,25 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
     fields: [campaigns.agentId],
     references: [agentConfigurations.id]
   }),
-  leads: many(leads)
+  leads: many(leads),
+  enrollments: many(leadCampaignEnrollments)
 }));
 
-export const leadsRelations = relations(leads, ({ one }) => ({
+export const leadsRelations = relations(leads, ({ one, many }) => ({
   campaign: one(campaigns, {
     fields: [leads.campaign_id],
+    references: [campaigns.id]
+  }),
+  enrollments: many(leadCampaignEnrollments)
+}));
+
+export const leadCampaignEnrollmentsRelations = relations(leadCampaignEnrollments, ({ one }) => ({
+  lead: one(leads, {
+    fields: [leadCampaignEnrollments.leadId],
+    references: [leads.id]
+  }),
+  campaign: one(campaigns, {
+    fields: [leadCampaignEnrollments.campaignId],
     references: [campaigns.id]
   })
 }));
@@ -122,6 +147,8 @@ export type Campaign = typeof campaigns.$inferSelect;
 export type NewCampaign = typeof campaigns.$inferInsert;
 export type Lead = typeof leads.$inferSelect;
 export type NewLead = typeof leads.$inferInsert;
+export type LeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferSelect;
+export type NewLeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferInsert;
 export type AgentConfiguration = typeof agentConfigurations.$inferSelect;
 export type NewAgentConfiguration = typeof agentConfigurations.$inferInsert;
 export type Template = typeof templates.$inferSelect;
