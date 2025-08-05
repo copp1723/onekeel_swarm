@@ -376,6 +376,10 @@ export class UsersRepository {
     }).returning();
     return user;
   }
+
+  static async findAll() {
+    return await db.select().from(users);
+  }
 }
 
 export class AuditLogRepository {

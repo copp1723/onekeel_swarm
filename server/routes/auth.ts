@@ -1,15 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { UsersRepository } from '../db';
-import { isAuthenticated, generateToken, verifyPassword } from '../middleware/simple-auth';
-import { 
-  ApiResponseBuilder, 
-  AuthenticatedRequest, 
-  TypedResponse, 
-  LoginRequest, 
-  LoginResponse 
+import { isAuthenticated, generateToken, verifyPassword, hashPassword } from '../middleware/simple-auth';
+import {
+  ApiResponseBuilder,
+  AuthenticatedRequest,
+  TypedResponse,
+  LoginRequest,
+  LoginResponse
 } from '../../shared/types/api';
 import { safeCastToUser } from '../../shared/types/database';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -179,6 +180,56 @@ router.post('/logout', isAuthenticated, async (req: AuthenticatedRequest, res: T
         message: 'An error occurred during logout'
       }
     });
+  }
+});
+
+// Development endpoint to create default admin user (only if no users exist)
+router.post('/create-default-admin', async (req: AuthenticatedRequest, res: TypedResponse) => {
+  try {
+    // Check if any users exist
+    const existingUsers = await UsersRepository.findAll();
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json(
+        ApiResponseBuilder.error('USERS_EXIST', 'Users already exist in the system')
+      );
+    }
+
+    // Create default admin user
+    const adminId = uuidv4();
+    const hashedPassword = await hashPassword('admin123');
+
+    const adminUser = {
+      id: adminId,
+      email: 'admin@onekeel.com',
+      username: 'admin',
+      passwordHash: hashedPassword,
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'admin' as const,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await UsersRepository.create(adminUser);
+
+    return res.json(
+      ApiResponseBuilder.success({
+        message: 'Default admin user created successfully',
+        credentials: {
+          email: 'admin@onekeel.com',
+          username: 'admin',
+          password: 'admin123'
+        }
+      }, 'Default admin user created')
+    );
+
+  } catch (error) {
+    console.error('Error creating default admin user:', error);
+    return res.status(500).json(
+      ApiResponseBuilder.error('ADMIN_CREATION_ERROR', 'Failed to create default admin user')
+    );
   }
 });
 
