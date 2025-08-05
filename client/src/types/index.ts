@@ -9,7 +9,6 @@ export type ViewType =
   | 'clients'
   | 'templates'
   | 'users'
-  | 'feature-flags'
   | 'email-settings'
   | 'intelligence'
   | 'analytics';

@@ -276,13 +276,13 @@ router.post('/test', validateRequest({
 // Email monitoring routes
 router.get('/monitoring/rules', async (req, res) => {
   try {
-    // This would connect to the email monitor service
-    const { emailMonitor } = await import('../services/email-monitor-mock');
-    const rules = emailMonitor.getRules();
+    // Email monitoring service was removed during cleanup
+    const rules = []; // Return empty rules array
     
     res.json({
       success: true,
       data: rules,
+      message: 'Email monitoring service not available (removed during cleanup)',
       timestamp: new Date().toISOString()
     });
   } catch (error) {

@@ -31,20 +31,20 @@ export async function generateTemplates(
       subject:e.subject,
       body:e.body,
       order:e.order||i+1,
-      daysSinceStart:i*schedule.daysBetweenEmails+1,
+      daysSinceStart:i*schedule.daysBetweenMessages+1,
     }));
     setData(d=>({...d,templates}));
   } catch {
     /* fallback identical to original logic */
-    const t:number[] = Array.from({length:schedule.totalEmails}, (_,i)=>i);
+    const t:number[] = Array.from({length:schedule.totalMessages}, (_,i)=>i);
     setData(d=>({
       ...d,
       templates: t.map(i=>({
         id:`template-${i+1}`,
         subject:generateSubjectLine(i+1, offer),
-        body:generateEmailBody(i+1, i/(schedule.totalEmails-1), data),
+        body:generateEmailBody(i+1, i/(schedule.totalMessages-1), data),
         order:i+1,
-        daysSinceStart:i*schedule.daysBetweenEmails+1,
+        daysSinceStart:i*schedule.daysBetweenMessages+1,
       })),
     }));
   }

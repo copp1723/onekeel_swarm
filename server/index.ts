@@ -19,7 +19,7 @@ import os from 'os';
 
 // Core imports
 import { closeConnection } from './db';
-import { sql } from 'drizzle-orm';
+// import { sql } from 'drizzle-orm';
 import { logger } from './utils/logger';
 import { registerRoutes } from './routes';
 import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
@@ -28,10 +28,7 @@ import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
 import { configureCsrf } from './middleware/csrf';
-import { securityHeaders } from '../security-hardening/security-headers';
 import { temporaryCSPFix } from './middleware/csp-temp-fix';
-
-import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
 import { StartupService } from './services/startup-service';
 import { WebSocketMessageHandler } from './websocket/message-handler';
@@ -125,28 +122,8 @@ async function initializeApp() {
     wss = new WebSocketServer({ server });
   }
 
-  // SECURITY FIX: Apply security headers with environment-specific CSP
-  if (config.nodeEnv === 'production') {
-    // Apply security headers first (without CSP)
-    app.use(securityHeaders({
-      contentSecurityPolicy: false, // Disable the built-in CSP
-      hsts: {
-        maxAge: 63072000, // 2 years
-        includeSubDomains: true,
-        preload: true,
-      },
-      frameguard: { action: 'DENY' },
-      noSniff: true,
-      xssFilter: true,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    }));
-    
-    // Apply our temporary CSP fix that works with Vite
-    app.use(temporaryCSPFix());
-  } else {
-    // Use development preset
-    app.use(securityHeaders('development'));
-  }
+  // Apply CSP security headers
+  app.use(temporaryCSPFix());
 
   // Essential middleware
   app.use(express.json({ limit: '100kb' }));
@@ -280,6 +257,9 @@ async function initializeApp() {
       );
       
       // Store handler for cleanup
+      if (!global.appShutdownRefs) {
+        global.appShutdownRefs = {} as AppShutdownRefs;
+      }
       global.appShutdownRefs.wsHandler = wsHandler;
     }
   }
@@ -314,10 +294,7 @@ async function initializeApp() {
 
   // Initialize services (conditional)
   if (config.features.enableAgents) {
-    // Engine and hub are started conditionally now
-    campaignExecutionEngine
-      .start()
-      .catch(err => logger.error('Campaign engine startup failed', err));
+    // Communication hub service start
     communicationHubService
       .start()
       .catch(err => logger.error('Communication hub startup failed', err));
@@ -432,9 +409,13 @@ async function initializeApp() {
       (async () => {
         try {
           logger.info('Testing database connection...');
-          const { db } = await import('./db/client');
-          await db.execute(sql`SELECT 1 as test`);
-          logger.info('✅ Database connection successful');
+          const { checkConnectionHealth } = await import('./db/client');
+          const isHealthy = await checkConnectionHealth();
+          if (isHealthy) {
+            logger.info('✅ Database connection successful');
+          } else {
+            logger.warn('❌ Database connection failed');
+          }
 
           // Only try to ensure admin user if database connection works
           try {
@@ -509,6 +490,7 @@ async function initializeApp() {
     wss,
     memoryMonitor,
     config,
+    wsHandler: (global.appShutdownRefs as any)?.wsHandler,
   };
 }
 
@@ -535,7 +517,6 @@ async function gracefulShutdown() {
 
   // Stop services
   if (refs.config.features.enableAgents) {
-    campaignExecutionEngine.stop();
     communicationHubService.stop();
   }
 

@@ -13,19 +13,7 @@ export const communicationStatusEnum = pgEnum('communication_status', ['pending'
 export const campaignTypeEnum = pgEnum('campaign_type', ['drip', 'blast', 'trigger']);
 export const agentTypeEnum = pgEnum('agent_type', ['email', 'sms', 'chat', 'voice']);
 
-// Feature flag enums
-export const featureFlagCategoryEnum = pgEnum('feature_flag_category', [
-  'agent-tuning', 
-  'campaign-advanced', 
-  'system-config', 
-  'integrations', 
-  'ui-progressive', 
-  'debugging', 
-  'experimental'
-]);
-export const complexityEnum = pgEnum('complexity', ['basic', 'intermediate', 'advanced']);
-export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high']);
-export const environmentEnum = pgEnum('environment', ['development', 'staging', 'production']);
+
 
 // ============================================
 // CORE TABLES
@@ -386,14 +374,22 @@ export const analyticsEvents = pgTable('analytics_events', {
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   leadId: uuid('lead_id').references(() => leads.id),
+  campaignId: uuid('campaign_id').references(() => campaigns.id),
   
   // Conversation details
   channel: channelEnum('channel').notNull(),
   agentType: agentTypeEnum('agent_type'),
-  status: varchar('status', { length: 50 }).default('active').notNull(), // active, completed, abandoned
+  status: varchar('status', { length: 50 }).default('active').notNull(), // active, completed, abandoned, handover_pending
   
   // Content
   messages: jsonb('messages').default([]).notNull(),
+  
+  // Qualification and progress tracking
+  currentQualificationScore: integer('current_qualification_score').default(0),
+  goalProgress: jsonb('goal_progress').default({}),
+  
+  // Cross-channel context for unified experience
+  crossChannelContext: jsonb('cross_channel_context').default({}),
   
   // Metadata
   metadata: jsonb('metadata').default({}),
@@ -405,6 +401,7 @@ export const conversations = pgTable('conversations', {
 }, (table) => {
   return {
     leadIdIdx: index('conversations_lead_id_idx').on(table.leadId),
+    campaignIdIdx: index('conversations_campaign_id_idx').on(table.campaignId),
     channelIdx: index('conversations_channel_idx').on(table.channel),
     statusIdx: index('conversations_status_idx').on(table.status),
     startedAtIdx: index('conversations_started_at_idx').on(table.startedAt)
@@ -437,65 +434,7 @@ export const auditLogs = pgTable('audit_logs', {
   }
 });
 
-// Feature Flags table - for controlling feature visibility and rollouts
-export const featureFlags = pgTable('feature_flags', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  
-  // Flag identification
-  key: varchar('key', { length: 255 }).unique().notNull(),
-  name: varchar('name', { length: 255 }).notNull(),
-  description: text('description'),
-  
-  // Flag configuration
-  enabled: boolean('enabled').default(false).notNull(),
-  rolloutPercentage: integer('rollout_percentage').default(0).notNull(),
-  
-  // Targeting
-  userRoles: jsonb('user_roles').default(['admin']),
-  environments: jsonb('environments').default(['development']),
-  conditions: jsonb('conditions').default({}),
-  
-  // Metadata
-  category: featureFlagCategoryEnum('category').default('experimental').notNull(),
-  complexity: complexityEnum('complexity').default('basic').notNull(),
-  riskLevel: riskLevelEnum('risk_level').default('low').notNull(),
-  
-  // Audit trail
-  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
-  lastModifiedBy: uuid('last_modified_by').references(() => users.id, { onDelete: 'set null' }),
-  
-  // Timestamps
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
-}, (table) => {
-  return {
-    keyIdx: index('feature_flags_key_idx').on(table.key),
-    categoryIdx: index('feature_flags_category_idx').on(table.category),
-    enabledIdx: index('feature_flags_enabled_idx').on(table.enabled),
-    createdAtIdx: index('feature_flags_created_at_idx').on(table.createdAt)
-  }
-});
 
-// Feature Flag User Overrides - for user-specific flag overrides
-export const featureFlagUserOverrides = pgTable('feature_flag_user_overrides', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  
-  // References
-  flagId: uuid('flag_id').references(() => featureFlags.id, { onDelete: 'cascade' }).notNull(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  
-  // Override configuration
-  enabled: boolean('enabled').notNull(),
-  reason: text('reason'),
-  
-  // Timestamps
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  expiresAt: timestamp('expires_at')
-}, (table) => {
-  return {
-    flagUserIdx: index('feature_flag_user_overrides_flag_user_idx').on(table.flagId, table.userId)
-  }
-});
 
 // ============================================
 // RELATIONS
@@ -530,7 +469,8 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
 export const campaignsRelations = relations(campaigns, ({ many }) => ({
   steps: many(campaignSteps),
   enrollments: many(leadCampaignEnrollments),
-  communications: many(communications)
+  communications: many(communications),
+  conversations: many(conversations)
 }));
 
 export const communicationsRelations = relations(communications, ({ one }) => ({
@@ -596,6 +536,10 @@ export const conversationsRelations = relations(conversations, ({ one }) => ({
   lead: one(leads, {
     fields: [conversations.leadId],
     references: [leads.id]
+  }),
+  campaign: one(campaigns, {
+    fields: [conversations.campaignId],
+    references: [campaigns.id]
   })
 }));
 
@@ -606,28 +550,7 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   })
 }));
 
-export const featureFlagsRelations = relations(featureFlags, ({ one, many }) => ({
-  createdBy: one(users, {
-    fields: [featureFlags.createdBy],
-    references: [users.id]
-  }),
-  lastModifiedBy: one(users, {
-    fields: [featureFlags.lastModifiedBy], 
-    references: [users.id]
-  }),
-  userOverrides: many(featureFlagUserOverrides)
-}));
 
-export const featureFlagUserOverridesRelations = relations(featureFlagUserOverrides, ({ one }) => ({
-  flag: one(featureFlags, {
-    fields: [featureFlagUserOverrides.flagId],
-    references: [featureFlags.id]
-  }),
-  user: one(users, {
-    fields: [featureFlagUserOverrides.userId],
-    references: [users.id]
-  })
-}));
 
 // ============================================
 // TYPE EXPORTS
@@ -675,11 +598,7 @@ export type NewConversation = typeof conversations.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
 
-export type FeatureFlag = typeof featureFlags.$inferSelect;
-export type NewFeatureFlag = typeof featureFlags.$inferInsert;
 
-export type FeatureFlagUserOverride = typeof featureFlagUserOverrides.$inferSelect;
-export type NewFeatureFlagUserOverride = typeof featureFlagUserOverrides.$inferInsert;
 
 // Export aliases for backward compatibility
 export const emailTemplates = templates;

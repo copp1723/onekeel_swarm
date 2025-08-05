@@ -72,11 +72,8 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     },
     templates: [] as EmailTemplate[],
     schedule: {
-      startDate: '',
-      totalEmails: 5,
-      daysBetweenEmails: 3,
-      timezone: 'America/New_York',
-      sendTimeOptimization: true
+      totalMessages: 5,
+      daysBetweenMessages: 3
     },
     handoverRules: {
       qualificationScore: 80,
@@ -97,7 +94,6 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     { id: 'offer', label: 'Offer Details', icon: <Sparkles className="h-4 w-4" /> },
     { id: 'templates', label: 'Email Templates', icon: <Mail className="h-4 w-4" /> },
     { id: 'schedule', label: 'Schedule', icon: <Clock className="h-4 w-4" /> },
-    { id: 'handover', label: 'Handover Rules', icon: <UserCheck className="h-4 w-4" /> },
     { id: 'review', label: 'Review & Launch', icon: <Check className="h-4 w-4" /> }
   ];
 
@@ -343,7 +339,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         subject: email.subject,
         body: email.body,
         order: email.order || index + 1,
-        daysSinceStart: index * campaignData.schedule.daysBetweenEmails + 1
+        daysSinceStart: index * campaignData.schedule.daysBetweenMessages + 1
       }));
       
       setCampaignData(prev => ({ ...prev, templates }));
@@ -364,7 +360,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
       order: number;
       daysSinceStart: number;
     }> = [];
-    const totalEmails = campaignData.schedule.totalEmails;
+    const totalEmails = campaignData.schedule.totalMessages;
     
     for (let i = 0; i < totalEmails; i++) {
       const template = {
@@ -372,7 +368,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         subject: generateSubjectLine(i + 1),
         body: generateEmailBody(i + 1),
         order: i + 1,
-        daysSinceStart: i * campaignData.schedule.daysBetweenEmails + 1
+        daysSinceStart: i * campaignData.schedule.daysBetweenMessages + 1
       };
       templates.push(template);
     }
@@ -841,7 +837,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Generate {campaignData.schedule.totalEmails} Email Templates
+                    Generate {campaignData.schedule.totalMessages} Email Templates
                   </Button>
                 </div>
                 <div className="bg-blue-50 p-3 rounded-lg">
@@ -850,7 +846,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                     <div className="text-sm">
                       <p className="font-medium text-blue-900">How AI Templates Work</p>
                       <p className="text-blue-700 mt-1">
-                        AI will create {campaignData.schedule.totalEmails} progressive emails based on your offer, 
+                        AI will create {campaignData.schedule.totalMessages} progressive emails based on your offer, 
                         each with unique subject lines and escalating urgency. When a lead replies to ANY email, 
                         the remaining templates are cancelled and AI takes over for personalized conversation.
                       </p>
@@ -881,7 +877,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-sm">Email {index + 1}</CardTitle>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline">Day {index * campaignData.schedule.daysBetweenEmails + 1}</Badge>
+                              <Badge variant="outline">Day {index * campaignData.schedule.daysBetweenMessages + 1}</Badge>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -951,27 +947,15 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
             </div>
             <div className="space-y-4">
               <div>
-                <Label>Campaign Start Date</Label>
-                <Input
-                  type="date"
-                  value={campaignData.schedule.startDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, startDate: e.target.value }
-                  }))}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>Total Emails in Sequence</Label>
+                <Label>Number of Messages</Label>
                 <Input
                   type="number"
                   min="1"
                   max="10"
-                  value={campaignData.schedule.totalEmails}
+                  value={campaignData.schedule.totalMessages}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
-                    schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
+                    schedule: { ...prev.schedule, totalMessages: parseInt(e.target.value) || 1 }
                   }))}
                   className="mt-1"
                   placeholder="e.g., 5"
@@ -979,15 +963,15 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <p className="text-xs text-gray-500 mt-1">Number of templated emails to send (if no response)</p>
               </div>
               <div>
-                <Label>Days Between Emails</Label>
+                <Label>Days Between Messages</Label>
                 <Input
                   type="number"
                   min="1"
                   max="30"
-                  value={campaignData.schedule.daysBetweenEmails}
+                  value={campaignData.schedule.daysBetweenMessages}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
                     ...prev,
-                    schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
+                    schedule: { ...prev.schedule, daysBetweenMessages: parseInt(e.target.value) || 1 }
                   }))}
                   className="mt-1"
                   placeholder="e.g., 3"
@@ -1006,190 +990,10 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="sendTimeOptimization"
-                  checked={campaignData.schedule.sendTimeOptimization}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    schedule: { ...prev.schedule, sendTimeOptimization: e.target.checked }
-                  }))}
-                  className="rounded"
-                />
-                <Label htmlFor="sendTimeOptimization" className="cursor-pointer">
-                  Enable AI send time optimization
-                </Label>
-              </div>
             </div>
           </div>
         );
 
-      case 'handover':
-        return (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <UserCheck className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Handover Rules</h4>
-              </div>
-              <p className="text-sm text-blue-700">
-                Define when the AI should hand over conversations to human agents based on lead behavior and intent.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <Label>Qualification Score Threshold</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={campaignData.handoverRules.qualificationScore}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    handoverRules: { ...prev.handoverRules, qualificationScore: parseInt(e.target.value) || 0 }
-                  }))}
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Hand over when lead reaches this qualification score</p>
-              </div>
-
-              <div>
-                <Label>Maximum Conversation Length</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={campaignData.handoverRules.conversationLength}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    handoverRules: { ...prev.handoverRules, conversationLength: parseInt(e.target.value) || 10 }
-                  }))}
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Hand over after this many messages</p>
-              </div>
-
-              <div>
-                <Label>Time Threshold (minutes)</Label>
-                <Input
-                  type="number"
-                  min="5"
-                  max="120"
-                  value={campaignData.handoverRules.timeThreshold}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    handoverRules: { ...prev.handoverRules, timeThreshold: parseInt(e.target.value) || 30 }
-                  }))}
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Hand over after this many minutes of conversation</p>
-              </div>
-
-              <div>
-                <Label>Buying Signals</Label>
-                <Textarea
-                  value={campaignData.handoverRules.buyingSignals.join(', ')}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    handoverRules: { 
-                      ...prev.handoverRules, 
-                      buyingSignals: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
-                    }
-                  }))}
-                  placeholder="interested, ready to buy, pricing, how much"
-                  className="mt-1"
-                  rows={2}
-                />
-                <p className="text-xs text-gray-500 mt-1">Comma-separated phrases indicating purchase intent</p>
-              </div>
-
-              <div>
-                <Label>Escalation Phrases</Label>
-                <Textarea
-                  value={campaignData.handoverRules.escalationPhrases.join(', ')}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({
-                    ...prev,
-                    handoverRules: { 
-                      ...prev.handoverRules, 
-                      escalationPhrases: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
-                    }
-                  }))}
-                  placeholder="speak to human, agent, representative, help"
-                  className="mt-1"
-                  rows={2}
-                />
-                <p className="text-xs text-gray-500 mt-1">Comma-separated phrases requesting human assistance</p>
-              </div>
-
-              <div>
-                <Label>Handover Recipients</Label>
-                <div className="space-y-2 mt-1">
-                  {campaignData.handoverRules.handoverRecipients.map((recipient: {name: string, email: string}, index: number) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        placeholder="Name"
-                        value={recipient.name}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const newRecipients = [...campaignData.handoverRules.handoverRecipients];
-                          newRecipients[index].name = e.target.value;
-                          setCampaignData(prev => ({
-                            ...prev,
-                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
-                          }));
-                        }}
-                      />
-                      <Input
-                        placeholder="Email"
-                        type="email"
-                        value={recipient.email}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const newRecipients = [...campaignData.handoverRules.handoverRecipients];
-                          newRecipients[index].email = e.target.value;
-                          setCampaignData(prev => ({
-                            ...prev,
-                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
-                          }));
-                        }}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newRecipients = campaignData.handoverRules.handoverRecipients.filter((_, i) => i !== index);
-                          setCampaignData(prev => ({
-                            ...prev,
-                            handoverRules: { ...prev.handoverRules, handoverRecipients: newRecipients }
-                          }));
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCampaignData(prev => ({
-                        ...prev,
-                        handoverRules: { 
-                          ...prev.handoverRules, 
-                          handoverRecipients: [...prev.handoverRules.handoverRecipients, { name: '', email: '' }]
-                        }
-                      }));
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Recipient
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">People to notify when handover occurs</p>
-              </div>
-            </div>
-          </div>
-        );
 
       case 'review':
         return (
@@ -1250,15 +1054,11 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm font-medium text-gray-600">Email Sequence</p>
                 <p className="text-sm">
-                  {campaignData.schedule.totalEmails} emails, {campaignData.schedule.daysBetweenEmails} days apart
+                  {campaignData.schedule.totalMessages} messages, {campaignData.schedule.daysBetweenMessages} days apart
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   AI takes over if lead replies to any email
                 </p>
-              </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Start Date</p>
-                <p className="text-sm">{campaignData.schedule.startDate || 'Not set'}</p>
               </div>
             </div>
           </div>

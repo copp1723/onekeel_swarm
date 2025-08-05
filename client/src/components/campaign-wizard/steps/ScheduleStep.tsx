@@ -18,27 +18,15 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
       </div>
       <div className="space-y-4">
         <div>
-          <Label>Campaign Start Date</Label>
-          <Input
-            type="date"
-            value={ctx.data.schedule.startDate}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
-              ...prev,
-              schedule: { ...prev.schedule, startDate: e.target.value }
-            }))}
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label>Total Emails in Sequence</Label>
+          <Label>Number of Messages</Label>
           <Input
             type="number"
             min="1"
             max="10"
-            value={ctx.data.schedule.totalEmails}
+            value={ctx.data.schedule.totalMessages}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
-              schedule: { ...prev.schedule, totalEmails: parseInt(e.target.value) || 1 }
+              schedule: { ...prev.schedule, totalMessages: parseInt(e.target.value) || 1 }
             }))}
             className="mt-1"
             placeholder="e.g., 5"
@@ -46,15 +34,15 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
           <p className="text-xs text-gray-500 mt-1">Number of templated emails to send (if no response)</p>
         </div>
         <div>
-          <Label>Days Between Emails</Label>
+          <Label>Days Between Messages</Label>
           <Input
             type="number"
             min="1"
             max="30"
-            value={ctx.data.schedule.daysBetweenEmails}
+            value={ctx.data.schedule.daysBetweenMessages}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
               ...prev,
-              schedule: { ...prev.schedule, daysBetweenEmails: parseInt(e.target.value) || 1 }
+              schedule: { ...prev.schedule, daysBetweenMessages: parseInt(e.target.value) || 1 }
             }))}
             className="mt-1"
             placeholder="e.g., 3"
@@ -72,21 +60,6 @@ export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
               </p>
             </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="sendTimeOptimization"
-            checked={ctx.data.schedule.sendTimeOptimization}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({
-              ...prev,
-              schedule: { ...prev.schedule, sendTimeOptimization: e.target.checked }
-            }))}
-            className="rounded"
-          />
-          <Label htmlFor="sendTimeOptimization" className="cursor-pointer">
-            Enable AI send time optimization
-          </Label>
         </div>
       </div>
     </div>

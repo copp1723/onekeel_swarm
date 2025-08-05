@@ -21,7 +21,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   try {
     const authHeader = req.headers.authorization;
     
+    console.log('[AUTH DEBUG] Path:', req.path);
+    console.log('[AUTH DEBUG] Headers:', req.headers);
+    console.log('[AUTH DEBUG] Auth header:', authHeader);
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[AUTH DEBUG] Missing or invalid auth header');
       return res.status(401).json({ 
         error: 'Authentication required',
         code: 'NO_AUTH_TOKEN'
@@ -29,11 +34,16 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
     
     const token = authHeader.substring(7);
+    console.log('[AUTH DEBUG] Token length:', token.length);
     
     // Verify JWT token using secure token service
+    console.log('[AUTH DEBUG] Verifying token...');
     const decoded = tokenService.verifyAccessToken(token);
     
+    console.log('[AUTH DEBUG] Decoded token:', decoded);
+    
     if (!decoded) {
+      console.log('[AUTH DEBUG] Token verification failed');
       return res.status(401).json({ 
         error: 'Invalid or expired token',
         code: 'INVALID_TOKEN'
@@ -66,6 +76,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       email: decoded.email,
       role: decoded.role as any
     };
+    
+    console.log('[AUTH DEBUG] Authentication successful, user:', req.user);
     
     next();
   } catch (error) {

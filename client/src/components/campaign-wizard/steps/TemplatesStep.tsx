@@ -30,7 +30,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Wand2 className="h-4 w-4 mr-2" />
-              Generate {ctx.data.schedule.totalEmails} Email Templates
+              Generate {ctx.data.schedule.totalMessages} Email Templates
             </Button>
           </div>
           <div className="bg-blue-50 p-3 rounded-lg">
@@ -39,7 +39,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
               <div className="text-sm">
                 <p className="font-medium text-blue-900">How AI Templates Work</p>
                 <p className="text-blue-700 mt-1">
-                  AI will create {ctx.data.schedule.totalEmails} progressive emails based on your offer, 
+                  AI will create {ctx.data.schedule.totalMessages} progressive emails based on your offer, 
                   each with unique subject lines and escalating urgency. When a lead replies to ANY email, 
                   the remaining templates are cancelled and AI takes over for personalized conversation.
                 </p>
@@ -67,7 +67,7 @@ export const TemplatesStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm">Email {index + 1}</CardTitle>
-                    <Badge variant="outline">Day {index * ctx.data.schedule.daysBetweenEmails + 1}</Badge>
+                    <Badge variant="outline">Day {index * ctx.data.schedule.daysBetweenMessages + 1}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">

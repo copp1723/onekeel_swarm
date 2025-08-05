@@ -3,7 +3,6 @@ import { simpleParser } from 'mailparser';
 import { db } from '../db/client';
 import { leads, campaigns } from '../db/schema';
 import { logger } from '../utils/logger';
-import { campaignExecutionEngine } from './campaign-execution-engine';
 import { eq } from 'drizzle-orm';
 
 import 'dotenv/config';
@@ -200,13 +199,10 @@ class EnhancedEmailMonitor {
           .filter(id => id.length > 0);
 
         if (leadIds.length > 0) {
-          await campaignExecutionEngine.triggerCampaign(campaignId, leadIds);
-          logger.info('Campaign triggered via email', { campaignId, leadCount: leadIds.length });
+          logger.info('Campaign trigger received via email (execution engine removed)', { campaignId, leadCount: leadIds.length });
         }
       } else {
-        // Auto-assign available leads
-        await campaignExecutionEngine.autoAssignLeads();
-        logger.info('Auto-assignment triggered via email', { campaignId });
+        logger.info('Auto-assignment trigger received via email (execution engine removed)', { campaignId });
       }
 
     } catch (error) {
@@ -227,9 +223,8 @@ class EnhancedEmailMonitor {
       }
 
       const campaignId = campaignMatch[1].trim();
-      const cancelledCount = await campaignExecutionEngine.cancelExecutions(campaignId);
       
-      logger.info('Campaign stopped via email', { campaignId, cancelledCount });
+      logger.info('Campaign stop trigger received via email (execution engine removed)', { campaignId });
 
     } catch (error) {
       logger.error('Error handling stop campaign trigger:', { error: (error as Error).message });
@@ -294,8 +289,7 @@ class EnhancedEmailMonitor {
 
       await this.createLead(leadData);
       
-      // Auto-assign to campaign if enabled
-      await campaignExecutionEngine.autoAssignLeads();
+      logger.info('Lead created from email (auto-assignment disabled - execution engine removed)');
 
     } catch (error) {
       logger.error('Failed to create lead from email:', { error: (error as Error).message });

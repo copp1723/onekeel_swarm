@@ -18,7 +18,7 @@ const ClientManagementView = lazy(() => import('@/views/ClientManagementView'));
 const TemplateLibraryView = lazy(() => import('@/views/TemplateLibraryView'));
 const AgentTemplatesView = lazy(() => import('@/views/AgentTemplatesView'));
 const UsersView = lazy(() => import('@/views/UsersView'));
-const FeatureFlagDashboard = lazy(() => import('@/components/FeatureFlagDashboard'));
+
 const EmailSettingsView = lazy(() => import('@/views/EmailSettingsView'));
 
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
@@ -27,7 +27,7 @@ import { LoginForm } from '@/components/ui/LoginForm';
 import { ViewType } from '@/types';
 import { ClientSwitcher } from '@/components/client-management/ClientSwitcher';
 import { NavigationBar } from '@/components/navigation/NavigationBar';
-import { useTerminology } from '@/hooks/useTerminology';
+
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
 
 const AppContent = memo(function AppContent() {
@@ -36,7 +36,7 @@ const AppContent = memo(function AppContent() {
   const [wsConnected] = useState(true);
   const { activeClient } = useClient();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
-  const terminology = useTerminology();
+
   
   // Memoize branding configuration to prevent unnecessary re-renders
   const branding = useMemo(() => {
@@ -78,7 +78,7 @@ const AppContent = memo(function AppContent() {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{terminology.importBulk}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Import Leads</h1>
                 <p className="text-gray-600">Upload and map your CSV data</p>
               </div>
               <Button variant="outline" onClick={handleShowImportToggle}>
@@ -179,8 +179,7 @@ const ViewRenderer = memo(function ViewRenderer({ activeView }: { activeView: Vi
       return <TemplateLibraryView />;
     case 'users':
       return <UsersView />;
-    case 'feature-flags':
-      return <FeatureFlagDashboard />;
+
     case 'email-settings':
       return <EmailSettingsView />;
     default:

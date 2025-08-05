@@ -12,8 +12,8 @@ const EMPTY_DATA: CampaignData = {
   },
   templates: [],
   schedule: {
-    startDate: '', totalEmails: 5, daysBetweenEmails: 3,
-    timezone: 'America/New_York', sendTimeOptimization: true,
+    totalMessages: 5,
+    daysBetweenMessages: 3,
   },
 };
 

@@ -82,7 +82,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.30.4",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.6.0",
     "express": "^4.19.2",
     "express-mongo-sanitize": "^2.2.0",
@@ -163,7 +163,7 @@
     "prettier": "^3.3.3",
     "supertest": "^7.1.4",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.6.3",
+    "typescript": "^5.9.2",
     "vite": "^5.4.19",
     "vitest": "^3.2.4"
   }

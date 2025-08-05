@@ -24,7 +24,10 @@ class ApiClient {
       // Make a GET request to obtain a CSRF token
       const response = await fetch('/api/auth/csrf', {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Authorization': localStorage.getItem('accessToken') ? `Bearer ${localStorage.getItem('accessToken')}` : ''
+        }
       });
 
       if (response.ok) {

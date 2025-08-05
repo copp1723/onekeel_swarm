@@ -25,8 +25,6 @@ import { requestTimeout } from './middleware/error-handler-secure';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
 import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
-import { enhancedEmailMonitor } from './services/enhanced-email-monitor-mock';
-import { campaignExecutionEngine } from './services/campaign-execution-engine';
 import { communicationHubService } from './services/communication-hub-service';
 import { StartupService } from './services/startup-service';
 import { LeadProcessor } from './services/lead-processor';
@@ -293,31 +291,8 @@ server.listen(config.port, async () => {
     logger.error('Failed to initialize deployment services', error as Error);
   }
 
-  // Start enhanced email monitor (optional service)
-  enhancedEmailMonitor.start().catch(error =>
-    logger.warn(
-      'Enhanced email monitor not available - continuing without it',
-      {
-        error: (error as Error).message,
-      }
-    )
-  );
 
-  // Start email monitor if configured
-  if (
-    process.env.IMAP_HOST &&
-    process.env.IMAP_USER &&
-    process.env.IMAP_PASSWORD
-  ) {
-    const { emailMonitor } = await import('./services/email-monitor-mock');
-    emailMonitor
-      .start()
-      .catch((error: Error) =>
-        logger.error('Email monitor failed to start', error)
-      );
-  } else {
-    logger.info('Email monitor not started - IMAP configuration missing');
-  }
+  // Email monitoring can be added back if needed
 
   // Initialize cron jobs
   try {
@@ -343,7 +318,6 @@ const shutdown = async () => {
   // Shutdown Redis
   await shutdownRedis();
 
-  await enhancedEmailMonitor.stop();
   if (memoryMonitor) clearInterval(memoryMonitor);
 
   // Shutdown cron service

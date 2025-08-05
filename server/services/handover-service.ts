@@ -1,7 +1,4 @@
-import { ConversationsRepository } from '../db/conversations-repository';
-import { CampaignsRepository } from '../db/campaigns-repository';
-import { LeadsRepository } from '../db/leads-repository';
-import { CommunicationsRepository } from '../db/communications-repository';
+import { ConversationsRepository, CampaignsRepository, LeadsRepository, CommunicationsRepository } from '../db';
 import { LeadDossierService } from './lead-dossier-service';
 import { HandoverEmailService } from './handover-email-service';
 import { logger } from '../utils/logger';

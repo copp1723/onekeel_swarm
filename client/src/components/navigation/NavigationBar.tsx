@@ -14,7 +14,7 @@ import {
   Mail,
   Palette
 } from 'lucide-react';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { ViewType } from '@/types';
 
@@ -46,9 +46,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showAgentsDropdown, setShowAgentsDropdown] = useState(false);
   
-  // Feature flags
-  const { enabled: useNewNavigation } = useFeatureFlag('ui.new-navigation');
-  const { enabled: useContactsTerminology } = useFeatureFlag('ui.contacts-terminology');
+
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -75,25 +73,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Define navigation structures
-  const legacyNavigation: NavigationItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
-    { id: 'conversations', label: 'Communication', icon: Brain },
-    { id: 'agents', label: 'Agents', icon: Brain },
-    {
-      id: 'settings-group',
-      label: 'Settings',
-      icon: Settings,
-      children: [
-        { id: 'branding', label: 'Branding', icon: Palette },
-        { id: 'email-settings', label: 'Email Settings', icon: Mail },
-        { id: 'users', label: 'Users', icon: Users, adminOnly: true },
-        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
-      ]
-    }
-  ];
-
+  // Define navigation structure
   const modernNavigation: NavigationItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'intelligence', label: 'Intelligence Hub', icon: Sparkles },
@@ -115,12 +95,12 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         { id: 'branding', label: 'Branding', icon: Palette },
         { id: 'email-settings', label: 'Email Settings', icon: Mail },
         { id: 'users', label: 'Users', icon: Users, adminOnly: true },
-        { id: 'feature-flags', label: 'Feature Flags', icon: Flag, adminOnly: true }
+
       ]
     }
   ];
 
-  const navigation = useNewNavigation ? modernNavigation : legacyNavigation;
+  const navigation = modernNavigation;
   
   // Helper to check if a navigation item is active
   const isActive = (item: NavigationItem): boolean => {

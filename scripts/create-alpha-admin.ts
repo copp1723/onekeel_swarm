@@ -3,8 +3,8 @@
  * Quick script to create admin user for alpha testing
  */
 
-import { sql } from 'drizzle-orm';
 import { db, users } from '../server/db';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 async function createAlphaAdmin() {
@@ -16,7 +16,7 @@ async function createAlphaAdmin() {
   try {
     // Check if user exists
     const existing = await db.select().from(users)
-      .where(sql`email = ${email}`)
+      .where(eq(users.email, email))
       .limit(1);
     
     if (existing.length > 0) {

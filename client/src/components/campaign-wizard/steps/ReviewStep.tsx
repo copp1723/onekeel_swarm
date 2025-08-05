@@ -61,15 +61,11 @@ export const ReviewStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ct
         <div className="p-3 bg-gray-50 rounded">
           <p className="text-sm font-medium text-gray-600">Email Sequence</p>
           <p className="text-sm">
-            {ctx.data.schedule.totalEmails} emails, {ctx.data.schedule.daysBetweenEmails} days apart
+            {ctx.data.schedule.totalMessages} messages, {ctx.data.schedule.daysBetweenMessages} days apart
           </p>
           <p className="text-xs text-gray-500 mt-1">
             AI takes over if lead replies to any email
           </p>
-        </div>
-        <div className="p-3 bg-gray-50 rounded">
-          <p className="text-sm font-medium text-gray-600">Start Date</p>
-          <p className="text-sm">{ctx.data.schedule.startDate || 'Not set'}</p>
         </div>
       </div>
     </div>

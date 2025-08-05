@@ -13,28 +13,14 @@ import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
-import featureFlagsRoutes from './feature-flags';
+
 import navigationRoutes from './navigation-aliases';
 import mailgunWebhookRoutes from './webhooks/mailgun';
 
 const router = Router();
 
-// Import feature flag service for public endpoint
-import { featureFlagService } from '../services/feature-flag-service';
-
 // CRITICAL SECURITY FIX: Mount all routes with authentication except public ones
 router.use('/auth', authRoutes); // Public auth endpoints
-
-// Public feature flag evaluation endpoint (no auth required)
-router.post('/feature-flags/evaluate', async (req, res) => {
-  try {
-    const { flagKey, context } = req.body;
-    const evaluation = await featureFlagService.evaluateFlag(flagKey, context);
-    res.json({ success: true, evaluation });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to evaluate feature flag' });
-  }
-});
 
 router.use('/agents', authenticate, authorize('admin', 'manager', 'agent'), agentsRoutes);
 router.use('/agent-templates', authenticate, authorize('admin', 'manager'), agentTemplatesRoutes);
@@ -46,7 +32,7 @@ router.use('/conversations', authenticate, authorize('admin', 'manager', 'agent'
 router.use('/clients', authenticate, authorize('admin', 'manager'), clientsRoutes);
 router.use('/users', authenticate, authorize('admin'), usersRoutes);
 router.use('/monitoring', authenticate, authorize('admin', 'manager'), monitoringRoutes);
-router.use('/feature-flags', authenticate, authorize('admin'), featureFlagsRoutes);
+
 router.use('/navigation', authenticate, navigationRoutes); // Navigation configuration and aliases
 
 // Public webhook endpoints (no auth required)
@@ -71,7 +57,7 @@ router.get('/health', (req, res) => {
       '/clients',
       '/users',
       '/monitoring',
-      '/feature-flags',
+
       '/navigation'
     ]
   });
@@ -213,21 +199,7 @@ router.get('/docs', (req, res) => {
           'GET /monitoring/alerts'
         ]
       },
-      '/feature-flags': {
-        description: 'Feature flag management and evaluation',
-        endpoints: [
-          'POST /feature-flags/evaluate',
-          'POST /feature-flags/all',
-          'GET /feature-flags/check/:flagKey',
-          'GET /feature-flags/admin',
-          'POST /feature-flags/admin',
-          'PUT /feature-flags/admin/:flagKey',
-          'DELETE /feature-flags/admin/:flagKey',
-          'POST /feature-flags/admin/:flagKey/disable',
-          'POST /feature-flags/admin/:flagKey/enable',
-          'GET /feature-flags/health'
-        ]
-      },
+
       '/navigation': {
         description: 'Navigation configuration and route aliases',
         endpoints: [
@@ -261,6 +233,6 @@ export {
   clientsRoutes,
   usersRoutes,
   monitoringRoutes,
-  featureFlagsRoutes,
+
   navigationRoutes
 };

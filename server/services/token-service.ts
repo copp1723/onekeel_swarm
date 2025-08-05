@@ -41,8 +41,7 @@ function validateSecrets() {
   }
 }
 
-// Initialize on module load
-validateSecrets();
+// Will be validated on first use
 
 export interface TokenPayload {
   userId: string;
@@ -61,11 +60,20 @@ export interface DecodedToken extends TokenPayload {
 
 class TokenService {
   private blacklistedTokens: Set<string> = new Set();
+  private secretsValidated = false;
+  
+  private ensureSecretsValidated() {
+    if (!this.secretsValidated) {
+      validateSecrets();
+      this.secretsValidated = true;
+    }
+  }
   
   /**
    * Generate both access and refresh tokens
    */
   async generateTokens(user: { id: string; email: string; role: string }) {
+    this.ensureSecretsValidated();
     const sessionId = crypto.randomUUID();
     const jti = crypto.randomUUID(); // Unique token ID for revocation
     
@@ -127,9 +135,15 @@ class TokenService {
    * Verify access token
    */
   verifyAccessToken(token: string): DecodedToken | null {
+    this.ensureSecretsValidated();
     try {
+      console.log('[TOKEN DEBUG] Verifying access token...');
+      console.log('[TOKEN DEBUG] Token first 20 chars:', token.substring(0, 20));
+      console.log('[TOKEN DEBUG] Using secret first 10 chars:', TOKEN_CONFIG.accessSecret?.substring(0, 10));
+      
       // Check if token is blacklisted
       if (this.blacklistedTokens.has(token)) {
+        console.log('[TOKEN DEBUG] Token is blacklisted');
         return null;
       }
       
@@ -139,8 +153,11 @@ class TokenService {
         algorithms: [TOKEN_CONFIG.algorithm]
       }) as DecodedToken;
       
+      console.log('[TOKEN DEBUG] Decoded payload:', decoded);
+      
       // Additional validation
       if (!decoded.userId || !decoded.email || !decoded.role) {
+        console.log('[TOKEN DEBUG] Missing required fields in token');
         return null;
       }
       
@@ -159,6 +176,7 @@ class TokenService {
    * Verify refresh token
    */
   verifyRefreshToken(token: string): DecodedToken | null {
+    this.ensureSecretsValidated();
     try {
       const decoded = jwt.verify(token, TOKEN_CONFIG.refreshSecret!, {
         issuer: TOKEN_CONFIG.issuer,

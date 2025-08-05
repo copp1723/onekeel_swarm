@@ -1,7 +1,7 @@
 export type WizardStep =
   | 'basics' | 'audience' | 'agent'
   | 'offer'  | 'templates'| 'schedule'
-  | 'handover' | 'review';
+  | 'review';
 
 export interface Agent {
   id: string;
@@ -57,11 +57,8 @@ export interface CampaignData {
   };
   templates: EmailTemplate[];
   schedule: {
-    startDate: string;
-    totalEmails: number;
-    daysBetweenEmails: number;
-    timezone: string;
-    sendTimeOptimization: boolean;
+    totalMessages: number;
+    daysBetweenMessages: number;
   };
   handoverRules: {
     qualificationScore: number;

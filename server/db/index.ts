@@ -19,7 +19,7 @@ import {
   templates as emailTemplates,
   leadCampaignEnrollments
 } from './schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Repository classes with real database operations
 export class LeadsRepository {
@@ -79,13 +79,17 @@ export class ConversationsRepository {
     return conversation || null;
   }
   
-  static async create(leadId: string, channel: string, agentType: string) {
+  static async create(leadId: string, channel: string, agentType: string, campaignId?: string) {
     const [conversation] = await db.insert(conversations).values({
       leadId,
+      campaignId,
       channel: channel as any,
       agentType: agentType as any,
       messages: [],
       status: 'active',
+      currentQualificationScore: 0,
+      goalProgress: {},
+      crossChannelContext: {},
       startedAt: new Date(),
       lastMessageAt: new Date()
     }).returning();
@@ -151,8 +155,41 @@ export class ConversationsRepository {
   }
 
   // Alias for appendMessage to match expected interface
-  static async addMessage(id: string, messageData: { role: string; content: string }) {
+  static async addMessage(id: string, messageData: { role: string; content: string; timestamp?: string }) {
     return await this.appendMessage(id, messageData.role, messageData.content);
+  }
+
+  static async updateQualificationScore(id: string, score: number) {
+    const [updated] = await db.update(conversations)
+      .set({
+        currentQualificationScore: score,
+        lastMessageAt: new Date()
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  static async updateGoalProgress(id: string, goalProgress: Record<string, boolean>) {
+    const [updated] = await db.update(conversations)
+      .set({
+        goalProgress,
+        lastMessageAt: new Date()
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated || null;
+  }
+
+  static async updateCrossChannelContext(id: string, context: Record<string, any>) {
+    const [updated] = await db.update(conversations)
+      .set({
+        crossChannelContext: context,
+        lastMessageAt: new Date()
+      })
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated || null;
   }
 }
 
@@ -196,7 +233,7 @@ export class AgentDecisionsRepository {
     const events = await db.select().from(analyticsEvents)
       .where(and(
         eq(analyticsEvents.eventType, 'agent_decision'),
-        sql`metadata->>'leadId' = ${leadId}`
+        eq(conversations.leadId, leadId)
       ));
     
     return events.map(e => ({

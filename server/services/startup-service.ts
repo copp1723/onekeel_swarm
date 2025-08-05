@@ -1,5 +1,4 @@
 import { logger } from '../utils/logger';
-import { campaignExecutionEngine } from './campaign-execution-engine';
 import { emailReplyDetector } from './email-reply-detector';
 import { queueManager } from '../workers/queue-manager';
 
@@ -11,21 +10,9 @@ export class StartupService {
     logger.info('Starting CCL-3 SWARM services initialization...');
 
     const serviceResults = {
-      campaignEngine: false,
       emailReplyDetector: false,
       queueManager: true // Always available as singleton
     };
-
-    // Start campaign execution engine
-    try {
-      await campaignExecutionEngine.start();
-      serviceResults.campaignEngine = true;
-      logger.info('✅ Campaign execution engine started');
-    } catch (error) {
-      logger.warn('⚠️ Campaign execution engine failed to start - continuing without it', {
-        error: (error as Error).message
-      });
-    }
 
     // Start email reply detector
     try {
@@ -54,10 +41,6 @@ export class StartupService {
     logger.info('Shutting down CCL-3 SWARM services...');
 
     try {
-      // Stop campaign execution engine
-      await campaignExecutionEngine.stop();
-      logger.info('✅ Campaign execution engine stopped');
-
       // Stop email reply detector
       await emailReplyDetector.stop();
       logger.info('✅ Email reply detector stopped');
@@ -84,7 +67,6 @@ export class StartupService {
   }> {
     const services = {
       queueManager: queueManager.isHealthy(),
-      campaignEngine: true, // Simple check - could be enhanced
       emailDetector: true   // Simple check - could be enhanced
     };
 
