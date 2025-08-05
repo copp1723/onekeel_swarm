@@ -4,10 +4,11 @@ import { config } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import campaignsRoutes from './routes/campaigns.js';
-import agentsRoutes from './routes/agents.js';
-import leadsRoutes from './routes/leads.js';
-import emailRoutes from './routes/email.js';
+// Temporarily disable complex routes while other agent works on campaign wizard
+// import campaignsRoutes from './routes/campaigns.js';
+// import agentsRoutes from './routes/agents.js';
+// import leadsRoutes from './routes/leads.js';
+// import emailRoutes from './routes/email.js';
 
 // Load environment variables
 config();
@@ -58,10 +59,11 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/campaigns', campaignsRoutes);
-app.use('/api/agents', agentsRoutes);
-app.use('/api/leads', leadsRoutes);
-app.use('/api/email', emailRoutes);
+// Temporarily disable complex routes while other agent works on campaign wizard
+// app.use('/api/campaigns', campaignsRoutes);
+// app.use('/api/agents', agentsRoutes);
+// app.use('/api/leads', leadsRoutes);
+// app.use('/api/email', emailRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
