@@ -27,15 +27,15 @@ export const CampaignsView: React.FC = () => {
           <p className="text-gray-600">Manage your marketing campaigns</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            onClick={() => setShowWizard(true)} 
+          <Button
+            onClick={() => setShowWizard(true)}
             className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
           >
             <Wand2 className="h-4 w-4" />
             <span>Create Campaign</span>
           </Button>
-          <Button 
-            onClick={() => setShowCreateForm(true)} 
+          <Button
+            onClick={() => setShowCreateForm(true)}
             variant="outline"
             className="flex items-center space-x-2"
           >
@@ -58,7 +58,7 @@ export const CampaignsView: React.FC = () => {
       />
 
       {showCreateForm ? (
-        <CampaignEditor 
+        <CampaignEditor
           agents={agents}
           onSave={() => {
             setShowCreateForm(false);
@@ -94,4 +94,7 @@ export const CampaignsView: React.FC = () => {
       )}
     </div>
   );
-}; 
+};
+
+// Add default export for React.lazy()
+export default CampaignsView;

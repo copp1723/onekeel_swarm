@@ -122,7 +122,7 @@ export const UsersView: React.FC = () => {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {user.firstName && user.lastName 
+                          {user.firstName && user.lastName
                             ? `${user.firstName} ${user.lastName}`
                             : user.username}
                         </div>
@@ -141,7 +141,7 @@ export const UsersView: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.active 
+                      user.active
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
@@ -155,7 +155,7 @@ export const UsersView: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLogin 
+                    {user.lastLogin
                       ? new Date(user.lastLogin).toLocaleDateString()
                       : 'Never'}
                   </td>
@@ -179,3 +179,6 @@ export const UsersView: React.FC = () => {
     </div>
   );
 };
+
+// Add default export for React.lazy()
+export default UsersView;

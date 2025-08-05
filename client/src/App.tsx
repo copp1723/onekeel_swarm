@@ -20,6 +20,7 @@ const AgentTemplatesView = lazy(() => import('@/views/AgentTemplatesView'));
 const UsersView = lazy(() => import('@/views/UsersView'));
 
 const EmailSettingsView = lazy(() => import('@/views/EmailSettingsView'));
+const CampaignIntelligenceView = lazy(() => import('@/views/CampaignIntelligenceView'));
 
 import { ClientProvider, useClient } from '@/contexts/ClientContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -182,6 +183,8 @@ const ViewRenderer = memo(function ViewRenderer({ activeView }: { activeView: Vi
 
     case 'email-settings':
       return <EmailSettingsView />;
+    case 'intelligence':
+      return <CampaignIntelligenceView />;
     default:
       return <EnhancedDashboardView />;
   }

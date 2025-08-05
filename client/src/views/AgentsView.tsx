@@ -21,7 +21,7 @@ export const AgentsView: React.FC = () => {
       </div>
 
       {showCreateForm ? (
-        <AgentConfigurator 
+        <AgentConfigurator
           onSave={() => {
             setShowCreateForm(false);
             // Optionally refresh the list
@@ -56,4 +56,7 @@ export const AgentsView: React.FC = () => {
       )}
     </div>
   );
-}; 
+};
+
+// Add default export for React.lazy()
+export default AgentsView;

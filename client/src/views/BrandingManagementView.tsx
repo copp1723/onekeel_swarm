@@ -32,4 +32,7 @@ export const BrandingManagementView: React.FC = () => {
       </Card>
     </div>
   );
-}; 
+};
+
+// Add default export for React.lazy()
+export default BrandingManagementView;

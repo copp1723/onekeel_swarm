@@ -112,17 +112,24 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
   // Handle navigation click
   const handleNavigationClick = (item: NavigationItem) => {
-    if (item.id === 'settings-group') {
-      setShowSettingsDropdown(!showSettingsDropdown);
-      setShowAgentsDropdown(false);
-    } else if (item.id === 'agents-group') {
-      setShowAgentsDropdown(!showAgentsDropdown);
-      setShowSettingsDropdown(false);
-    } else if (item.id === 'people-group') {
-      // Default to leads/contacts view when clicking people tab
-      setActiveView('leads');
-    } else if (item.id && !item.views) {
-      setActiveView(item.id as ViewType);
+    console.log('[NAV DEBUG] Clicked navigation item:', item.id);
+    try {
+      if (item.id === 'settings-group') {
+        setShowSettingsDropdown(!showSettingsDropdown);
+        setShowAgentsDropdown(false);
+      } else if (item.id === 'agents-group') {
+        setShowAgentsDropdown(!showAgentsDropdown);
+        setShowSettingsDropdown(false);
+      } else if (item.id === 'people-group') {
+        // Default to leads/contacts view when clicking people tab
+        console.log('[NAV DEBUG] Setting view to leads');
+        setActiveView('leads');
+      } else if (item.id && !item.views) {
+        console.log('[NAV DEBUG] Setting view to:', item.id);
+        setActiveView(item.id as ViewType);
+      }
+    } catch (error) {
+      console.error('[NAV ERROR] Navigation click failed:', error);
     }
   };
 
@@ -175,6 +182,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
                         <button
                           key={child.id}
                           onClick={() => {
+                            console.log('[NAV DEBUG] Dropdown item clicked:', child.id);
                             setActiveView(child.id);
                             setShowSettingsDropdown(false);
                           }}
