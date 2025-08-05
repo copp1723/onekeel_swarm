@@ -28,18 +28,32 @@ const TOKEN_CONFIG = {
 
 // Validate secrets on startup
 function validateSecrets() {
+  console.log('[TOKEN SERVICE] Validating JWT secrets...');
+  console.log('[TOKEN SERVICE] JWT_SECRET length:', TOKEN_CONFIG.accessSecret?.length || 0);
+  console.log('[TOKEN SERVICE] JWT_REFRESH_SECRET length:', TOKEN_CONFIG.refreshSecret?.length || 0);
+
   if (!TOKEN_CONFIG.accessSecret || TOKEN_CONFIG.accessSecret.length < 32) {
+    console.error('[TOKEN SERVICE] JWT_SECRET validation failed:', {
+      exists: !!TOKEN_CONFIG.accessSecret,
+      length: TOKEN_CONFIG.accessSecret?.length || 0
+    });
     throw new Error('JWT_SECRET must be set and at least 32 characters long');
   }
 
   if (!TOKEN_CONFIG.refreshSecret || TOKEN_CONFIG.refreshSecret.length < 32) {
+    console.error('[TOKEN SERVICE] JWT_REFRESH_SECRET validation failed:', {
+      exists: !!TOKEN_CONFIG.refreshSecret,
+      length: TOKEN_CONFIG.refreshSecret?.length || 0
+    });
     throw new Error('JWT_REFRESH_SECRET (or JWT_SECRET) must be set and at least 32 characters long');
   }
 
   // Only warn if secrets are the same (for backward compatibility)
   if (TOKEN_CONFIG.accessSecret === TOKEN_CONFIG.refreshSecret) {
-    console.warn('WARNING: Using same secret for access and refresh tokens. Consider setting JWT_REFRESH_SECRET for better security.');
+    console.warn('[TOKEN SERVICE] WARNING: Using same secret for access and refresh tokens. Consider setting JWT_REFRESH_SECRET for better security.');
   }
+
+  console.log('[TOKEN SERVICE] JWT secrets validation passed');
 }
 
 // Will be validated on first use

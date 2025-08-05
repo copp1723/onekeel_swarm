@@ -38,9 +38,11 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     
     // Verify JWT token using secure token service
     console.log('[AUTH DEBUG] Verifying token...');
+    console.log('[AUTH DEBUG] Token preview:', token.substring(0, 20) + '...');
     const decoded = tokenService.verifyAccessToken(token);
-    
+
     console.log('[AUTH DEBUG] Decoded token:', decoded);
+    console.log('[AUTH DEBUG] Token service available:', !!tokenService);
     
     if (!decoded) {
       console.log('[AUTH DEBUG] Token verification failed');
