@@ -26,10 +26,10 @@ import { globalErrorHandler, notFoundHandler } from './utils/error-handler';
 import { requestTimeout } from './middleware/error-handler';
 import { sanitizeRequest } from './middleware/validation';
 import { apiRateLimit, addRateLimitInfo } from './middleware/rate-limit';
-import { applyTerminologyMiddleware } from './middleware/terminology-middleware';
+
 import { configureCsrf } from './middleware/csrf';
 import { temporaryCSPFix } from './middleware/csp-temp-fix';
-import { communicationHubService } from './services/communication-hub-service';
+
 import { StartupService } from './services/startup-service';
 import { WebSocketMessageHandler } from './websocket/message-handler';
 import { SecureWebSocketMessageHandler } from './websocket/secure-message-handler';
@@ -212,8 +212,7 @@ async function initializeApp() {
     });
   });
 
-  // Apply terminology middleware before routes
-  applyTerminologyMiddleware(app);
+  // Terminology middleware removed as part of simplification
 
   // Register all routes FIRST (async)
   await registerRoutes(app);
@@ -294,10 +293,8 @@ async function initializeApp() {
 
   // Initialize services (conditional)
   if (config.features.enableAgents) {
-    // Communication hub service start
-    communicationHubService
-      .start()
-      .catch(err => logger.error('Communication hub startup failed', err));
+    // Communication hub removed as part of simplification
+    logger.info('Agent communication simplified - no complex hub needed');
   }
 
   // Initialize agents (conditional)
@@ -517,7 +514,7 @@ async function gracefulShutdown() {
 
   // Stop services
   if (refs.config.features.enableAgents) {
-    communicationHubService.stop();
+    // Communication hub removed as part of simplification
   }
 
   // Close WebSocket connections

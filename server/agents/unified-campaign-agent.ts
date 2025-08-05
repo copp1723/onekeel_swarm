@@ -1,33 +1,28 @@
 import { BaseAgent, AgentContext, AgentDecision } from './base-agent';
-import { Lead, Campaign } from '../db/schema';
-import { EmailAgent } from './email-agent';
-import { SMSAgent } from './sms-agent';
-import { ChatAgent } from './chat-agent';
-import { HandoverService, HandoverEvaluation } from '../services/handover-service';
+import { Lead } from '../db/schema';
+import { HandoverService } from '../services/handover-service';
 import { MailgunService } from '../services/email/providers/mailgun';
 import { logger } from '../utils/logger';
 import twilio from 'twilio';
-import { executeWithTwilioBreaker } from '../utils/circuit-breaker';
+// Simplified - removed individual agent imports per handoff
 
-export interface CampaignStep {
-  id: string;
-  channel: 'email' | 'sms' | 'chat';
-  content: string;
-  subject?: string; // For email
-  delayDays: number;
-  order: number;
-}
-
+// Simplified campaign configuration per handoff
 export interface CampaignConfig {
   name: string;
-  steps: CampaignStep[];
+  systemPrompt: string;
+  templates: Array<{
+    content: string;
+    channel: 'email' | 'sms' | 'chat';
+    subject?: string;
+  }>;
+  schedule: {
+    totalEmails: number;
+    daysBetweenEmails: number;
+  };
   handoverRules?: {
-    qualificationScore?: number;
-    conversationLength?: number;
-    keywordTriggers?: string[];
-    timeThreshold?: number;
-    goalCompletionRequired?: string[];
-    handoverRecipients?: Array<{ name: string; email: string }>;
+    qualificationThreshold?: number;
+    keywords?: string[];
+    recipients: Array<{ name: string; email: string }>;
   };
 }
 
@@ -43,26 +38,18 @@ export interface CampaignExecution {
 }
 
 /**
- * Unified Campaign Agent that combines email, SMS, and chat functionality
- * into a single agent for simplified campaign execution
+ * Simplified Unified Campaign Agent per handoff plan
+ * Handles email/SMS/chat in one agent without complex infrastructure
  */
 export class UnifiedCampaignAgent extends BaseAgent {
-  private emailAgent: EmailAgent;
-  private smsAgent: SMSAgent;
-  private chatAgent: ChatAgent;
   private twilioClient: any;
   private fromNumber: string;
-  private wsConnections: Map<string, any> = new Map(); // WebSocket connections for chat
+  private wsConnections: Map<string, any> = new Map();
 
   constructor() {
     super('unified-campaign');
-    
-    // Initialize specialized agents
-    this.emailAgent = new EmailAgent();
-    this.smsAgent = new SMSAgent();
-    this.chatAgent = new ChatAgent();
-    
-    // Initialize Twilio for SMS (replicating SMS agent logic)
+
+    // Initialize Twilio for SMS
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
       this.twilioClient = twilio(
         process.env.TWILIO_ACCOUNT_SID,
@@ -77,223 +64,67 @@ export class UnifiedCampaignAgent extends BaseAgent {
   }
 
   /**
-   * Execute a campaign for a lead with linear progression through steps
+   * Simplified campaign execution per handoff plan
    */
-  async executeCampaign(lead: Lead, campaign: CampaignConfig): Promise<CampaignExecution> {
-    const execution: CampaignExecution = {
+  async executeCampaign(lead: Lead, campaign: CampaignConfig): Promise<void> {
+    const { totalEmails, daysBetweenEmails } = campaign.schedule;
+
+    logger.info('Starting simplified campaign execution', {
       leadId: lead.id,
-      campaignId: campaign.name,
-      currentStep: 0,
-      status: 'running',
-      startedAt: new Date(),
-      metadata: {
-        totalSteps: campaign.steps.length,
-        leadName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim(),
-        leadSource: lead.source
-      }
-    };
+      campaignName: campaign.name,
+      totalEmails,
+      daysBetweenEmails
+    });
 
-    try {
-      logger.info('Starting unified campaign execution', {
-        leadId: lead.id,
-        campaignName: campaign.name,
-        totalSteps: campaign.steps.length
-      });
-
-      // Store campaign start in supermemory
-      await this.storeMemory(
-        `Started campaign "${campaign.name}" for ${execution.metadata.leadName}`,
-        {
-          leadId: lead.id,
-          campaignName: campaign.name,
-          type: 'campaign_started',
-          totalSteps: campaign.steps.length
-        }
+    for (let i = 0; i < totalEmails; i++) {
+      const message = await this.generateResponse(
+        campaign.templates[i].content,
+        campaign.systemPrompt,
+        { leadId: lead.id, type: 'campaign_message' }
       );
 
-      // Execute steps in order with delays
-      for (let i = 0; i < campaign.steps.length; i++) {
-        const step = campaign.steps[i];
-        execution.currentStep = i;
+      await this.sendMessage(lead, message, campaign.templates[i].channel);
 
-        // Apply delay (except for first step)
-        if (i > 0 && step.delayDays > 0) {
-          logger.info(`Delaying execution for ${step.delayDays} days`, {
-            leadId: lead.id,
-            step: i,
-            delayDays: step.delayDays
-          });
-          
-          // In a real implementation, this would be handled by a scheduler
-          // For now, we simulate the delay with a simple timeout
-          await this.delay(step.delayDays * 24 * 60 * 60 * 1000); // Convert days to milliseconds
-        }
-
-        // Check if handover should occur before sending this step
-        const context: AgentContext = { lead, campaign: campaign as any };
-        
-        // Try to find existing conversation for this lead
-        let conversationId: string | undefined;
-        try {
-          const { ConversationsRepository } = await import('../db');
-          const conversation = await ConversationsRepository.findByLeadIdAndChannel(lead.id, step.channel);
-          conversationId = conversation?.id;
-        } catch (error) {
-          logger.warn('Could not find conversation for handover evaluation', {
-            leadId: lead.id,
-            channel: step.channel,
-            error: (error as Error).message
-          });
-        }
-        
-        const shouldHandover = await this.shouldHandover(lead, campaign.handoverRules || {}, conversationId);
-        
-        if (shouldHandover.shouldHandover) {
-          logger.info('Handover triggered during campaign execution', {
-            leadId: lead.id,
-            step: i,
-            reason: shouldHandover.reason,
-            score: shouldHandover.score,
-            criteria: shouldHandover.triggeredCriteria
-          });
-          
-          execution.status = 'handover';
-          const handoverSuccess = await this.executeHandover(
-            lead,
-            campaign.handoverRules?.handoverRecipients || [],
-            conversationId
-          );
-          
-          if (handoverSuccess) {
-            await this.storeMemory(
-              `Campaign handover completed for ${execution.metadata.leadName}`,
-              {
-                leadId: lead.id,
-                campaignName: campaign.name,
-                type: 'campaign_handover_completed',
-                step: i,
-                reason: shouldHandover.reason,
-                score: shouldHandover.score
-              }
-            );
-          }
-          
-          break;
-        }
-
-        // Execute the step
-        try {
-          const result = await this.sendMessage(lead, step, step.channel);
-          
-          logger.info('Campaign step executed successfully', {
-            leadId: lead.id,
-            step: i,
-            channel: step.channel,
-            messageId: result?.id || result?.sid || 'chat-delivered'
-          });
-
-          execution.lastExecutedAt = new Date();
-          
-          // Store step execution in supermemory
-          await this.storeMemory(
-            `Campaign step ${i + 1}/${campaign.steps.length} sent via ${step.channel} to ${execution.metadata.leadName}`,
-            {
-              leadId: lead.id,
-              campaignName: campaign.name,
-              stepNumber: i + 1,
-              channel: step.channel,
-              type: 'campaign_step_executed',
-              messageId: result?.id || result?.sid || 'chat-delivered'
-            }
-          );
-
-        } catch (error) {
-          logger.error('Campaign step execution failed', {
-            leadId: lead.id,
-            step: i,
-            channel: step.channel,
-            error: (error as Error).message
-          });
-
-          // Simple retry logic - retry once after 5 minutes
-          logger.info('Retrying campaign step after delay', { leadId: lead.id, step: i });
-          await this.delay(5 * 60 * 1000); // 5 minutes
-          
-          try {
-            const retryResult = await this.sendMessage(lead, step, step.channel);
-            logger.info('Campaign step retry successful', {
-              leadId: lead.id,
-              step: i,
-              messageId: retryResult?.id || retryResult?.sid || 'chat-delivered'
-            });
-          } catch (retryError) {
-            logger.error('Campaign step retry failed, continuing to next step', {
-              leadId: lead.id,
-              step: i,
-              error: (retryError as Error).message
-            });
-          }
-        }
+      // Check handover using wizard config
+      const handoverEval = await this.shouldHandover(lead, campaign.handoverRules);
+      if (handoverEval.shouldHandover) {
+        await this.executeHandover(lead, campaign.handoverRules.recipients, undefined);
+        break;
       }
 
-      // Mark campaign as completed if not handed over
-      if (execution.status === 'running') {
-        execution.status = 'completed';
-        execution.currentStep = campaign.steps.length;
-        
-        logger.info('Campaign completed successfully', {
-          leadId: lead.id,
-          campaignName: campaign.name,
-          totalSteps: campaign.steps.length
-        });
-
-        // Store campaign completion
-        await this.storeMemory(
-          `Completed campaign "${campaign.name}" for ${execution.metadata.leadName}`,
-          {
-            leadId: lead.id,
-            campaignName: campaign.name,
-            type: 'campaign_completed',
-            totalSteps: campaign.steps.length,
-            executionTime: Date.now() - execution.startedAt.getTime()
-          }
-        );
+      // Simple delay between messages
+      if (i < totalEmails - 1) {
+        await this.delay(daysBetweenEmails * 24 * 60 * 60 * 1000);
       }
-
-      return execution;
-
-    } catch (error) {
-      logger.error('Campaign execution failed', {
-        leadId: lead.id,
-        campaignName: campaign.name,
-        error: (error as Error).message
-      });
-      
-      execution.status = 'paused';
-      return execution;
     }
+
+    logger.info('Campaign execution completed', {
+      leadId: lead.id,
+      campaignName: campaign.name,
+      totalMessages: totalEmails
+    });
   }
 
   /**
-   * Send a message through the specified channel
+   * Send a message through the specified channel (simplified version)
    */
-  async sendMessage(lead: Lead, message: CampaignStep, channel: 'email' | 'sms' | 'chat'): Promise<any> {
-    const personalizedContent = this.personalizeMessage(message.content, lead);
-    const personalizedSubject = message.subject ? this.personalizeMessage(message.subject, lead) : undefined;
+  async sendMessage(lead: Lead, message: string, channel: 'email' | 'sms' | 'chat', subject?: string): Promise<any> {
+    const personalizedContent = this.personalizeMessage(message, lead);
+    const personalizedSubject = subject ? this.personalizeMessage(subject, lead) : 'Message from our team';
 
     switch (channel) {
       case 'email':
-        return await this.sendEmail(lead, personalizedSubject || 'Message from our team', personalizedContent);
-      
+        return await this.sendEmail(lead, personalizedSubject, personalizedContent);
+
       case 'sms':
         if (!lead.phone) {
           throw new Error('Lead phone number not available for SMS');
         }
         return await this.sendSMS(lead.phone, personalizedContent);
-      
+
       case 'chat':
         return await this.sendChatMessage(lead, personalizedContent);
-      
+
       default:
         throw new Error(`Unsupported channel: ${channel}`);
     }
@@ -412,7 +243,7 @@ export class UnifiedCampaignAgent extends BaseAgent {
           const { ConversationsRepository } = await import('../db');
           
           // Get campaign ID from lead or use a default
-          const campaignId = lead.campaignId || execution?.metadata?.campaignId;
+          const campaignId = lead.campaignId || 'default-campaign';
           
           const conversation = await ConversationsRepository.create(
             lead.id,
@@ -526,14 +357,30 @@ export class UnifiedCampaignAgent extends BaseAgent {
   }
 
   /**
-   * Send email using the email agent's functionality
+   * Send email using MailgunService directly (simplified)
    */
   private async sendEmail(lead: Lead, subject: string, content: string): Promise<any> {
     if (!lead.email) {
       throw new Error('Lead email not available');
     }
-    
-    return await this.emailAgent.sendEmail(lead.email, subject, content);
+
+    try {
+      const mailgunService = new MailgunService();
+      const result = await mailgunService.sendEmail(lead.email, subject, content);
+      logger.info('Email sent successfully', {
+        to: lead.email,
+        subject,
+        messageId: result?.id || 'unknown'
+      });
+      return result;
+    } catch (error) {
+      logger.error('Email send failed', {
+        to: lead.email,
+        subject,
+        error: (error as Error).message
+      });
+      throw error;
+    }
   }
 
   /**
@@ -656,9 +503,12 @@ export class UnifiedCampaignAgent extends BaseAgent {
       }
     );
 
-    // Use the specialized agents for processing based on context
-    // This is a simplified approach - in practice, you might determine channel from context
-    return await this.chatAgent.processMessage(message, context);
+    // Generate response using base agent functionality (simplified)
+    return await this.generateResponse(
+      message,
+      'You are a helpful campaign assistant. Respond to the user\'s message in a friendly and professional manner.',
+      { leadId: lead.id, type: 'chat_response' }
+    );
   }
 
   async makeDecision(context: AgentContext): Promise<AgentDecision> {

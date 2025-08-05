@@ -22,8 +22,8 @@ echo "NPM version: $(npm --version)"
 # Clean npm cache to avoid any corruption issues
 npm cache clean --force
 
-# Install dependencies with verbose output
-npm ci --verbose
+# Install dependencies with verbose output (including devDependencies)
+npm ci --verbose --include=dev
 
 echo "✅ Client dependencies installed"
 echo "Checking if vite is available..."

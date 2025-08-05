@@ -2,17 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
 import { requireAuth } from '../middleware/auth';
-import { dualTerminologyService } from '../services/dual-terminology-service';
-import { featureFlagService } from '../services/feature-flag-service';
+import { LeadsRepository } from '../db/index';
+import { OptimizedRepositoryService } from '../services/optimized-repository-service';
+// Simplified - removed complex terminology and feature flag services per handoff
 
 const router = Router();
 
-// Extract feature flag context from request
-const extractContext = (req: any) => ({
-  userId: req.user?.id,
-  userRole: req.user?.role,
-  environment: process.env.NODE_ENV as any || 'development'
-});
+// Simplified - no complex context needed
 
 // Validation schemas (same as leads but with contact terminology)
 const createContactSchema = z.object({
@@ -39,8 +35,7 @@ const updateContactSchema = createContactSchema.partial();
 // Get all contacts
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const context = extractContext(req);
-    const { 
+    const {
       status, 
       source, 
       assignedChannel,
@@ -51,28 +46,27 @@ router.get('/', requireAuth, async (req, res) => {
       order = 'desc' 
     } = req.query;
 
-    const result = await dualTerminologyService.getEntities({
+    // Simplified - direct repository call without complex terminology
+    const result = await OptimizedRepositoryService.getLeadsPaginated({
+      page: Math.floor(Number(offset) / Number(limit)) + 1,
+      limit: Number(limit),
       status: status as string,
       source: source as string,
-      assignedChannel: assignedChannel as string,
       search: search as string,
-      limit: Number(limit),
-      offset: Number(offset),
-      sort: sort as string,
-      order: order as 'asc' | 'desc'
-    }, context);
+      sortBy: sort as string,
+      sortOrder: order as 'asc' | 'desc'
+    });
 
     const response = {
       success: true,
-      contacts: result.entities,
-      total: result.total,
-      offset: result.offset,
-      limit: result.limit,
-      terminology: result.terminology,
+      contacts: result.data.map(item => item.lead), // Using "contacts" terminology for API consistency
+      total: result.pagination.total,
+      offset: Number(offset),
+      limit: Number(limit),
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error fetching contacts:', error);
     res.status(500).json({
@@ -90,11 +84,11 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const context = extractContext(req);
 
-    const result = await dualTerminologyService.getEntityById(id, context);
+    // Simplified - direct repository call
+    const lead = await LeadsRepository.findById(id);
 
-    if (!result.entity) {
+    if (!lead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -106,17 +100,11 @@ router.get('/:id', requireAuth, async (req, res) => {
 
     const response = {
       success: true,
-      contact: {
-        ...result.entity,
-        communications: result.communications,
-        conversations: result.conversations,
-        campaigns: result.enrollments
-      },
-      terminology: result.terminology,
+      contact: lead, // Using "contact" terminology for API consistency
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error fetching contact:', error);
     res.status(500).json({
@@ -133,19 +121,18 @@ router.get('/:id', requireAuth, async (req, res) => {
 // Create contact
 router.post('/', requireAuth, validateRequest({ body: createContactSchema }), async (req, res) => {
   try {
-    const context = extractContext(req);
     const contactData = req.body;
 
-    const result = await dualTerminologyService.createEntity(contactData, context);
+    // Simplified - direct repository call
+    const lead = await LeadsRepository.create(contactData);
 
     const response = {
       success: true,
-      contact: result.entity,
-      terminology: result.terminology,
+      contact: lead, // Using "contact" terminology for API consistency
       timestamp: new Date().toISOString()
     };
 
-    res.status(201).json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.status(201).json(response);
   } catch (error) {
     console.error('Error creating contact:', error);
     
@@ -175,11 +162,11 @@ router.put('/:id', requireAuth, validateRequest({ body: updateContactSchema }), 
   try {
     const { id } = req.params;
     const updates = req.body;
-    const context = extractContext(req);
 
-    const result = await dualTerminologyService.updateEntity(id, updates, context);
+    // Simplified - direct repository call
+    const lead = await LeadsRepository.update(id, updates);
 
-    if (!result.entity) {
+    if (!lead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -191,12 +178,11 @@ router.put('/:id', requireAuth, validateRequest({ body: updateContactSchema }), 
 
     const response = {
       success: true,
-      contact: result.entity,
-      terminology: result.terminology,
+      contact: lead, // Using "contact" terminology for API consistency
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error updating contact:', error);
     res.status(500).json({
@@ -214,11 +200,11 @@ router.put('/:id', requireAuth, validateRequest({ body: updateContactSchema }), 
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const context = extractContext(req);
 
-    const result = await dualTerminologyService.deleteEntity(id, context);
+    // Simplified - direct repository call
+    const success = await LeadsRepository.delete(id);
 
-    if (!result.success) {
+    if (!success) {
       return res.status(404).json({
         success: false,
         error: {
@@ -231,11 +217,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const response = {
       success: true,
       message: 'Contact deleted successfully',
-      terminology: result.terminology,
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error deleting contact:', error);
     res.status(500).json({
@@ -249,30 +234,39 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Bulk import contacts
+// Bulk import contacts - simplified implementation
 router.post('/import', requireAuth, async (req, res) => {
   try {
     const { contacts: contactData } = req.body;
-    const context = extractContext(req);
 
-    const result = await dualTerminologyService.importEntities(contactData, context);
+    // Simplified - create contacts one by one (can be optimized later)
+    const imported = [];
+    const failed = [];
+
+    for (const contact of contactData) {
+      try {
+        const lead = await LeadsRepository.create(contact);
+        imported.push(lead);
+      } catch (error) {
+        failed.push({ contact, error: (error as Error).message });
+      }
+    }
 
     const response = {
       success: true,
-      imported: result.imported,
-      failed: result.failed,
-      errors: result.errors,
-      terminology: result.terminology,
+      imported: imported.length,
+      failed: failed.length,
+      errors: failed,
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error importing contacts:', error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'CONTACT_IMPORT_ERROR',  
+        code: 'CONTACT_IMPORT_ERROR',
         message: 'Failed to import contacts',
         category: 'database'
       }
@@ -285,7 +279,6 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const context = extractContext(req);
 
     const validStatuses = ['new', 'contacted', 'qualified', 'converted', 'rejected'];
     if (!validStatuses.includes(status)) {
@@ -299,9 +292,10 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
       });
     }
 
-    const result = await dualTerminologyService.updateEntity(id, { status }, context);
+    // Simplified - direct repository call
+    const lead = await LeadsRepository.update(id, { status });
 
-    if (!result.entity) {
+    if (!lead) {
       return res.status(404).json({
         success: false,
         error: {
@@ -313,12 +307,11 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     const response = {
       success: true,
-      contact: result.entity,
-      terminology: result.terminology,
+      contact: lead, // Using "contact" terminology for API consistency
       timestamp: new Date().toISOString()
     };
 
-    res.json(dualTerminologyService.getApiResponse(response, result.terminology));
+    res.json(response);
   } catch (error) {
     console.error('Error updating contact status:', error);
     res.status(500).json({
@@ -332,35 +325,6 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
   }
 });
 
-// Terminology check endpoint - returns which terminology mode is active
-router.get('/meta/terminology', requireAuth, async (req, res) => {
-  try {
-    const context = extractContext(req);
-    const terminology = await dualTerminologyService.getTerminologyMode(context);
-    const labels = dualTerminologyService.getTerminologyLabels(terminology);
-
-    res.json({
-      success: true,
-      terminology: {
-        mode: terminology,
-        labels,
-        flags: {
-          contactsTerminology: await featureFlagService.isEnabled('ui.contacts-terminology', context)
-        }
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Error checking terminology:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'TERMINOLOGY_CHECK_ERROR',
-        message: 'Failed to check terminology mode',
-        category: 'system'
-      }
-    });
-  }
-});
+// Terminology endpoint removed as part of simplification
 
 export default router;

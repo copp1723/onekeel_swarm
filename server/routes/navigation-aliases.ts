@@ -1,19 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { featureFlagService } from '../services/feature-flag-service';
+// Simplified - removed feature flag service per handoff
 
 const router = Router();
 
-// Extract feature flag context from request
-const extractContext = (req: any) => ({
-  userId: req.user?.id,
-  userRole: req.user?.role,
-  environment: process.env.NODE_ENV as any || 'development'
-});
-
-// Navigation structure mapping based on feature flags
-const getNavigationStructure = async (context: any) => {
-  const useNewNavigation = await featureFlagService.isEnabled('ui.new-navigation', context);
-  const useContactsTerminology = await featureFlagService.isEnabled('ui.contacts-terminology', context);
+// Simplified - no complex context or feature flags needed
+const getNavigationStructure = async () => {
+  // Simplified - use default navigation structure
+  const useNewNavigation = true; // Default to new navigation
+  const useContactsTerminology = true; // Default to contacts terminology
   
   if (useNewNavigation) {
     // New 3-tab structure
@@ -92,15 +86,14 @@ const getNavigationStructure = async (context: any) => {
 // Get navigation configuration
 router.get('/config', async (req: Request, res: Response) => {
   try {
-    const context = extractContext(req);
-    const navigation = await getNavigationStructure(context);
-    
+    const navigation = await getNavigationStructure();
+
     res.json({
       success: true,
       navigation,
       flags: {
-        newNavigation: await featureFlagService.isEnabled('ui.new-navigation', context),
-        contactsTerminology: await featureFlagService.isEnabled('ui.contacts-terminology', context)
+        newNavigation: true, // Simplified - default values
+        contactsTerminology: true
       },
       timestamp: new Date().toISOString()
     });
@@ -119,8 +112,8 @@ router.get('/config', async (req: Request, res: Response) => {
 // Route aliases for backward compatibility
 router.get('/route-aliases', async (req: Request, res: Response) => {
   try {
-    const context = extractContext(req);
-    const useContactsTerminology = await featureFlagService.isEnabled('ui.contacts-terminology', context);
+    // Simplified - default to contacts terminology
+    const useContactsTerminology = true;
     
     const aliases = {
       // API route aliases
