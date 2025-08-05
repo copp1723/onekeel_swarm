@@ -13,6 +13,7 @@ import conversationsRoutes from './conversations';
 import clientsRoutes from './clients';
 import usersRoutes from './users';
 import monitoringRoutes from './monitoring';
+import featureFlagsRoutes from './feature-flags';
 
 import navigationRoutes from './navigation-aliases';
 import mailgunWebhookRoutes from './webhooks/mailgun';
@@ -32,6 +33,7 @@ router.use('/conversations', authenticate, authorize('admin', 'manager', 'agent'
 router.use('/clients', authenticate, authorize('admin', 'manager'), clientsRoutes);
 router.use('/users', authenticate, authorize('admin'), usersRoutes);
 router.use('/monitoring', authenticate, authorize('admin', 'manager'), monitoringRoutes);
+router.use('/feature-flags', featureFlagsRoutes); // Simplified feature flags (no auth required)
 
 router.use('/navigation', authenticate, navigationRoutes); // Navigation configuration and aliases
 
@@ -57,6 +59,7 @@ router.get('/health', (req, res) => {
       '/clients',
       '/users',
       '/monitoring',
+      '/feature-flags',
 
       '/navigation'
     ]
@@ -233,6 +236,7 @@ export {
   clientsRoutes,
   usersRoutes,
   monitoringRoutes,
+  featureFlagsRoutes,
 
   navigationRoutes
 };
