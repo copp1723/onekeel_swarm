@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { tokenService } from '../services/token-service';
 import { sessionService } from '../services/session-service';
 import { UsersRepository } from '../db';
+import { redis } from '../utils/redis-client';
 
 // Extend Express Request type
 declare global {
@@ -64,12 +65,25 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     
     // Validate session if sessionId is present in token
     if (decoded.sessionId) {
-      const sessionValidation = await sessionService.validateSession(decoded.sessionId);
-      if (!sessionValidation) {
-        return res.status(401).json({ 
-          error: 'Session expired or invalid',
-          code: 'SESSION_INVALID'
-        });
+      console.log('[AUTH DEBUG] Validating session:', decoded.sessionId);
+      // Check Redis session if available
+      if (redis) {
+        try {
+          const sessionData = await redis.get(`session:${decoded.sessionId}`);
+          console.log('[AUTH DEBUG] Redis session data:', sessionData ? 'found' : 'not found');
+          if (!sessionData) {
+            console.log('[AUTH DEBUG] Session not found in Redis');
+            return res.status(401).json({
+              error: 'Session expired or invalid',
+              code: 'SESSION_INVALID'
+            });
+          }
+        } catch (error) {
+          console.log('[AUTH DEBUG] Redis session check failed:', error);
+          // Continue without session validation if Redis is unavailable
+        }
+      } else {
+        console.log('[AUTH DEBUG] Redis not available, skipping session validation');
       }
     }
     
