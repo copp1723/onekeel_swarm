@@ -172,9 +172,26 @@ import { LoginForm } from '@/components/ui/LoginForm';
 import type { ViewType } from '@/types/index';
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
 
-// Lightweight fallbacks for nav elements that may not exist in this trimmed repo
+// Streamlined navigation - UI cleanup: removed redundant tabs and emojis for cleaner interface
 const NavigationBar = ({ activeView, setActiveView, brandingColor }: { activeView: ViewType; setActiveView: (v: ViewType) => void; brandingColor?: string }) => {
-  const tabs: ViewType[] = ['dashboard','conversations','leads','branding','agents','agent-templates','campaigns','clients','templates','users','email-settings','intelligence'];
+  const tabs: ViewType[] = ['dashboard','campaigns','agents','leads','intelligence'];
+  const tabLabels: Partial<Record<ViewType, string>> = {
+    dashboard: 'Dashboard',
+    campaigns: 'Campaigns',
+    agents: 'AI Agents',
+    leads: 'Leads',
+    intelligence: 'Analytics',
+    // Keep other mappings for fallback compatibility
+    conversations: 'Conversations',
+    branding: 'Branding',
+    'agent-templates': 'Agent Templates',
+    clients: 'Clients',
+    templates: 'Templates',
+    users: 'Users',
+    'email-settings': 'Email Settings',
+    analytics: 'Analytics'
+  };
+  
   return (
     <div className="flex space-x-2 overflow-x-auto py-2">
       {tabs.map(tab => (
@@ -182,9 +199,9 @@ const NavigationBar = ({ activeView, setActiveView, brandingColor }: { activeVie
           key={tab}
           onClick={() => setActiveView(tab)}
           style={{ borderBottom: activeView === tab ? `3px solid ${brandingColor || '#2563eb'}` : '3px solid transparent' }}
-          className="px-3 py-2 text-sm capitalize whitespace-nowrap"
+          className="px-4 py-3 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors"
         >
-          {tab.replace('-', ' ')}
+          {tabLabels[tab] || tab.replace('-', ' ')}
         </button>
       ))}
     </div>
