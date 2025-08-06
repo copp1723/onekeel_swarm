@@ -7,8 +7,8 @@ import { UnifiedAgentConfig, AgentType } from '@/types';
 import { useAgents } from '@/hooks/useAgents';
 import { AgentCard } from './AgentCard';
 import { UnifiedAgentConfigurator } from './UnifiedAgentConfigurator';
-import { AgentModuleLoader } from './agent-modules/AgentModuleLoader';
-import { AGENT_TYPES, PERSONALITY_OPTIONS } from '@/utils/agentUtils';
+// import { AgentModuleLoader } from './agent-modules/AgentModuleLoader';
+// import { AGENT_TYPES, PERSONALITY_OPTIONS } from '@/utils/agentUtils';
 import { 
   Plus, 
   Search, 
@@ -142,12 +142,9 @@ export function AgentManagementDashboard({
             Back to Dashboard
           </Button>
         </div>
-        <AgentModuleLoader
-          agent={selectedAgent}
-          onUpdate={() => {
-            loadAgents();
-          }}
-        />
+        <div className="text-center py-8">
+          <p className="text-gray-500">Agent module temporarily disabled</p>
+        </div>
       </div>
     );
   }

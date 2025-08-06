@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { authenticateToken, AuthRequest } from './auth.js';
+import { authenticateToken, AuthRequest } from './auth';
 
 // Simple alias for our existing auth middleware
 export const isAuthenticated = authenticateToken;

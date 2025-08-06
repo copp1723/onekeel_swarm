@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { db } from '../db/client';
+import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { AuthRequest, authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -18,7 +18,6 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user by username
-    const db = getDb();
     const [user] = await db
       .select()
       .from(users)

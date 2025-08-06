@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, Plus } from 'lucide-react';
-import { AgentConfigurator } from '@/components/email-agent/AgentConfigurator';
+// import { UnifiedAgentConfigurator } from '@/components/shared/UnifiedAgentConfigurator';
 
 export const AgentsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -21,13 +21,12 @@ export const AgentsView: React.FC = () => {
       </div>
 
       {showCreateForm ? (
-        <AgentConfigurator
-          onSave={() => {
-            setShowCreateForm(false);
-            // Optionally refresh the list
-          }}
-          onCancel={() => setShowCreateForm(false)}
-        />
+        <div className="text-center py-8">
+          <p className="text-gray-500">Agent configurator temporarily disabled</p>
+          <Button onClick={() => setShowCreateForm(false)} className="mt-4">
+            Close
+          </Button>
+        </div>
       ) : (
         <Card>
           <CardHeader>

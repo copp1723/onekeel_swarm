@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import * as React from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
-import { CampaignData, WizardStep, Agent, EmailTemplate, Contact } from './types';
+import type { CampaignData, WizardStep, EmailTemplate, Contact } from './types';
+// Use type-only import for Agent to avoid ESM "does not provide an export" at runtime
+type Agent = import('./types').Agent;
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   ChevronDown,
   ChevronUp,
@@ -29,7 +32,12 @@ import {
   FileText,
   Upload,
   Save,
-  UserCheck
+  UserCheck,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -39,17 +47,29 @@ interface CampaignWizardProps {
   agents?: Agent[];
 }
 
+interface Notification {
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  id: string;
+}
+
 
 export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: CampaignWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basics');
   const [csvError, setCsvError] = useState<string>('');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [expandedTemplates, setExpandedTemplates] = useState<Set<number>>(new Set());
+
+  // New state for loading and notifications
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingTemplates, setIsGeneratingTemplates] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [executionId, setExecutionId] = useState<string | null>(null);
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
-    description: '',
-    goal: '',
     context: '',
+    handoverGoals: '',
     audience: {
       filters: [],
       targetCount: 0,
@@ -98,6 +118,111 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+
+  // Helper functions for notifications and validation
+  const addNotification = (type: Notification['type'], title: string, message: string) => {
+    const id = Date.now().toString();
+    const notification: Notification = { type, title, message, id };
+    setNotifications(prev => [...prev, notification]);
+
+    // Auto-remove success notifications after 5 seconds
+    if (type === 'success') {
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }, 5000);
+    }
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  // Authentication check
+  const checkAuthentication = (): boolean => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      addNotification('error', 'Authentication Required', 'Please log in to continue.');
+      return false;
+    }
+    return true;
+  };
+
+  // Data validation
+  const validateCampaignData = (): boolean => {
+    if (!campaignData.name.trim()) {
+      addNotification('error', 'Validation Error', 'Campaign name is required.');
+      return false;
+    }
+
+    if (!campaignData.context.trim()) {
+      addNotification('error', 'Validation Error', 'Campaign context is required.');
+      return false;
+    }
+
+    if (!campaignData.agentId) {
+      addNotification('error', 'Validation Error', 'Please select an AI agent.');
+      return false;
+    }
+
+    if (!campaignData.audience.contacts || campaignData.audience.contacts.length === 0) {
+      addNotification('error', 'Validation Error', 'Please add at least one contact to your campaign.');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Parse API error response
+  const parseApiError = async (response: Response): Promise<string> => {
+    try {
+      const text = await response.text();
+      if (!text) return `HTTP ${response.status}: ${response.statusText}`;
+
+      try {
+        const errorData = JSON.parse(text);
+        return errorData.error || errorData.message || errorData.details || `HTTP ${response.status}: ${response.statusText}`;
+      } catch {
+        return text.length > 200 ? `${text.substring(0, 200)}...` : text;
+      }
+    } catch {
+      return `HTTP ${response.status}: ${response.statusText}`;
+    }
+  };
+
+  // Retry helper for API calls
+  const retryApiCall = async (
+    apiCall: () => Promise<any>,
+    maxRetries: number = 3,
+    delay: number = 1000
+  ): Promise<any> => {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await apiCall();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+
+        if (attempt === maxRetries) {
+          throw lastError;
+        }
+
+        // Only retry on network errors or 5xx server errors
+        if (error instanceof TypeError || (error as any)?.status >= 500) {
+          addNotification('warning', 'Retrying...', `Attempt ${attempt} failed, retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        } else {
+          throw lastError;
+        }
+      }
+    }
+
+    throw lastError!;
+  };
 
   // Toggle template expansion
   const toggleTemplateExpansion = (index: number) => {
@@ -204,37 +329,41 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
         }
         
         // Process contacts with limited columns and sanitization
-        const contacts = results.data.map((row: Record<string, any>) => {
-          const contact: Record<string, any> = {};
+        const contacts: Contact[] = results.data.map((row: Record<string, any>) => {
+          const mapped: any = {};
           limitedHeaders.forEach((header: string) => {
             let value = row[header];
-            
-            // Sanitize CSV injection attempts
+
             if (typeof value === 'string') {
               value = value.trim();
-              // Prevent formula injection
               if (/^[=+\-@]/.test(value)) {
                 value = "'" + value;
               }
-              // Limit string length
               value = value.substring(0, 255);
             }
-            
-            contact[header] = value;
+
+            mapped[header] = value;
           });
+
+          const emailVal = mapped[headerMapping['email']];
+          const firstNameVal = mapped[headerMapping['firstName']];
+
+          const contact: Contact = {
+            email: emailVal,
+            name: firstNameVal,
+            ...mapped
+          };
           return contact;
-        }).slice(0, 10000) // Limit to 10k rows
-        .filter((contact: Record<string, any>) => {
-          // Filter out empty rows
-          return contact[headerMapping['email']] && contact[headerMapping['firstName']];
+        }).slice(0, 10000)
+        .filter((contact: Contact) => {
+          return Boolean(contact.email) && Boolean(contact.name);
         });
-        
-        // Update campaign data
-        setCampaignData(prev => ({
+
+        setCampaignData((prev: CampaignData): CampaignData => ({
           ...prev,
           audience: {
             ...prev.audience,
-            contacts: contacts,
+            contacts,
             headerMapping: headerMapping,
             targetCount: contacts.length
           }
@@ -258,17 +387,10 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
 
   const enhanceWithAI = (field: string) => {
     // Generate contextual AI enhancements based on campaign data
-    if (field === 'description') {
-      const productInfo = campaignData.offer?.product ? ` for ${campaignData.offer.product}` : '';
+    if (field === 'handoverGoals') {
       setCampaignData(prev => ({
         ...prev,
-        description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
-      }));
-    } else if (field === 'goal') {
-      const targetCount = campaignData.audience?.targetCount || 50;
-      setCampaignData(prev => ({
-        ...prev,
-        goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
+        handoverGoals: `Qualify the lead's budget and timeline, confirm decision-making authority, and schedule a demo or consultation call when they express strong interest or ask specific pricing questions.`
       }));
     } else if (field === 'context') {
       const campaignName = campaignData.name || 'This campaign';
@@ -294,25 +416,37 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
   };
 
   const generateEmailTemplates = async () => {
+    if (!checkAuthentication()) return;
+
+    setIsGeneratingTemplates(true);
+    clearNotifications();
+
     try {
       console.log('Generating AI email templates with data:', {
         name: campaignData.name,
         product: campaignData.offer?.product,
         keyBenefits: campaignData.offer?.keyBenefits
       });
-      
+
       // Ensure we have benefits array (using keyBenefits from the state)
-      const benefits = campaignData.offer?.keyBenefits && Array.isArray(campaignData.offer.keyBenefits) 
-        ? campaignData.offer.keyBenefits 
+      const benefits = campaignData.offer?.keyBenefits && Array.isArray(campaignData.offer.keyBenefits)
+        ? campaignData.offer.keyBenefits
         : ['Save time and money', 'Expert support', 'Flexible options'];
-      
+
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       // Generate sophisticated AI templates via backend
       const response = await fetch('/api/agents/email/generate-sequence', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           campaignName: campaignData.name || 'Outreach Campaign',
-          goal: campaignData.goal || 'Increase conversions and engage leads',
           context: campaignData.context || 'Reaching out to potential customers',
           product: campaignData.offer?.product || 'our product',
           benefits: benefits,
@@ -323,16 +457,16 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           CTAurl: campaignData.offer?.cta?.link || '#'
         })
       });
-      
+
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API response error:', response.status, errorData);
-        throw new Error(`Failed to generate templates: ${response.status}`);
+        const errorMessage = await parseApiError(response);
+        console.error('API response error:', response.status, errorMessage);
+        throw new Error(errorMessage);
       }
-      
+
       const { sequence } = await response.json();
       console.log('Received AI-generated sequence:', sequence);
-      
+
       // Map the AI-generated sequence to our template format
       const templates = sequence.map((email: {subject: string; body: string; order?: number}, index: number) => ({
         id: `template-${index + 1}`,
@@ -341,13 +475,17 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
         order: email.order || index + 1,
         daysSinceStart: index * campaignData.schedule.daysBetweenMessages + 1
       }));
-      
+
       setCampaignData(prev => ({ ...prev, templates }));
+      addNotification('success', 'Templates Generated', `Successfully generated ${templates.length} email templates using AI.`);
       console.log('Successfully set AI-generated templates');
     } catch (error) {
       console.error('Error generating AI templates, falling back to local:', error);
+      addNotification('warning', 'AI Generation Failed', 'Falling back to local template generation.');
       // Fallback to local generation if API fails
       generateLocalTemplates();
+    } finally {
+      setIsGeneratingTemplates(false);
     }
   };
 
@@ -377,10 +515,20 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
   };
 
   const saveTemplate = async (template: EmailTemplate, templateName?: string) => {
+    if (!checkAuthentication()) return;
+
     try {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/templates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           name: templateName || template.subject.substring(0, 50),
           description: `Template from campaign: ${campaignData.name}`,
@@ -394,19 +542,20 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save template');
+        const errorMessage = await parseApiError(response);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
       console.log('Template saved successfully:', result);
-      
-      // Show success message (could add a toast notification here)
-      alert('Template saved successfully!');
-      
+
+      addNotification('success', 'Template Saved', 'Email template saved successfully to your template library.');
+
       return result.template;
     } catch (error) {
       console.error('Error saving template:', error);
-      alert('Failed to save template. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      addNotification('error', 'Save Failed', `Failed to save template: ${errorMessage}`);
       throw error;
     }
   };
@@ -432,8 +581,8 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
       ? `Hi {firstName},\n\nI hope this email finds you well! I wanted to reach out regarding ${product || 'our financing options'}.`
       : `Hi {firstName},\n\nI wanted to follow up on ${product || 'the financing opportunity'} I mentioned earlier.`;
     
-    const body = emailNumber <= 3 
-      ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} that could save you money.\n\n${campaignData.goal ? `Our goal is simple: ${campaignData.goal}` : 'We\'re here to help you achieve your financial goals.'}`
+    const body = emailNumber <= 3
+      ? `${context ? 'Based on your interest, ' : ''}${product ? `Our ${product} offers` : 'We offer'} ${pricing || 'competitive rates'} that could save you money.\n\nWe're here to help you achieve your financial goals.`
       : `Time is running out! ${campaignData.offer.urgency || 'This offer won\'t last long'}, and I don\'t want you to miss this opportunity.\n\n${pricing ? `With rates starting at ${pricing}, ` : ''}${product || 'This solution'} could be exactly what you've been looking for.`;
     
     const ctaSection = cta.primary 
@@ -448,11 +597,47 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
   };
 
   const handleNext = () => {
+    // Validate current step before proceeding
+    let canProceed = true;
+
+    switch (currentStep) {
+      case 'basics':
+        if (!campaignData.name.trim()) {
+          addNotification('error', 'Validation Error', 'Campaign name is required.');
+          canProceed = false;
+        }
+        if (!campaignData.context.trim()) {
+          addNotification('error', 'Validation Error', 'Campaign context is required.');
+          canProceed = false;
+        }
+        break;
+      case 'audience':
+        if (!campaignData.audience.contacts || campaignData.audience.contacts.length === 0) {
+          addNotification('error', 'Validation Error', 'Please upload a contact list before proceeding.');
+          canProceed = false;
+        }
+        break;
+      case 'agent':
+        if (!campaignData.agentId) {
+          addNotification('error', 'Validation Error', 'Please select an AI agent.');
+          canProceed = false;
+        }
+        break;
+      case 'templates':
+        if (!campaignData.templates || campaignData.templates.length === 0) {
+          addNotification('warning', 'No Templates', 'Consider generating email templates for better campaign performance.');
+        }
+        break;
+    }
+
+    if (!canProceed) return;
+
     const stepIndex = steps.findIndex(s => s.id === currentStep);
     if (stepIndex < steps.length - 1) {
       const nextStep = steps[stepIndex + 1].id;
       console.log('Campaign Wizard: Moving from', currentStep, 'to', nextStep);
       setCurrentStep(nextStep);
+      clearNotifications(); // Clear notifications when moving to next step
     }
   };
 
@@ -463,8 +648,177 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
     }
   };
 
-  const handleComplete = () => {
-    onComplete(campaignData);
+  const handleComplete = async () => {
+    // Pre-flight checks
+    if (!checkAuthentication()) return;
+    if (!validateCampaignData()) return;
+
+    setIsSubmitting(true);
+    clearNotifications();
+
+    try {
+      const token = localStorage.getItem('token')!;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      // 1) Create campaign
+      addNotification('info', 'Creating Campaign', 'Setting up your campaign...');
+
+      const createBody = {
+        name: campaignData.name,
+        context: campaignData.context,
+        handoverGoals: campaignData.handoverGoals,
+        targetAudience: campaignData.audience,
+        schedule: campaignData.schedule,
+        settings: {
+          context: campaignData.context,
+          handoverGoals: campaignData.handoverGoals
+        }
+      };
+
+      const createRes = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(createBody)
+      });
+
+      if (!createRes.ok) {
+        const errorMessage = await parseApiError(createRes);
+        console.error('Failed to create campaign', createRes.status, errorMessage);
+        throw new Error(`Campaign creation failed: ${errorMessage}`);
+      }
+
+      const createJson = await createRes.json();
+      const campaign = createJson?.campaign;
+      const campaignId: string | undefined = campaign?.id;
+      if (!campaignId) {
+        console.error('Create campaign response missing campaign.id', createJson);
+        throw new Error('Invalid campaign creation response - missing campaign ID');
+      }
+
+      addNotification('success', 'Campaign Created', `Campaign "${campaignData.name}" created successfully.`);
+
+      // 2) Execute campaign
+      addNotification('info', 'Starting Execution', 'Launching your campaign...');
+
+      const subjectFallback =
+        campaignData.templates?.[0]?.subject || `Message from ${campaignData.name}`;
+      const bodyFallback =
+        campaignData.templates?.[0]?.body || campaignData.context;
+
+      // Align audience contacts to execution contract
+      const execAudience = {
+        contacts: (campaignData.audience?.contacts || []).map((c) => ({
+          email: c.email,
+          firstName: c.name,
+          name: c.name
+        })),
+        headerMapping: campaignData.audience?.headerMapping || {}
+      };
+
+      const executeBody = {
+        campaignId,
+        name: campaignData.name,
+        contextForCampaign: campaignData.context,
+        handoverGoals: campaignData.handoverGoals,
+        audience: execAudience,
+        schedule: campaignData.schedule,
+        email: {
+          subject: subjectFallback,
+          body: bodyFallback
+        }
+      };
+
+      const execRes = await fetch('/api/campaigns/execute', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(executeBody)
+      });
+
+      if (!execRes.ok) {
+        const errorMessage = await parseApiError(execRes);
+        console.error('Failed to start execution', execRes.status, errorMessage);
+        throw new Error(`Campaign execution failed: ${errorMessage}`);
+      }
+
+      const execJson = await execRes.json();
+      const newExecutionId: string | undefined = execJson?.executionId;
+      if (!newExecutionId) {
+        console.error('Execute response missing executionId', execJson);
+        throw new Error('Invalid execution response - missing execution ID');
+      }
+
+      setExecutionId(newExecutionId);
+      addNotification('success', 'Campaign Launched!',
+        `Campaign launched successfully with ${campaignData.audience.contacts.length} contacts. Execution ID: ${newExecutionId}`);
+
+      // Pass executionId via a side channel without violating CampaignData typing
+      (onComplete as unknown as (data: any) => void)({ ...campaignData, executionId: newExecutionId });
+
+      // Don't close immediately - let user see the success message and execution link
+      setTimeout(() => {
+        onClose();
+      }, 3000);
+
+    } catch (err) {
+      console.error('Error launching campaign from wizard:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      addNotification('error', 'Launch Failed', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Notification component
+  const NotificationList = () => {
+    if (notifications.length === 0) return null;
+
+    return (
+      <div className="space-y-2 mb-4">
+        {notifications.map((notification) => (
+          <Alert
+            key={notification.id}
+            variant={notification.type === 'error' ? 'destructive' : 'default'}
+            className={`${
+              notification.type === 'success' ? 'border-green-500 bg-green-50' :
+              notification.type === 'warning' ? 'border-yellow-500 bg-yellow-50' :
+              notification.type === 'info' ? 'border-blue-500 bg-blue-50' :
+              ''
+            }`}
+          >
+            {notification.type === 'error' && <AlertCircle className="h-4 w-4" />}
+            {notification.type === 'success' && <CheckCircle className="h-4 w-4" />}
+            {notification.type === 'warning' && <AlertCircle className="h-4 w-4" />}
+            {notification.type === 'info' && <AlertCircle className="h-4 w-4" />}
+            <AlertTitle>{notification.title}</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              <span>{notification.message}</span>
+              {executionId && notification.type === 'success' && notification.title === 'Campaign Launched!' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/campaigns/executions/${executionId}`, '_blank')}
+                  className="ml-2"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  View Status
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeNotification(notification.id)}
+                className="ml-2 h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ))}
+      </div>
+    );
   };
 
   const renderStepContent = () => {
@@ -484,50 +838,11 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 className="mt-1"
               />
             </div>
+
+
             <div>
               <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="description">Description</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => enhanceWithAI('description')}
-                  className="h-7 px-2"
-                >
-                  <Wand2 className="h-3 w-3 mr-1" />
-                  Enhance
-                </Button>
-              </div>
-              <Textarea
-                id="description"
-                value={campaignData.description}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe your campaign objectives"
-                rows={4}
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="goal">Campaign Goal</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => enhanceWithAI('goal')}
-                  className="h-7 px-2"
-                >
-                  <Wand2 className="h-3 w-3 mr-1" />
-                  AI Suggest
-                </Button>
-              </div>
-              <Input
-                id="goal"
-                value={campaignData.goal}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCampaignData((prev) => ({ ...prev, goal: e.target.value }))}
-                placeholder="e.g., Generate 50 qualified leads"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="context">Campaign Context</Label>
+                <Label htmlFor="context">Context for this Campaign</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -548,6 +863,32 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               />
               <p className="text-xs text-gray-500 mt-1">
                 This context helps the AI understand your business goals and tailor responses appropriately
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="handoverGoals">Handover Goals</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => enhanceWithAI('handoverGoals')}
+                  className="h-7 px-2"
+                >
+                  <Wand2 className="h-3 w-3 mr-1" />
+                  AI Suggest
+                </Button>
+              </div>
+              <Textarea
+                id="handoverGoals"
+                value={campaignData.handoverGoals}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCampaignData((prev) => ({ ...prev, handoverGoals: e.target.value }))}
+                placeholder="e.g., Qualify budget and timeline, confirm decision-making authority, schedule demo when ready"
+                rows={3}
+                className="text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Define when and why the AI should hand over conversations to human agents
               </p>
             </div>
           </div>
@@ -832,12 +1173,22 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <div className="text-center py-8">
                   <Mail className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 mb-4">No templates generated yet</p>
-                  <Button 
+                  <Button
                     onClick={() => generateEmailTemplates()}
+                    disabled={isGeneratingTemplates}
                     className="bg-purple-600 hover:bg-purple-700"
                   >
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Generate {campaignData.schedule.totalMessages} Email Templates
+                    {isGeneratingTemplates ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating Templates...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Generate {campaignData.schedule.totalMessages} Email Templates
+                      </>
+                    )}
                   </Button>
                 </div>
                 <div className="bg-blue-50 p-3 rounded-lg">
@@ -858,13 +1209,23 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Generated Templates ({campaignData.templates.length})</h4>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => generateEmailTemplates()}
+                    disabled={isGeneratingTemplates}
                   >
-                    <Wand2 className="h-3 w-3 mr-1" />
-                    Regenerate
+                    {isGeneratingTemplates ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-3 w-3 mr-1" />
+                        Regenerate
+                      </>
+                    )}
                   </Button>
                 </div>
                 
@@ -1012,10 +1373,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                 <p className="text-sm font-medium text-gray-600">Campaign Name</p>
                 <p className="text-sm">{campaignData.name || 'Not set'}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-600">Goal</p>
-                <p className="text-sm">{campaignData.goal || 'Not set'}</p>
-              </div>
+
               <div className="p-3 bg-gray-50 rounded">
                 <p className="text-sm font-medium text-gray-600">Campaign Context</p>
                 <p className="text-sm">{campaignData.context || 'Not set'}</p>
@@ -1092,6 +1450,11 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           </SheetDescription>
         </SheetHeader>
 
+        {/* Notifications */}
+        <div className="flex-shrink-0 mt-4">
+          <NotificationList />
+        </div>
+
         <div className="flex-1 overflow-hidden flex flex-col mt-6">
           {/* Progress Steps */}
           <div className="mb-6 flex-shrink-0">
@@ -1105,7 +1468,8 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
                         : 'bg-gray-200 text-gray-400'
                     }`}
                   >
-                    {React.cloneElement(step.icon as React.ReactElement, { className: 'h-3 w-3' })}
+                    {/* icon is already rendered with className above when building steps; just render node */}
+                    {step.icon}
                   </div>
                   <span className="text-xs mt-1 text-center max-w-[50px] leading-tight">
                     {step.label}
@@ -1139,9 +1503,22 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
               Previous
             </Button>
             {currentStep === 'review' ? (
-              <Button onClick={handleComplete} className="bg-purple-600 hover:bg-purple-700">
-                <Zap className="h-4 w-4 mr-2" />
-                Launch Campaign
+              <Button
+                onClick={handleComplete}
+                disabled={isSubmitting}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Launching Campaign...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Launch Campaign
+                  </>
+                )}
               </Button>
             ) : (
               <Button onClick={handleNext}>

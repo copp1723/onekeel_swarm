@@ -36,9 +36,8 @@ export interface EmailTemplate {
 
 export interface CampaignData {
   name: string;
-  description: string;
-  goal: string;
   context: string;
+  handoverGoals: string;
   audience: {
     filters: AudienceFilter[];
     targetCount: number;

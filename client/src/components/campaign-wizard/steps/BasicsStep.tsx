@@ -9,17 +9,10 @@ import { WizardContext } from '../types';
 export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   const enhanceWithAI = (field: string) => {
     // Generate contextual AI enhancements based on campaign data
-    if (field === 'description') {
-      const productInfo = ctx.data.offer?.product ? ` for ${ctx.data.offer.product}` : '';
+    if (field === 'handoverGoals') {
       ctx.setData((prev) => ({
         ...prev,
-        description: `${prev.description || `Strategic outreach campaign${productInfo}`}\n\nThis campaign leverages AI-powered personalization to maximize engagement and conversion rates. Our intelligent agents will adapt messaging based on recipient behavior and preferences, ensuring each interaction feels personal and timely.`
-      }));
-    } else if (field === 'goal') {
-      const targetCount = ctx.data.audience?.targetCount || 50;
-      ctx.setData((prev) => ({
-        ...prev,
-        goal: `Achieve 25% open rate, 10% click-through rate, and generate ${Math.max(50, Math.floor(targetCount * 0.05))}+ qualified leads through personalized multi-touch email sequences optimized by AI.`
+        handoverGoals: `Qualify the lead's budget and timeline, confirm decision-making authority, and schedule a demo or consultation call when they express strong interest or ask specific pricing questions.`
       }));
     } else if (field === 'context') {
       const campaignName = ctx.data.name || 'This campaign';
@@ -56,50 +49,35 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
           className="mt-1"
         />
       </div>
+
       <div>
         <div className="flex items-center justify-between mb-1">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="handoverGoals">Handover Goals</Label>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => enhanceWithAI('description')}
-            className="h-7 px-2"
-          >
-            <Wand2 className="h-3 w-3 mr-1" />
-            Enhance
-          </Button>
-        </div>
-        <Textarea
-          id="description"
-          value={ctx.data.description}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Describe your campaign objectives"
-          rows={4}
-        />
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <Label htmlFor="goal">Campaign Goal</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => enhanceWithAI('goal')}
+            onClick={() => enhanceWithAI('handoverGoals')}
             className="h-7 px-2"
           >
             <Wand2 className="h-3 w-3 mr-1" />
             AI Suggest
           </Button>
         </div>
-        <Input
-          id="goal"
-          value={ctx.data.goal}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => ctx.setData((prev) => ({ ...prev, goal: e.target.value }))}
-          placeholder="e.g., Generate 50 qualified leads"
+        <Textarea
+          id="handoverGoals"
+          value={ctx.data.handoverGoals}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.setData((prev) => ({ ...prev, handoverGoals: e.target.value }))}
+          placeholder="e.g., Qualify budget and timeline, confirm decision-making authority, schedule demo when ready"
+          rows={3}
+          className="text-sm"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Define when and why the AI should hand over conversations to human agents
+        </p>
       </div>
       <div>
         <div className="flex items-center justify-between mb-1">
-          <Label htmlFor="context">Campaign Context</Label>
+          <Label htmlFor="context">Context for this Campaign</Label>
           <Button
             variant="ghost"
             size="sm"

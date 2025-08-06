@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../db/client.js';
-import { users } from '../db/schema.js';
+import { db } from '../db/client';
+import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 export interface AuthRequest extends Request {
@@ -29,7 +29,6 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
 
     // Get user from database
-    const db = getDb();
     const [user] = await db
       .select({
         id: users.id,

@@ -20,11 +20,11 @@ export const ReviewStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ct
           <p className="text-sm">{ctx.data.name || 'Not set'}</p>
         </div>
         <div className="p-3 bg-gray-50 rounded">
-          <p className="text-sm font-medium text-gray-600">Goal</p>
-          <p className="text-sm">{ctx.data.goal || 'Not set'}</p>
+          <p className="text-sm font-medium text-gray-600">Handover Goals</p>
+          <p className="text-sm">{ctx.data.handoverGoals || 'Not set'}</p>
         </div>
         <div className="p-3 bg-gray-50 rounded">
-          <p className="text-sm font-medium text-gray-600">Campaign Context</p>
+          <p className="text-sm font-medium text-gray-600">Context for this Campaign</p>
           <p className="text-sm">{ctx.data.context || 'Not set'}</p>
         </div>
         <div className="p-3 bg-gray-50 rounded">

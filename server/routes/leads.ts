@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
-import { leads, communications, conversations, leadCampaignEnrollments, campaigns } from '../db/schema';
+import { leads, leadCampaignEnrollments, campaigns } from '../db/schema';
 import { eq, and, or, ilike, sql, desc, inArray } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import { logger } from '../utils/logger';
@@ -160,56 +160,35 @@ router.get('/:id', async (req: AuthenticatedRequest, res: TypedResponse) => {
     const { id } = req.params;
     
     // Single optimized query using Promise.all to fetch all related data in parallel
-    const [leadResult, relatedDataResults] = await Promise.all([
+    const [leadResult, enrollments] = await Promise.all([
       // Main lead query
       db
         .select()
         .from(leads)
         .where(eq(leads.id, id))
         .limit(1),
-      
-      // All related data in parallel (eliminates N+1 queries)
-      Promise.all([
-        // Communications with limit
-        db
-          .select()
-          .from(communications)
-          .where(eq(communications.leadId, id))
-          .orderBy(desc(communications.createdAt))
-          .limit(10),
-        
-        // Conversations
-        db
-          .select()
-          .from(conversations)
-          .where(eq(conversations.leadId, id))
-          .orderBy(desc(conversations.startedAt)),
-        
-        // Campaign enrollments with campaign details (JOIN to avoid N+1)
-        db
-          .select({
-            id: leadCampaignEnrollments.id,
-            leadId: leadCampaignEnrollments.leadId,
-            campaignId: leadCampaignEnrollments.campaignId,
-            currentStep: leadCampaignEnrollments.currentStep,
-            completed: leadCampaignEnrollments.completed,
-            status: leadCampaignEnrollments.status,
-            enrolledAt: leadCampaignEnrollments.enrolledAt,
-            completedAt: leadCampaignEnrollments.completedAt,
-            lastProcessedAt: leadCampaignEnrollments.lastProcessedAt,
-            // Include campaign details to avoid additional queries
-            campaignName: campaigns.name,
-            campaignType: campaigns.type,
-            campaignActive: campaigns.active
-          })
-          .from(leadCampaignEnrollments)
-          .leftJoin(campaigns, eq(leadCampaignEnrollments.campaignId, campaigns.id))
-          .where(eq(leadCampaignEnrollments.leadId, id))
-      ])
+
+      // Campaign enrollments with campaign details (JOIN to avoid N+1)
+      db
+        .select({
+          id: leadCampaignEnrollments.id,
+          leadId: leadCampaignEnrollments.leadId,
+          campaignId: leadCampaignEnrollments.campaignId,
+          status: leadCampaignEnrollments.status,
+          completed: leadCampaignEnrollments.completed,
+          enrolledAt: leadCampaignEnrollments.enrolledAt,
+          completedAt: leadCampaignEnrollments.completedAt,
+          // Include campaign details to avoid additional queries
+          campaignName: campaigns.name,
+          campaignType: campaigns.type,
+          campaignStatus: campaigns.status
+        })
+        .from(leadCampaignEnrollments)
+        .leftJoin(campaigns, eq(leadCampaignEnrollments.campaignId, campaigns.id))
+        .where(eq(leadCampaignEnrollments.leadId, id))
     ]);
-    
+
     const [lead] = leadResult;
-    const [communicationsList, conversationsList, enrollments] = relatedDataResults;
 
     if (!lead) {
       return res.status(404).json(ApiResponseBuilder.notFoundError('Lead'));
@@ -219,15 +198,11 @@ router.get('/:id', async (req: AuthenticatedRequest, res: TypedResponse) => {
     logger.debug('Lead detail query performance', {
       leadId: id,
       queryTime,
-      communications: communicationsList.length,
-      conversations: conversationsList.length,
       enrollments: enrollments.length
     });
 
     res.json(ApiResponseBuilder.success({
       ...lead,
-      communications: communicationsList,
-      conversations: conversationsList,
       campaigns: enrollments
     }, {
       queryTime
