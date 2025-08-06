@@ -51,15 +51,116 @@ const LeadsView = lazy(() => import('@/components/lead-import/index').then(mod =
 const ConversationsView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Conversations view coming soon</div> }));
 const BrandingManagementView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Branding management coming soon</div> }));
 const AgentsView = lazy(() => import('@/components/shared/AgentManagementDemo').then(mod => ({ default: mod.AgentManagementDemo })));
-const CampaignsView = lazy(() => Promise.resolve({
-  default: () => (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Campaign Management</h2>
-      <p className="text-gray-600 mb-4">Create and manage your marketing campaigns</p>
-      <div className="text-center text-gray-500">Campaign management interface will be available here</div>
-    </div>
-  )
-}));
+const CampaignsView = lazy(async () => {
+  const React = await import('react');
+  const { CampaignWizardWrapper } = await import('@/components/campaign-wizard');
+  const { Button } = await import('@/components/ui/button');
+  const { Plus, Zap, Users, Mail } = await import('lucide-react');
+  
+  const CampaignsViewComponent = () => {
+    const [showWizard, setShowWizard] = React.useState(false);
+    const [agents] = React.useState([
+      {
+        id: 'email-agent-1',
+        name: 'Email Marketing Agent',
+        role: 'Email specialist for lead nurturing and conversion',
+        type: 'email',
+        active: true
+      },
+      {
+        id: 'general-agent-1',
+        name: 'General Sales Agent',
+        role: 'Multi-channel sales and customer engagement',
+        type: 'overlord',
+        active: true
+      }
+    ]);
+
+    const handleWizardComplete = (campaignData: any) => {
+      console.log('Campaign created:', campaignData);
+      setShowWizard(false);
+      // Here you could refresh campaigns list, show success notification, etc.
+    };
+
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Campaign Management</h2>
+            <p className="text-gray-600">Create and manage your AI-powered marketing campaigns</p>
+          </div>
+          <Button
+            onClick={() => setShowWizard(true)}
+            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create Campaign</span>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Active Campaigns</h3>
+              <Zap className="h-5 w-5 text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-blue-600">0</p>
+            <p className="text-sm text-gray-500">Currently running</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Total Contacts</h3>
+              <Users className="h-5 w-5 text-green-500" />
+            </div>
+            <p className="text-2xl font-bold text-green-600">0</p>
+            <p className="text-sm text-gray-500">In all campaigns</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">Messages Sent</h3>
+              <Mail className="h-5 w-5 text-purple-500" />
+            </div>
+            <p className="text-2xl font-bold text-purple-600">0</p>
+            <p className="text-sm text-gray-500">This month</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow border">
+          <div className="p-6 border-b">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Campaigns</h3>
+          </div>
+          <div className="p-6">
+            <div className="text-center py-12">
+              <Zap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
+              <p className="text-gray-500 mb-4">Get started by creating your first AI-powered campaign</p>
+              <Button
+                onClick={() => setShowWizard(true)}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create Your First Campaign</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Campaign Wizard Modal */}
+        <CampaignWizardWrapper
+          isOpen={showWizard}
+          onClose={() => setShowWizard(false)}
+          onComplete={handleWizardComplete}
+          agents={agents}
+        />
+      </div>
+    );
+  };
+  
+  return { default: CampaignsViewComponent };
+});
 const ClientManagementView = lazy(() => import('@/components/WhiteLabelRouter').then(mod => ({ default: mod.WhiteLabelRouter })));
 const TemplateLibraryView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Template library coming soon</div> }));
 const AgentTemplatesView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Agent templates coming soon</div> }));
