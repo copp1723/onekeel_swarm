@@ -52,14 +52,13 @@ const ConversationsView = lazy(() => Promise.resolve({ default: () => <div class
 const BrandingManagementView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Branding management coming soon</div> }));
 const AgentsView = lazy(() => import('@/components/shared/AgentManagementDemo').then(mod => ({ default: mod.AgentManagementDemo })));
 const CampaignsView = lazy(async () => {
-  const React = await import('react');
   const { CampaignWizardWrapper } = await import('@/components/campaign-wizard');
   const { Button } = await import('@/components/ui/button');
   const { Plus, Zap, Users, Mail } = await import('lucide-react');
   
   const CampaignsViewComponent = () => {
-    const [showWizard, setShowWizard] = React.useState(false);
-    const [agents] = React.useState([
+    const [showWizard, setShowWizard] = useState(false);
+    const [agents] = useState([
       {
         id: 'email-agent-1',
         name: 'Email Marketing Agent',
