@@ -22,7 +22,7 @@ export class EmailService {
         body: 'Welcome to our platform!'
       },
       {
-        id: '2', 
+        id: '2',
         name: 'Follow Up',
         subject: 'Following up on our conversation',
         body: 'Hi there, just following up...'
@@ -30,3 +30,39 @@ export class EmailService {
     ];
   }
 }
+
+// Mock services for compatibility with existing routes
+export const mailgunService = EmailService;
+
+export class EmailTemplateManager {
+  static async getTemplates() {
+    return EmailService.getTemplates();
+  }
+
+  static renderTemplate(templateId: string, variables: Record<string, any>) {
+    return {
+      subject: `Template ${templateId}`,
+      body: `Rendered template with variables: ${JSON.stringify(variables)}`
+    };
+  }
+}
+
+export const emailTemplateManager = EmailTemplateManager;
+
+export class EmailScheduler {
+  static async scheduleEmail(email: any, scheduledFor: Date) {
+    console.log(`[EMAIL] Scheduling email for ${scheduledFor}`);
+    return { success: true, scheduleId: `schedule-${Date.now()}` };
+  }
+
+  static async getScheduledEmails() {
+    return [];
+  }
+
+  static async cancelScheduledEmail(scheduleId: string) {
+    console.log(`[EMAIL] Cancelling scheduled email ${scheduleId}`);
+    return { success: true };
+  }
+}
+
+export const emailScheduler = EmailScheduler;

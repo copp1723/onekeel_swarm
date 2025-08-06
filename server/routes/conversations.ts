@@ -46,8 +46,8 @@ router.get('/', async (req, res) => {
         conversation: conversations,
         lead: {
           id: leads.id,
-          firstName: leads.firstName,
-          lastName: leads.lastName,
+          firstName: leads.first_name,
+          lastName: leads.last_name,
           email: leads.email,
           phone: leads.phone
         }
@@ -117,8 +117,8 @@ router.get('/:id', async (req, res) => {
         conversation: conversations,
         lead: {
           id: leads.id,
-          firstName: leads.firstName,
-          lastName: leads.lastName,
+          firstName: leads.first_name,
+          lastName: leads.last_name,
           email: leads.email,
           phone: leads.phone
         }

@@ -55,8 +55,8 @@ router.get('/', async (req: AuthenticatedRequest, res: TypedResponse) => {
       const searchPattern = `%${search}%`;
       conditions.push(
         or(
-          ilike(leads.firstName, searchPattern),
-          ilike(leads.lastName, searchPattern),
+          ilike(leads.first_name, searchPattern),
+          ilike(leads.last_name, searchPattern),
           ilike(leads.email, searchPattern),
           ilike(leads.phone, searchPattern)
         )
