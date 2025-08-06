@@ -46,18 +46,26 @@ const EnhancedDashboardView = lazy(async () => {
   return { default: DashboardWrapper };
 });
 
-// These app-level views are not present in this trimmed repo. Provide safe fallbacks.
-const LeadsView = lazy(() => Promise.resolve({ default: () => null }));
-const ConversationsView = lazy(() => Promise.resolve({ default: () => null }));
-const BrandingManagementView = lazy(() => Promise.resolve({ default: () => null }));
-const AgentsView = lazy(() => Promise.resolve({ default: () => null }));
-const CampaignsView = lazy(() => Promise.resolve({ default: () => null }));
-const ClientManagementView = lazy(() => Promise.resolve({ default: () => null }));
-const TemplateLibraryView = lazy(() => Promise.resolve({ default: () => null }));
-const AgentTemplatesView = lazy(() => Promise.resolve({ default: () => null }));
-const UsersView = lazy(() => Promise.resolve({ default: () => null }));
-const EmailSettingsView = lazy(() => Promise.resolve({ default: () => null }));
-const CampaignIntelligenceView = lazy(() => Promise.resolve({ default: () => null }));
+// Wire up real components from the existing codebase
+const LeadsView = lazy(() => import('@/components/lead-import/index').then(mod => ({ default: mod.LeadImport })));
+const ConversationsView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Conversations view coming soon</div> }));
+const BrandingManagementView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Branding management coming soon</div> }));
+const AgentsView = lazy(() => import('@/components/shared/AgentManagementDemo').then(mod => ({ default: mod.AgentManagementDemo })));
+const CampaignsView = lazy(() => Promise.resolve({
+  default: () => (
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Campaign Management</h2>
+      <p className="text-gray-600 mb-4">Create and manage your marketing campaigns</p>
+      <div className="text-center text-gray-500">Campaign management interface will be available here</div>
+    </div>
+  )
+}));
+const ClientManagementView = lazy(() => import('@/components/WhiteLabelRouter').then(mod => ({ default: mod.WhiteLabelRouter })));
+const TemplateLibraryView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Template library coming soon</div> }));
+const AgentTemplatesView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Agent templates coming soon</div> }));
+const UsersView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">User management coming soon</div> }));
+const EmailSettingsView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Email settings coming soon</div> }));
+const CampaignIntelligenceView = lazy(() => Promise.resolve({ default: () => <div className="p-6 text-center text-gray-500">Campaign intelligence coming soon</div> }));
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/ui/LoginForm';
