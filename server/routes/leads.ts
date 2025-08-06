@@ -455,7 +455,7 @@ router.post('/import', async (req: AuthenticatedRequest, res: TypedResponse) => 
         error: {
           code: 'ALL_LEADS_INVALID',
           message: 'All leads failed validation',
-          errors
+          details: { errors }
         }
       });
     }

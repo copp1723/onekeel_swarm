@@ -230,9 +230,9 @@ export class HandoverService {
         .update(leads)
         .set({
           status: 'handover',
-          qualificationScore: evaluation.score,
           metadata: {
-            ...lead.metadata,
+            ...(lead.metadata as Record<string, any> || {}),
+            qualificationScore: evaluation.score,
             handoverTime: new Date().toISOString(),
             handoverReason: evaluation.reason,
             handoverRecipients: recipients.map(r => r.email)
@@ -292,7 +292,9 @@ export class HandoverService {
    */
   private generateConversationSummary(conversation: ConversationContext): string {
     const messageCount = conversation.messages.length;
-    const duration = Math.round((Date.now() - conversation.startedAt.getTime()) / 1000 / 60);
+    const duration = conversation.startedAt 
+      ? Math.round((Date.now() - conversation.startedAt.getTime()) / 1000 / 60)
+      : 0;
     
     const lastFewMessages = conversation.messages
       .slice(-3)

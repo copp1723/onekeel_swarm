@@ -45,7 +45,7 @@ class HandoverService {
     return {};
   }
   
-  static async analyzeConversation(conversation: any): Promise<ConversationAnalysis> {
+  static async analyzeConversation(_conversation: any): Promise<ConversationAnalysis> {
     // Mock analysis - in real implementation this would use AI/ML
     return {
       sentimentScore: Math.random() * 2 - 1, // -1 to 1
