@@ -1,9 +1,9 @@
 import type { AgentType, UnifiedAgentConfig } from '@/types';
 
-export const AGENT_TYPES: { 
-  value: AgentType; 
-  label: string; 
-  icon: string; 
+export const AGENT_TYPES: {
+  value: AgentType;
+  label: string;
+  icon: string;
   description: string;
   capabilities: {
     email: boolean;
@@ -11,31 +11,31 @@ export const AGENT_TYPES: {
     chat: boolean;
   }
 }[] = [
-  { 
-    value: 'email', 
-    label: 'Email', 
-    icon: '✉️', 
+  {
+    value: 'email',
+    label: 'Email',
+    icon: 'Mail',
     description: 'Specialized in email communication and marketing',
     capabilities: { email: true, sms: false, chat: false }
   },
-  { 
-    value: 'sms', 
-    label: 'SMS', 
-    icon: '💬', 
+  {
+    value: 'sms',
+    label: 'SMS',
+    icon: 'MessageSquare',
     description: 'Handles SMS messaging and text campaigns',
     capabilities: { email: false, sms: true, chat: false }
   },
-  { 
-    value: 'chat', 
-    label: 'Chat', 
-    icon: '🗨️', 
+  {
+    value: 'chat',
+    label: 'Chat',
+    icon: 'MessageCircle',
     description: 'Manages live chat interactions',
     capabilities: { email: false, sms: false, chat: true }
   },
-  { 
-    value: 'overlord', 
-    label: 'Overlord', 
-    icon: '👑', 
+  {
+    value: 'overlord',
+    label: 'Overlord',
+    icon: 'Crown',
     description: 'Master agent that coordinates other agents',
     capabilities: { email: true, sms: true, chat: true }
   }
@@ -75,12 +75,12 @@ export const getAgentTypeColor = (type: AgentType): string => {
 
 export const getAgentTypeIcon = (type: AgentType): string => {
   const icons = {
-    email: '✉️',
-    sms: '💬',
-    chat: '🗨️',
-    overlord: '👑'
+    email: 'Mail',
+    sms: 'MessageSquare',
+    chat: 'MessageCircle',
+    overlord: 'Crown'
   };
-  return icons[type] || '🤖';
+  return icons[type] || 'Bot';
 };
 
 export const formatAgentType = (type: AgentType): string => {

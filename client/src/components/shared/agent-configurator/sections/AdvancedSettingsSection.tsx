@@ -160,7 +160,7 @@ export function AdvancedSettingsSection({ formData, setFormData, errors }: Secti
         {/* Performance Tips */}
         <div className="bg-blue-50 p-3 rounded-lg">
           <p className="text-sm text-blue-700">
-            <strong>💡 Tips:</strong>
+            <strong>Tips:</strong>
           </p>
           <ul className="text-xs text-blue-600 mt-1 space-y-1">
             <li>• Lower temperature (30-50%) for consistent, factual responses</li>

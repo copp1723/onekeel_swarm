@@ -73,7 +73,6 @@ export function EmailAgentModule({ agent, onUpdate }: EmailAgentModuleProps) {
           <p className="text-gray-600">Manage email campaigns, templates, and performance</p>
         </div>
         <Badge variant="outline" className="flex items-center space-x-1">
-          <span>📧</span>
           <span>Email Specialist</span>
         </Badge>
       </div>

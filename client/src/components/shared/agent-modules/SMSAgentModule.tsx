@@ -81,7 +81,6 @@ export function SMSAgentModule({ agent, onUpdate }: SMSAgentModuleProps) {
           <p className="text-gray-600">Manage SMS campaigns and messaging settings</p>
         </div>
         <Badge variant="outline" className="flex items-center space-x-1">
-          <span>📱</span>
           <span>SMS Specialist</span>
         </Badge>
       </div>

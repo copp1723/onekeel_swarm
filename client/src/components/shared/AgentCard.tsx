@@ -66,7 +66,7 @@ export function AgentCard({
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600">
                 <AvatarFallback className="bg-transparent text-white text-xs">
-                  {typeInfo?.icon || '🤖'}
+                  {agent.name?.[0]?.toUpperCase() || 'A'}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -95,7 +95,7 @@ export function AgentCard({
           <div className="flex items-center space-x-4">
             <Avatar className="h-12 w-12 bg-gradient-to-r from-blue-600 to-purple-600 shadow-md">
               <AvatarFallback className="bg-transparent text-white">
-                {typeInfo?.icon || '🤖'}
+                {agent.name?.[0]?.toUpperCase() || 'A'}
               </AvatarFallback>
             </Avatar>
             <div>

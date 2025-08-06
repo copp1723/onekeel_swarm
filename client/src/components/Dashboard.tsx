@@ -108,13 +108,13 @@ export const Dashboard: React.FC = () => {
             <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                🎉 OneKeel Swarm Recovery Complete!
+                OneKeel Swarm Recovery Complete!
               </h2>
               <p className="text-gray-600 mb-4">
                 Database migration successful, API routes restored, campaign wizard integrated.
               </p>
               <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-                <p className="font-bold">✅ Recovery Status:</p>
+                <p className="font-bold">Recovery Status:</p>
                 <ul className="text-left mt-2 space-y-1">
                   <li>• Database schema migrated safely</li>
                   <li>• API routes (campaigns, agents, leads) working</li>
@@ -129,13 +129,13 @@ export const Dashboard: React.FC = () => {
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
                   disabled={isCreatingCampaign}
                 >
-                  {isCreatingCampaign ? '⏳ Creating...' : '🚀 Create Campaign'}
+                  {isCreatingCampaign ? 'Creating...' : 'Create Campaign'}
                 </button>
                 <button
                   onClick={() => setCurrentView('agents')}
                   className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium"
                 >
-                  🤖 Manage Agents
+                  Manage Agents
                 </button>
               </div>
               <div className="mt-6 text-sm text-gray-500">

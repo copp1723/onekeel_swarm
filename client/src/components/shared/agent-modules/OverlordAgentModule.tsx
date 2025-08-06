@@ -43,10 +43,10 @@ export function OverlordAgentModule({ agent }: OverlordAgentModuleProps) {
 
   const getAgentTypeIcon = (type: string) => {
     switch (type) {
-      case 'email': return '📧';
-      case 'sms': return '📱';
-      case 'chat': return '💬';
-      default: return '🤖';
+      case 'email': return 'Mail';
+      case 'sms': return 'MessageSquare';
+      case 'chat': return 'MessageCircle';
+      default: return 'Bot';
     }
   };
 
@@ -67,7 +67,6 @@ export function OverlordAgentModule({ agent }: OverlordAgentModuleProps) {
           <p className="text-gray-600">Master coordinator managing all AI agents and campaigns</p>
         </div>
         <Badge variant="outline" className="flex items-center space-x-1">
-          <span>🧠</span>
           <span>Master Coordinator</span>
         </Badge>
       </div>

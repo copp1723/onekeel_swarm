@@ -93,7 +93,6 @@ export function ChatAgentModule({ agent, onUpdate }: ChatAgentModuleProps) {
           <p className="text-gray-600">Manage live chat settings and performance</p>
         </div>
         <Badge variant="outline" className="flex items-center space-x-1">
-          <span>💬</span>
           <span>Chat Specialist</span>
         </Badge>
       </div>

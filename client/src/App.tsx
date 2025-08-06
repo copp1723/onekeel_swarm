@@ -302,7 +302,9 @@ const AppContent = memo(function AppContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <BrandingLogo branding={branding} />
-              <Badge className="ml-4">{wsConnected ? '🟢 Connected' : '🔴 Disconnected'}</Badge>
+              <Badge className={`ml-4 ${wsConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                {wsConnected ? 'Connected' : 'Disconnected'}
+              </Badge>
               {/* Optional: import toggle for CSV */}
               <Button variant="outline" onClick={handleShowImportToggle}>Import Leads</Button>
             </div>
