@@ -28,8 +28,8 @@ export interface HandoffEmailData {
 
 export class MailgunEnhancedService {
   private mailgun: any;
-  private domain: string;
-  private fromEmail: string;
+  private domain: string = '';
+  private fromEmail: string = '';
   private isConfigured: boolean = false;
 
   constructor() {
@@ -39,6 +39,8 @@ export class MailgunEnhancedService {
 
     if (!apiKey || !domain) {
       logger.warn('Mailgun service not configured - missing API key or domain');
+      this.domain = domain || '';
+      this.fromEmail = fromEmail;
       this.isConfigured = false;
       return;
     }
@@ -272,7 +274,7 @@ This lead requires immediate human attention.
   /**
    * Process a template with variables
    */
-  private async processTemplate(templateId: string, variables: Record<string, any>): Promise<{
+  private async processTemplate(_templateId: string, variables: Record<string, any>): Promise<{
     subject: string;
     html: string;
     text: string;

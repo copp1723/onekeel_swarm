@@ -1,19 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/client';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { AuthenticatedRequest } from '../../shared/types/middleware';
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-  };
-}
-
-export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
@@ -44,8 +36,13 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = user;
-    next();
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role as 'admin' | 'manager' | 'agent' | 'viewer',
+      username: user.username || undefined
+    };
+    return next();
   } catch (error) {
     console.error('Auth error:', error);
     return res.status(401).json({ error: 'Invalid token' });

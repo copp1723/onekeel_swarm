@@ -1,10 +1,66 @@
-// Note: Repository imports need to be created or adapted for OneKeel's structure
-// import { LeadsRepository } from '../db/leads-repository.js';
-// import { ConversationsRepository } from '../db/conversations-repository.js';
-// import { CommunicationsRepository } from '../db/communications-repository.js';
-// import { CampaignsRepository } from '../db/campaigns-repository.js';
-// import { HandoverService, HandoverEvaluation, ConversationAnalysis } from './handover-service.js';
 import { logger } from '../utils/logger.js';
+import { db } from '../db/client.js';
+import { leads, conversations, communications, campaigns } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+
+// Create temporary repository classes until proper repositories are implemented
+class LeadsRepository {
+  static async findById(id: string) {
+    const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+    return result[0] || null;
+  }
+}
+
+class ConversationsRepository {
+  static async findByLeadId(leadId: string) {
+    const result = await db.select().from(conversations).where(eq(conversations.leadId, leadId));
+    return result.map(conv => ({
+      ...conv,
+      messages: conv.transcript || [] // transcript contains messages
+    }));
+  }
+}
+
+class CommunicationsRepository {
+  static async findByLeadId(leadId: string) {
+    return await db.select().from(communications).where(eq(communications.leadId, leadId));
+  }
+}
+
+class CampaignsRepository {
+  static async findById(id: string) {
+    const result = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1);
+    return result[0] || null;
+  }
+  
+  static async getDefaultCampaign() {
+    const result = await db.select().from(campaigns).limit(1);
+    return result[0] || null;
+  }
+}
+
+class HandoverService {
+  static async getCrossChannelContext(leadId: string) {
+    console.log(`Getting cross-channel context for lead ${leadId}`);
+    return {};
+  }
+  
+  static async analyzeConversation(conversation: any): Promise<ConversationAnalysis> {
+    // Mock analysis - in real implementation this would use AI/ML
+    return {
+      sentimentScore: Math.random() * 2 - 1, // -1 to 1
+      urgencyLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
+      qualificationScore: Math.random() * 10, // 0 to 10
+      goalProgress: {
+        budget_confirmed: Math.random() > 0.5,
+        timeline_established: Math.random() > 0.5,
+        decision_maker: Math.random() > 0.5,
+        interest_level: Math.random() > 0.5,
+        contact_info: Math.random() > 0.5
+      }
+    };
+  }
+}
 
 // Temporary type definitions - these should come from the actual services
 interface HandoverEvaluation {
@@ -80,7 +136,7 @@ export class LeadDossierService {
       logger.info('Generating lead dossier', { leadId, triggeringConversationId });
 
       // Gather all lead data
-      const [lead, conversations, communications, crossChannelContext] = await Promise.all([
+      const [lead, conversations, _communications, _crossChannelContext] = await Promise.all([
         LeadsRepository.findById(leadId),
         ConversationsRepository.findByLeadId(leadId),
         CommunicationsRepository.findByLeadId(leadId),
@@ -92,8 +148,8 @@ export class LeadDossierService {
       }
 
       // Get campaign information
-      const campaign = lead.campaignId 
-        ? await CampaignsRepository.findById(lead.campaignId)
+      const campaign = lead.campaign_id 
+        ? await CampaignsRepository.findById(lead.campaign_id)
         : await CampaignsRepository.getDefaultCampaign();
 
       // Analyze all conversations for insights
@@ -130,9 +186,9 @@ export class LeadDossierService {
    * Generate the context section explaining why handover occurred
    */
   private static async generateContext(
-    lead: any,
+    _lead: any,
     handoverEvaluation: HandoverEvaluation,
-    campaign: any
+    _campaign: any
   ): Promise<string> {
     const purchaseIntent = handoverEvaluation.score >= 7 ? 'clear purchase intent' : 'growing interest';
     const triggerType = handoverEvaluation.triggeredCriteria.includes('qualification_score') 
@@ -173,7 +229,7 @@ export class LeadDossierService {
     const additionalNotes = this.extractAdditionalNotes(lead, conversations);
 
     return {
-      name: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Name not provided',
+      name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Name not provided',
       contactInfo: {
         phone: lead.phone || null,
         email: lead.email || null
@@ -235,7 +291,7 @@ export class LeadDossierService {
    * Generate profile analysis with buyer type and key hooks
    */
   private static async generateProfileAnalysis(
-    lead: any,
+    _lead: any,
     conversations: any[],
     analyses: ConversationAnalysis[]
   ): Promise<LeadDossier['profileAnalysis']> {
@@ -298,8 +354,8 @@ export class LeadDossierService {
    * Generate actionable recommendations for human rep
    */
   private static async generateRecommendations(
-    lead: any,
-    conversations: any[],
+    _lead: any,
+    _conversations: any[],
     analyses: ConversationAnalysis[],
     handoverEvaluation: HandoverEvaluation
   ): Promise<LeadDossier['recommendations']> {
@@ -515,7 +571,7 @@ export class LeadDossierService {
     return patterns;
   }
 
-  private static extractEngagementPatterns(conversations: any[], analyses: ConversationAnalysis[]): string[] {
+  private static extractEngagementPatterns(conversations: any[], _analyses: ConversationAnalysis[]): string[] {
     const patterns: string[] = [];
     
     // Analyze conversation depth

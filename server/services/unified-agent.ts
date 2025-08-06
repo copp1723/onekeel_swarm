@@ -39,6 +39,7 @@ export interface ConversationContext {
   metadata?: Record<string, any>;
   qualificationScore?: number;
   campaignId?: string;
+  startedAt?: Date;
 }
 
 export class UnifiedAgent {

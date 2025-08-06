@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db/client';
 import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { AuthenticatedRequest } from '../../shared/types/middleware';
 
 const router = Router();
 
@@ -45,7 +46,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user.id,
@@ -56,18 +57,18 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get current user
-router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
-  res.json({ user: req.user });
+router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  return res.json({ user: req.user });
 });
 
 // Logout (client-side token removal)
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logged out successfully' });
+router.post('/logout', (_req, res) => {
+  return res.json({ message: 'Logged out successfully' });
 });
 
 export default router;

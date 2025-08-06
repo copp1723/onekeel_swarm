@@ -35,8 +35,8 @@ export interface ConversationContext {
     timestamp: string;
   }>;
   channel: 'email' | 'sms' | 'chat';
-  startedAt: Date;
-  qualificationScore: number;
+  startedAt?: Date;
+  qualificationScore?: number;
   metadata?: Record<string, any>;
 }
 
@@ -59,8 +59,9 @@ export class HandoverService {
           .where(eq(campaigns.id, campaignId))
           .limit(1);
           
-        if (campaign?.settings?.handoverCriteria) {
-          handoverCriteria = campaign.settings.handoverCriteria as HandoverCriteria;
+        const campaignSettings = campaign?.settings as any;
+        if (campaignSettings?.handoverCriteria) {
+          handoverCriteria = campaignSettings.handoverCriteria as HandoverCriteria;
         }
       }
       
@@ -79,10 +80,10 @@ export class HandoverService {
       };
       
       // Check qualification score
-      if (conversation.qualificationScore >= handoverCriteria.qualificationScore) {
+      if ((conversation.qualificationScore || 0) >= handoverCriteria.qualificationScore) {
         evaluation.shouldHandover = true;
         evaluation.triggeredCriteria.push('qualification_score');
-        evaluation.reason = `Qualification score (${conversation.qualificationScore}) meets threshold`;
+        evaluation.reason = `Qualification score (${conversation.qualificationScore || 0}) meets threshold`;
       }
       
       // Check conversation length
@@ -110,18 +111,20 @@ export class HandoverService {
       }
       
       // Check conversation duration
-      const conversationDuration = Date.now() - conversation.startedAt.getTime();
-      if (conversationDuration >= handoverCriteria.timeThreshold * 1000) {
-        evaluation.shouldHandover = true;
-        evaluation.triggeredCriteria.push('time_threshold');
-        evaluation.reason += evaluation.reason ? ' and ' : '';
-        evaluation.reason += 'Conversation duration exceeds threshold';
+      if (conversation.startedAt) {
+        const conversationDuration = Date.now() - conversation.startedAt.getTime();
+        if (conversationDuration >= handoverCriteria.timeThreshold * 1000) {
+          evaluation.shouldHandover = true;
+          evaluation.triggeredCriteria.push('time_threshold');
+          evaluation.reason += evaluation.reason ? ' and ' : '';
+          evaluation.reason += 'Conversation duration exceeds threshold';
+        }
       }
       
       // Determine urgency level
-      if (evaluation.triggeredCriteria.length >= 3 || conversation.qualificationScore >= 8) {
+      if (evaluation.triggeredCriteria.length >= 3 || (conversation.qualificationScore || 0) >= 8) {
         evaluation.urgencyLevel = 'high';
-      } else if (evaluation.triggeredCriteria.length >= 2 || conversation.qualificationScore >= 6) {
+      } else if (evaluation.triggeredCriteria.length >= 2 || (conversation.qualificationScore || 0) >= 6) {
         evaluation.urgencyLevel = 'medium';
       }
       
@@ -179,8 +182,9 @@ export class HandoverService {
           .where(eq(campaigns.id, campaignId))
           .limit(1);
           
-        if (campaign?.settings?.handoverCriteria?.handoverRecipients) {
-          recipients = campaign.settings.handoverCriteria.handoverRecipients;
+        const campaignSettings = campaign?.settings as any;
+        if (campaignSettings?.handoverCriteria?.handoverRecipients) {
+          recipients = campaignSettings.handoverCriteria.handoverRecipients;
         }
       }
       
@@ -198,9 +202,9 @@ export class HandoverService {
       
       // Prepare handoff data
       const handoffData: HandoffEmailData = {
-        leadName: lead.name || 'Unknown Lead',
+        leadName: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown Lead',
         leadEmail: lead.email,
-        leadPhone: lead.phone,
+        leadPhone: lead.phone || undefined,
         conversationSummary: summary,
         qualificationScore: evaluation.score,
         keyPoints: this.extractKeyPoints(conversation),
@@ -394,11 +398,11 @@ export class HandoverService {
       }
       
       const handoffData: HandoffEmailData = {
-        leadName: lead.name || 'Unknown Lead',
+        leadName: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown Lead',
         leadEmail: lead.email,
-        leadPhone: lead.phone,
+        leadPhone: lead.phone || undefined,
         conversationSummary: reason,
-        qualificationScore: lead.qualificationScore || 5,
+        qualificationScore: (lead.metadata as any)?.qualificationScore || 5,
         keyPoints: [reason],
         recommendations: ['Immediate attention required', 'Contact lead as soon as possible'],
         urgencyLevel: 'high'
@@ -413,7 +417,7 @@ export class HandoverService {
           .set({
             status: 'handover',
             metadata: {
-              ...lead.metadata,
+              ...(lead.metadata as Record<string, any> || {}),
               handoverTime: new Date().toISOString(),
               handoverReason: reason
             }

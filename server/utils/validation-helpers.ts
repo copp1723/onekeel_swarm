@@ -10,7 +10,7 @@ export function validateRequest(schema: z.ZodSchema) {
     try {
       const parsed = await schema.parseAsync(req.body);
       req.body = parsed;
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         logger.warn('Validation error', { 
@@ -28,7 +28,7 @@ export function validateRequest(schema: z.ZodSchema) {
           }
         });
       }
-      next(error);
+      return next(error);
     }
   };
 }

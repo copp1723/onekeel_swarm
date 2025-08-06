@@ -18,7 +18,7 @@ export interface SMSTemplate {
 
 export class SMSService {
   private twilioClient: any;
-  private fromNumber: string;
+  private fromNumber: string = '';
   private isConfigured: boolean = false;
 
   constructor() {
@@ -28,6 +28,7 @@ export class SMSService {
 
     if (!accountSid || !authToken || !phoneNumber) {
       logger.warn('Twilio service not configured - missing credentials');
+      this.fromNumber = phoneNumber || '';
       this.isConfigured = false;
       return;
     }
@@ -265,6 +266,63 @@ export class SMSService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Send bulk SMS messages
+   */
+  async sendBulkSMS(messages: Array<{ to: string; body: string; [key: string]: any }>): Promise<Array<{ success: boolean; sid?: string; error?: string }>> {
+    const results = [];
+    
+    for (const message of messages) {
+      try {
+        const result = await this.sendSMS({
+          to: message.to,
+          body: message.body,
+          metadata: message.metadata
+        });
+        results.push({ success: true, sid: result.sid });
+      } catch (error) {
+        results.push({ success: false, error: (error as Error).message });
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Get available SMS templates
+   */
+  async getTemplates(): Promise<SMSTemplate[]> {
+    return [
+      {
+        id: 'welcome',
+        name: 'Welcome Message',
+        template: 'Hi {{firstName}}! Welcome to {{companyName}}. We\'re excited to help you. Reply YES to get started!',
+        variables: ['firstName', 'companyName']
+      },
+      {
+        id: 'follow-up',
+        name: 'Follow Up',
+        template: 'Hi {{firstName}}, following up on your {{interest}}. Still interested? Reply YES or call {{phone}}.',
+        variables: ['firstName', 'interest', 'phone']
+      },
+      {
+        id: 'appointment',
+        name: 'Appointment Reminder',
+        template: 'Reminder: Your appointment is {{date}} at {{time}}. Reply C to confirm or R to reschedule.',
+        variables: ['date', 'time']
+      }
+    ];
+  }
+
+  /**
+   * Render template with variables
+   */
+  async renderTemplate(templateId: string, variables: Record<string, any>): Promise<{ template: SMSTemplate; renderedBody: string }> {
+    const template = await this.getTemplate(templateId);
+    const renderedBody = this.processTemplate(template.template, variables);
+    return { template, renderedBody };
   }
 
   /**

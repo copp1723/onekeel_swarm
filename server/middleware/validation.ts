@@ -19,7 +19,7 @@ export const validateRequest = (options: { body?: z.ZodSchema, query?: z.ZodSche
         options.params.parse(req.params);
       }
 
-      next();
+      return next();
     } catch (error) {
       console.error('Validation error:', error);
       if (error instanceof z.ZodError) {

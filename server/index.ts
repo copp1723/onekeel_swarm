@@ -24,8 +24,8 @@ import {
   createErrorFromUnknown,
   ConfigurationError
 } from './utils/errors.js';
-// Temporarily disable email routes due to missing services
-// import emailRoutes from './routes/email.js';
+import emailRoutes from './routes/email.js';
+import { seedDemoData } from './services/database-seed.js';
 
 // Load environment variables
 config();
@@ -89,7 +89,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -106,8 +106,7 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/conversations', conversationsRoutes);
 app.use(brandingRoutes);
-// Temporarily disable email routes due to missing services
-// app.use('/api/email', emailRoutes);
+app.use('/api/email', emailRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -115,13 +114,13 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(clientDistPath));
 
   // Catch all handler for SPA
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const appError = isAppError(err) ? err : createErrorFromUnknown(err);
   const requestId = (req as any).id || 'unknown';
   
@@ -169,7 +168,7 @@ function validateConfiguration() {
 try {
   validateConfiguration();
   
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     logger.info('Server started successfully', {
       port: PORT,
       environment: process.env.NODE_ENV || 'development',
@@ -177,6 +176,9 @@ try {
       database: process.env.DATABASE_URL ? 'Connected' : 'Not configured',
       jwtSecret: process.env.JWT_SECRET ? 'Configured' : 'Missing'
     });
+
+    // Seed demo data after server starts
+    await seedDemoData();
   });
 } catch (error) {
   logger.error('Failed to start server', { error: error as Error });

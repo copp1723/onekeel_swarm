@@ -119,7 +119,7 @@ router.get('/', requireTenantMiddleware, async (req: TenantRequest, res) => {
       totalCount = totalResult[0].count;
     }
 
-    res.json({
+    return res.json({
       clients: clientList,
       pagination: {
         total: totalCount,
@@ -184,7 +184,7 @@ router.post('/', requireTenantMiddleware, async (req: TenantRequest, res) => {
       plan: clientData.plan
     }).returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       client: newClient,
       message: 'Client created successfully'
     });
@@ -240,7 +240,7 @@ router.get('/:id', requireTenantMiddleware, async (req: TenantRequest, res) => {
     // Get custom domains for this client
     const domains = await db.select().from(clientDomains).where(eq(clientDomains.clientId, clientId));
 
-    res.json({
+    return res.json({
       client,
       apiKeys,
       domains
@@ -316,7 +316,7 @@ router.put('/:id', requireTenantMiddleware, async (req: TenantRequest, res) => {
       );
     }
 
-    res.json({
+    return res.json({
       client: updatedClient,
       message: 'Client updated successfully'
     });
@@ -376,7 +376,7 @@ router.post('/:id/api-keys', requireTenantMiddleware, async (req: TenantRequest,
       createdAt: clientApiKeys.createdAt
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       apiKey: newApiKey,
       message: 'API key created successfully',
       warning: 'Save this API key securely - it will not be shown again'

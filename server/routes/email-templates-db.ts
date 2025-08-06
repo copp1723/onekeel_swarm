@@ -60,9 +60,25 @@ router.get('/', async (req, res) => {
 
     // Add sorting
     if (order === 'desc') {
-      query.orderBy(desc(templates[sort as keyof typeof templates]));
+      if (sort === 'createdAt') {
+        query.orderBy(desc(templates.createdAt));
+      } else if (sort === 'updatedAt') {
+        query.orderBy(desc(templates.updatedAt));
+      } else if (sort === 'name') {
+        query.orderBy(desc(templates.name));
+      } else {
+        query.orderBy(desc(templates.createdAt)); // default
+      }
     } else {
-      query.orderBy(templates[sort as keyof typeof templates]);
+      if (sort === 'createdAt') {
+        query.orderBy(templates.createdAt);
+      } else if (sort === 'updatedAt') {
+        query.orderBy(templates.updatedAt);
+      } else if (sort === 'name') {
+        query.orderBy(templates.name);
+      } else {
+        query.orderBy(templates.createdAt); // default
+      }
     }
 
     const templateList = await query;
@@ -78,7 +94,7 @@ router.get('/', async (req, res) => {
 
     const [{ count }] = await countQuery;
 
-    res.json({
+    return res.json({
       success: true,
       data: templateList,
       total: count,
@@ -88,7 +104,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching templates:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_FETCH_ERROR',
@@ -120,14 +136,14 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: template,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_FETCH_ERROR',
@@ -155,7 +171,7 @@ router.post('/', validateRequest({ body: createTemplateSchema }), async (req, re
     
     // Extract variables from content
     const variableMatches = templateData.content.match(/\{\{([^}]+)\}\}/g) || [];
-    const extractedVariables = variableMatches.map(v => v.replace(/[{}]/g, ''));
+    const extractedVariables = variableMatches.map((v: string) => v.replace(/[{}]/g, ''));
     
     const [newTemplate] = await db
       .insert(templates)
@@ -168,14 +184,14 @@ router.post('/', validateRequest({ body: createTemplateSchema }), async (req, re
       })
       .returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: newTemplate,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error creating template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_CREATE_ERROR',
@@ -197,7 +213,7 @@ router.put('/:id', validateRequest({ body: updateTemplateSchema }), async (req, 
     // If content is being updated, extract variables
     if (updates.content) {
       const variableMatches = updates.content.match(/\{\{([^}]+)\}\}/g) || [];
-      const extractedVariables = variableMatches.map(v => v.replace(/[{}]/g, ''));
+      const extractedVariables = variableMatches.map((v: string) => v.replace(/[{}]/g, ''));
       updates.variables = [...new Set([...(updates.variables || []), ...extractedVariables])];
     }
     
@@ -220,14 +236,14 @@ router.put('/:id', validateRequest({ body: updateTemplateSchema }), async (req, 
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedTemplate,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error updating template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_UPDATE_ERROR',
@@ -258,14 +274,14 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Template deleted successfully',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error deleting template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_DELETE_ERROR',
@@ -308,14 +324,14 @@ router.patch('/:id/toggle', async (req, res) => {
       .where(eq(templates.id, id))
       .returning();
 
-    res.json({
+    return res.json({
       success: true,
       data: updatedTemplate,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error toggling template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_TOGGLE_ERROR',
@@ -358,7 +374,7 @@ router.post('/:id/preview', async (req, res) => {
       renderedSubject = renderedSubject.replace(regex, String(value));
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         ...template,
@@ -370,7 +386,7 @@ router.post('/:id/preview', async (req, res) => {
     });
   } catch (error) {
     console.error('Error previewing template:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEMPLATE_PREVIEW_ERROR',
@@ -382,7 +398,7 @@ router.post('/:id/preview', async (req, res) => {
 });
 
 // Get template categories
-router.get('/meta/categories', async (req, res) => {
+router.get('/meta/categories', async (_req, res) => {
   try {
     const categories = await db
       .select({
@@ -393,14 +409,14 @@ router.get('/meta/categories', async (req, res) => {
       .where(sql`category is not null`)
       .groupBy(templates.category);
 
-    res.json({
+    return res.json({
       success: true,
       data: categories,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching categories:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CATEGORY_FETCH_ERROR',

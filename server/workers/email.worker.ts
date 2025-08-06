@@ -8,8 +8,20 @@ import { createLogger } from '../utils/enhanced-logger.js';
 import { ExternalServiceError } from '../utils/errors.js';
 
 const logger = createLogger('email-processor');
-// Email service import needs to be updated based on OneKeel's email service structure
-// import { emailService } from '../services/email.js';
+// Import the email service
+import { EmailService } from '../services/email.js';
+
+// Create email service instance for compatibility
+const emailService = {
+  async sendHandoffEmail(email: string, name: string, dossier: any) {
+    const result = await EmailService.sendEmail(
+      email,
+      'Lead Handoff - Ready for Human Engagement',
+      `Hello ${name}, your inquiry has been processed. Dossier: ${JSON.stringify(dossier)}`
+    );
+    return result.success;
+  }
+};
 
 export interface EmailJobData {
   type: 'handoff' | 'notification' | 'welcome';
@@ -32,9 +44,9 @@ export async function processEmailJob(job: Job<EmailJobData>) {
     switch (type) {
       case 'handoff':
         const success = await emailService.sendHandoffEmail(
-          data.customerEmail,
-          data.customerName,
-          data.dossier
+          data.customerEmail || to,
+          data.customerName || 'Customer',
+          data.dossier || data
         );
         
         if (!success) {

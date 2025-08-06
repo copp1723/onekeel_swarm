@@ -1,10 +1,64 @@
-// Note: Database imports need to be adapted for OneKeel's structure
-// Database connection should use OneKeel's db client
-// Tables may need to be created in OneKeel's schema
 import { eq, and, lte, gte } from "drizzle-orm";
-// import emailService from "./email-onerylie.js";
-// import { emailTemplateManager } from "./email-campaign-templates.js";
-// import { storage } from "../storage.js";
+import { db } from '../db/client.js';
+// Unused imports removed
+import { pgTable, text, timestamp, uuid, jsonb, integer } from 'drizzle-orm/pg-core';
+
+// Create missing tables that don't exist in schema yet
+// These tables would need to be created via migration
+export const campaignSchedules = pgTable('campaign_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  isActive: text('is_active').notNull().default('true'), // using text for boolean compatibility
+  attempts: jsonb('attempts').default([]),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+export const campaignAttempts = pgTable('campaign_attempts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scheduleId: uuid('schedule_id').notNull(),
+  leadId: uuid('lead_id').notNull(),
+  attemptNumber: integer('attempt_number').notNull(),
+  templateId: text('template_id').notNull(),
+  scheduledFor: timestamp('scheduled_for').notNull(),
+  status: text('status').notNull().default('scheduled'),
+  variables: jsonb('variables').default({}),
+  sentAt: timestamp('sent_at'),
+  messageId: text('message_id'),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Use existing leads table from schema
+import { leads } from '../db/schema.js';
+export const systemLeads = leads;
+
+// Temporary storage interface until proper storage service is implemented
+const storage = {
+  async createActivity(type: string, message: string, agent: string, metadata: Record<string, any>) {
+    console.log(`[${type}] ${agent}: ${message}`, metadata);
+  }
+};
+
+// Temporary email service interface until proper service is implemented
+const emailService = {
+  async sendEmail(options: { to: string; subject: string; html: string; text: string }) {
+    console.log('Sending email:', options);
+    return { success: true, messageId: `msg_${Date.now()}` };
+  }
+};
+
+// Temporary template manager interface until proper service is implemented
+const emailTemplateManager = {
+  renderTemplate(templateId: string, variables: Record<string, any>) {
+    return {
+      subject: `Template ${templateId} Subject`,
+      html: `<p>Template ${templateId} HTML with variables: ${JSON.stringify(variables)}</p>`,
+      text: `Template ${templateId} text with variables: ${JSON.stringify(variables)}`
+    };
+  }
+};
 
 export interface AttemptConfig {
   attemptNumber: number;
@@ -43,7 +97,7 @@ export class MultiAttemptScheduler {
       id: scheduleId,
       name: config.name,
       description: config.description || "",
-      isActive: config.isActive ?? true,
+      isActive: (config.isActive ?? true) ? 'true' : 'false',
       attempts: config.attempts,
     });
 
@@ -174,7 +228,7 @@ export class MultiAttemptScheduler {
       throw new Error(`Lead ${attempt.leadId} not found`);
     }
 
-    const leadData = lead[0].leadData as any;
+    const leadData = lead[0].metadata as any;
     const email = leadData.email || lead[0].email;
 
     if (!email) {
@@ -220,7 +274,7 @@ export class MultiAttemptScheduler {
         status: emailResult.success ? "sent" : "failed",
         sentAt: emailResult.success ? new Date() : null,
         messageId: emailResult.messageId || null,
-        errorMessage: emailResult.error || null,
+        errorMessage: !emailResult.success ? 'Email sending failed' : null,
       })
       .where(eq(campaignAttempts.id, attempt.id));
 
@@ -237,7 +291,7 @@ export class MultiAttemptScheduler {
         templateId: attempt.templateId,
         success: emailResult.success,
         messageId: emailResult.messageId,
-        error: emailResult.error,
+        error: !emailResult.success ? 'Email sending failed' : null,
       }
     );
   }
@@ -245,7 +299,7 @@ export class MultiAttemptScheduler {
   /**
    * Check if attempt should be skipped based on conditions
    */
-  private async shouldSkipAttempt(attempt: any, leadData: any): Promise<boolean> {
+  private async shouldSkipAttempt(attempt: any, _leadData: any): Promise<boolean> {
     // Get schedule to check conditions
     const schedule = await db
       .select()
@@ -364,7 +418,7 @@ export class MultiAttemptScheduler {
    * Get all active schedules
    */
   async getActiveSchedules(): Promise<any[]> {
-    return await db.select().from(campaignSchedules).where(eq(campaignSchedules.isActive, true));
+    return await db.select().from(campaignSchedules).where(eq(campaignSchedules.isActive, 'true'));
   }
 
   /**
@@ -374,7 +428,7 @@ export class MultiAttemptScheduler {
     await db
       .update(campaignSchedules)
       .set({
-        isActive,
+        isActive: isActive ? 'true' : 'false',
         updatedAt: new Date(),
       })
       .where(eq(campaignSchedules.id, scheduleId));

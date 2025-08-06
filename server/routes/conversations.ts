@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db/client';
 import { conversations, leads } from '../db/schema';
-import { eq, and, or, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 
 const router = Router();
@@ -63,9 +63,25 @@ router.get('/', async (req, res) => {
 
     // Add sorting
     if (order === 'desc') {
-      query.orderBy(desc(conversations[sort as keyof typeof conversations]));
+      if (sort === 'startedAt') {
+        query.orderBy(desc(conversations.startedAt));
+      } else if (sort === 'createdAt') {
+        query.orderBy(desc(conversations.createdAt));
+      } else if (sort === 'updatedAt') {
+        query.orderBy(desc(conversations.updatedAt));
+      } else {
+        query.orderBy(desc(conversations.createdAt)); // default
+      }
     } else {
-      query.orderBy(conversations[sort as keyof typeof conversations]);
+      if (sort === 'startedAt') {
+        query.orderBy(conversations.startedAt);
+      } else if (sort === 'createdAt') {
+        query.orderBy(conversations.createdAt);
+      } else if (sort === 'updatedAt') {
+        query.orderBy(conversations.updatedAt);
+      } else {
+        query.orderBy(conversations.createdAt); // default
+      }
     }
 
     const results = await query;
@@ -87,7 +103,7 @@ router.get('/', async (req, res) => {
       lead: r.lead
     }));
 
-    res.json({
+    return res.json({
       success: true,
       conversations: conversationList,
       total: count,
@@ -96,7 +112,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_FETCH_ERROR',
@@ -138,7 +154,7 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       conversation: {
         ...result.conversation,
@@ -147,7 +163,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching conversation:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_FETCH_ERROR',
@@ -178,20 +194,23 @@ router.post('/', validateRequest({ body: createConversationSchema }), async (req
     const [newConversation] = await db
       .insert(conversations)
       .values({
-        ...conversationData,
+        leadId: conversationData.leadId || '',
+        channel: conversationData.channel,
+        agentType: conversationData.agentType || conversationData.channel,
         status: 'active',
         startedAt: new Date(),
-        lastMessageAt: new Date()
+        transcript: { messages: conversationData.messages || [] },
+        metadata: conversationData.metadata || {}
       })
       .returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       conversation: newConversation
     });
   } catch (error) {
     console.error('Error creating conversation:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_CREATE_ERROR',
@@ -230,8 +249,9 @@ router.post('/:id/messages', validateRequest({ body: addMessageSchema }), async 
       });
     }
 
-    // Add message to messages array
-    const messages = conversation.messages as any[] || [];
+    // Add message to transcript
+    const transcript = conversation.transcript as any || {};
+    const messages = transcript.messages || [];
     messages.push({
       role,
       content,
@@ -242,19 +262,19 @@ router.post('/:id/messages', validateRequest({ body: addMessageSchema }), async 
     const [updatedConversation] = await db
       .update(conversations)
       .set({
-        messages,
-        lastMessageAt: new Date()
+        transcript: { ...transcript, messages },
+        updatedAt: new Date()
       })
       .where(eq(conversations.id, id))
       .returning();
 
-    res.json({
+    return res.json({
       success: true,
       conversation: updatedConversation
     });
   } catch (error) {
     console.error('Error adding message:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'MESSAGE_ADD_ERROR',
@@ -307,13 +327,13 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       conversation: updatedConversation
     });
   } catch (error) {
     console.error('Error updating conversation status:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_UPDATE_ERROR',
@@ -344,13 +364,13 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Conversation deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting conversation:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CONVERSATION_DELETE_ERROR',
@@ -362,7 +382,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Get conversation statistics
-router.get('/stats/summary', async (req, res) => {
+router.get('/stats/summary', async (_req, res) => {
   try {
     const stats = await db
       .select({
@@ -382,7 +402,7 @@ router.get('/stats/summary', async (req, res) => {
       .from(conversations)
       .groupBy(conversations.channel);
 
-    res.json({
+    return res.json({
       success: true,
       stats: {
         ...stats[0],
@@ -391,7 +411,7 @@ router.get('/stats/summary', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching conversation stats:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'STATS_FETCH_ERROR',

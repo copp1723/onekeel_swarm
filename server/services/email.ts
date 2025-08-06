@@ -1,6 +1,6 @@
 // Simple email service stub
 export class EmailService {
-  static async sendEmail(to: string, subject: string, body: string) {
+  static async sendEmail(to: string, subject: string, _body: string) {
     console.log(`[EMAIL] Sending email to ${to}: ${subject}`);
     // In a real implementation, this would send actual emails
     return { success: true, messageId: `mock-${Date.now()}` };
@@ -50,7 +50,7 @@ export class EmailTemplateManager {
 export const emailTemplateManager = EmailTemplateManager;
 
 export class EmailScheduler {
-  static async scheduleEmail(email: any, scheduledFor: Date) {
+  static async scheduleEmail(_email: any, scheduledFor: Date) {
     console.log(`[EMAIL] Scheduling email for ${scheduledFor}`);
     return { success: true, scheduleId: `schedule-${Date.now()}` };
   }

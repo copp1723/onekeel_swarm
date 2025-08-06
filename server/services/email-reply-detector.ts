@@ -1,7 +1,6 @@
 import { logger } from '../utils/logger.js';
 import { db } from '../db/client.js';
-import { leads } from '../db/schema.js';
-// Note: communications table may need to be added to OneKeel schema
+import { leads, communications } from '../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 interface EmailReply {
@@ -209,7 +208,7 @@ export class EmailReplyDetector {
   private async triggerReplyWorkflows(leadId: string, reply: EmailReply): Promise<void> {
     try {
       // Stop any active email sequences for this lead
-      const { campaignExecutionEngine } = await import('./campaign-execution-engine');
+      const { campaignExecutionEngine: _campaignExecutionEngine } = await import('./campaign-execution-engine');
       // This would stop scheduled emails for the lead
       
       // Notify human agents if configured

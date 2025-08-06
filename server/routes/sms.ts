@@ -7,9 +7,9 @@ const router = Router();
 const smsService = new SMSService();
 
 // Check SMS service status
-router.get('/status', authenticateToken, (req, res) => {
+router.get('/status', authenticateToken, (_req, res) => {
   const isReady = smsService.isReady();
-  res.json({
+  return res.json({
     configured: isReady,
     provider: 'twilio',
     status: isReady ? 'active' : 'not_configured'
@@ -35,13 +35,13 @@ router.post('/send', authenticateToken, async (req, res) => {
       metadata
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: result
     });
   } catch (error) {
     logger.error('Error in SMS send endpoint', error as Error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to send SMS',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -61,15 +61,15 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
 
     const results = await smsService.sendBulkSMS(messages);
 
-    res.json({
+    return res.json({
       success: true,
-      sent: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      sent: results.filter((r: any) => r.success).length,
+      failed: results.filter((r: any) => !r.success).length,
       results
     });
   } catch (error) {
     logger.error('Error in bulk SMS send endpoint', error as Error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to send bulk SMS',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -77,13 +77,13 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
 });
 
 // Get SMS templates
-router.get('/templates', authenticateToken, async (req, res) => {
+router.get('/templates', authenticateToken, async (_req, res) => {
   try {
     const templates = await smsService.getTemplates();
-    res.json(templates);
+    return res.json(templates);
   } catch (error) {
     logger.error('Error fetching SMS templates', error as Error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to fetch templates' 
     });
   }
@@ -101,10 +101,10 @@ router.post('/templates/render', authenticateToken, async (req, res) => {
     }
 
     const rendered = await smsService.renderTemplate(templateId, variables || {});
-    res.json({ rendered });
+    return res.json({ rendered });
   } catch (error) {
     logger.error('Error rendering SMS template', error as Error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to render template' 
     });
   }
@@ -127,10 +127,10 @@ router.post('/webhook/status', async (req, res) => {
     // Process the status update (e.g., update database, emit events)
     // This would typically update the SMS record in your database
 
-    res.status(200).send('OK');
+    return res.status(200).send('OK');
   } catch (error) {
     logger.error('Error processing SMS webhook', error as Error);
-    res.status(500).send('Error processing webhook');
+    return res.status(500).send('Error processing webhook');
   }
 });
 

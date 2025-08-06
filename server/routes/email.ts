@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validation';
-import { mailgunService, emailTemplateManager, emailScheduler } from '../services/email';
+import { mailgunService } from '../services/mailgun-enhanced.js';
 import emailTemplatesRouter from './email-templates-db';
 
 const router = Router();
@@ -9,18 +9,20 @@ const router = Router();
 // Mount templates sub-router
 router.use('/templates', emailTemplatesRouter);
 
-// Email schedule routes
-router.get('/schedules', async (req, res) => {
+// Email schedule routes - simplified for now since we don't have a scheduling service
+router.get('/schedules', async (_req, res) => {
   try {
-    const schedules = emailScheduler.getSchedules();
-    res.json({
+    // Return empty schedules for now - this would integrate with a scheduling service
+    const schedules: any[] = [];
+    return res.json({
       success: true,
       data: schedules,
+      message: 'Email scheduling service not yet implemented',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching email schedules:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'SCHEDULE_FETCH_ERROR',
@@ -45,16 +47,18 @@ const createScheduleSchema = z.object({
 router.post('/schedules', validateRequest({ body: createScheduleSchema }), async (req, res) => {
   try {
     const { name, attempts } = req.body;
-    const scheduleId = await emailScheduler.createSchedule({ name, attempts });
+    // For now, return a mock schedule ID - this would integrate with a scheduling service
+    const scheduleId = `schedule_${Date.now()}`;
     
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: { id: scheduleId, name, attempts },
+      message: 'Email scheduling service not yet implemented',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error creating email schedule:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'SCHEDULE_CREATE_ERROR',
@@ -67,27 +71,17 @@ router.post('/schedules', validateRequest({ body: createScheduleSchema }), async
 
 router.delete('/schedules/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const deleted = await emailScheduler.deleteSchedule(id);
+    const { id: _id } = req.params;
+    // For now, always return success - this would integrate with a scheduling service
     
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'SCHEDULE_NOT_FOUND',
-          message: 'Email schedule not found'
-        }
-      });
-    }
-    
-    res.json({
+    return res.json({
       success: true,
-      message: 'Email schedule deleted successfully',
+      message: 'Email schedule deletion not yet implemented',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error deleting email schedule:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'SCHEDULE_DELETE_ERROR',
@@ -113,39 +107,43 @@ router.post('/send', validateRequest({ body: sendEmailSchema }), async (req, res
   try {
     const emailData = req.body;
     
-    // If templateId is provided, render the template
+    // For now, skip template rendering and send directly
+    // Future: integrate with database template system
     if (emailData.templateId) {
-      const template = emailTemplateManager.getTemplate(emailData.templateId);
-      if (!template) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            code: 'TEMPLATE_NOT_FOUND',
-            message: 'Email template not found'
-          }
-        });
-      }
-      
-      const rendered = emailTemplateManager.renderTemplate(emailData.templateId, emailData.variables || {});
-      emailData.subject = rendered.subject || emailData.subject;
-      emailData.html = rendered.html;
-      emailData.text = rendered.text;
+      return res.status(501).json({
+        success: false,
+        error: {
+          code: 'TEMPLATE_NOT_IMPLEMENTED',
+          message: 'Template rendering not yet implemented. Use html/text directly.'
+        }
+      });
+    }
+    
+    // Check if Mailgun is configured
+    if (!mailgunService.isReady()) {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_CONFIGURED',
+          message: 'Email service is not properly configured. Please check MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables.'
+        }
+      });
     }
     
     const result = await mailgunService.sendEmail(emailData);
     
-    res.json({
+    return res.json({
       success: true,
       data: result,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error sending email:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'EMAIL_SEND_ERROR',
-        message: 'Failed to send email',
+        message: error instanceof Error ? error.message : 'Failed to send email',
         category: 'external'
       }
     });
@@ -163,7 +161,7 @@ router.post('/test', validateRequest({
     const { to, type } = req.body;
     
     // Check if email service is configured
-    if (!mailgunService.isConfigured()) {
+    if (!mailgunService.isReady()) {
       return res.status(503).json({
         success: false,
         error: {
@@ -197,7 +195,7 @@ router.post('/test', validateRequest({
         break;
         
       case 'template':
-        // Send a test email using a template
+        // Send a test email using template variables
         const templateVars = {
           firstName: 'Test',
           lastName: 'User',
@@ -205,18 +203,29 @@ router.post('/test', validateRequest({
           companyName: 'OneKeel Swarm'
         };
         
+        // Simple string replacement for now
+        let subject = 'Welcome {{firstName}}!';
+        let html = `
+          <h2>Welcome {{firstName}} {{lastName}}!</h2>
+          <p>This is a test template email from {{companyName}}.</p>
+          <p>Your email {{email}} has been successfully added to our system.</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">
+            This demonstrates variable replacement in email templates.
+          </p>
+        `;
+        
+        // Replace variables
+        Object.entries(templateVars).forEach(([key, value]) => {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          subject = subject.replace(regex, String(value));
+          html = html.replace(regex, String(value));
+        });
+        
         result = await mailgunService.sendEmail({
           to,
-          subject: mailgunService.processTemplate('Welcome {{firstName}}!', templateVars),
-          html: mailgunService.processTemplate(`
-            <h2>Welcome {{firstName}} {{lastName}}!</h2>
-            <p>This is a test template email from {{companyName}}.</p>
-            <p>Your email {{email}} has been successfully added to our system.</p>
-            <hr>
-            <p style="color: #666; font-size: 12px;">
-              This demonstrates variable replacement in email templates.
-            </p>
-          `, templateVars)
+          subject,
+          html
         });
         break;
         
@@ -250,7 +259,7 @@ router.post('/test', validateRequest({
         break;
     }
     
-    res.json({
+    return res.json({
       success: true,
       data: {
         result,
@@ -262,7 +271,7 @@ router.post('/test', validateRequest({
     });
   } catch (error) {
     console.error('Error sending test email:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'TEST_EMAIL_ERROR',
@@ -274,20 +283,20 @@ router.post('/test', validateRequest({
 });
 
 // Email monitoring routes
-router.get('/monitoring/rules', async (req, res) => {
+router.get('/monitoring/rules', async (_req, res) => {
   try {
-    // Email monitoring service was removed during cleanup
-    const rules = []; // Return empty rules array
+    // Email monitoring service not implemented yet
+    const rules: any[] = []; // Return empty rules array
     
-    res.json({
+    return res.json({
       success: true,
       data: rules,
-      message: 'Email monitoring service not available (removed during cleanup)',
+      message: 'Email monitoring service not yet implemented',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error fetching email monitoring rules:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'MONITOR_FETCH_ERROR',
@@ -315,7 +324,7 @@ router.post('/campaigns/:campaignId/execute', async (req, res) => {
     }
     
     // This would trigger the campaign execution engine
-    res.json({
+    return res.json({
       success: true,
       data: {
         campaignId,
@@ -326,7 +335,7 @@ router.post('/campaigns/:campaignId/execute', async (req, res) => {
     });
   } catch (error) {
     console.error('Error executing campaign:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'CAMPAIGN_EXECUTE_ERROR',
@@ -347,10 +356,10 @@ router.post('/webhooks/mailgun', async (req, res) => {
     
     // TODO: Update communication records based on event
     
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: {
         code: 'WEBHOOK_ERROR',

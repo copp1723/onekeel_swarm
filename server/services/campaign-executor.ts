@@ -1,7 +1,6 @@
 import Bull from 'bull';
 import { db } from '../db/client.js';
-import { leads, campaigns } from '../db/schema.js';
-// Note: conversations table may need to be added to OneKeel schema
+import { leads, campaigns, conversations } from '../db/schema.js';
 import { logger } from '../utils/logger.js';
 import { eq } from 'drizzle-orm';
 
@@ -29,20 +28,20 @@ class CampaignExecutor {
       if (!lead) throw new Error('Lead not found');
 
       // Assign to campaign (simple rule: first active campaign)
-      const [campaign] = await db.select().from(campaigns).where(eq(campaigns.active, true)).limit(1);
+      const [campaign] = await db.select().from(campaigns).where(eq(campaigns.status, 'active')).limit(1);
       if (!campaign) throw new Error('No active campaign found');
 
-      await db.update(leads).set({ campaignId: campaign.id }).where(eq(leads.id, leadId));
+      await db.update(leads).set({ campaign_id: campaign.id }).where(eq(leads.id, leadId));
 
       // Initialize conversation
       await db.insert(conversations).values({
-        id: crypto.randomUUID(),
         leadId,
         channel: 'email', // default
         agentType: 'email',
-        messages: [],
         status: 'active',
         startedAt: new Date(),
+        transcript: {},
+        metadata: {}
       });
 
       // Schedule follow-up (using bull for simplicity)

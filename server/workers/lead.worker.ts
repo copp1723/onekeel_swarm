@@ -96,7 +96,7 @@ async function scoreLead(leadId: string) {
       .update(leads)
       .set({
         metadata: { score },
-        updatedAt: new Date()
+        updated_at: new Date()
       })
       .where(eq(leads.id, leadId));
     
@@ -124,7 +124,7 @@ async function assignLead(leadId: string, agentId?: string) {
       .update(leads)
       .set({
         metadata: { assignedTo: agentId },
-        updatedAt: new Date()
+        updated_at: new Date()
       })
       .where(eq(leads.id, leadId));
     
