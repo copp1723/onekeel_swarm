@@ -19,7 +19,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001';
+// In production, use relative URLs so frontend and backend are on same domain
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '');
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
