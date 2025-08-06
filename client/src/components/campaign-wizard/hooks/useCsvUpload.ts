@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import Papa from 'papaparse';
 import { useDropzone } from 'react-dropzone';
-import { CampaignData } from '../types';
+import type { CampaignData } from '../types';
 
 export function useCsvUpload(
   setData: React.Dispatch<React.SetStateAction<CampaignData>>,

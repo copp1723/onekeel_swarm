@@ -3,10 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UnifiedAgentConfig } from '@/types';
-import { CampaignManager } from '@/components/email-agent/CampaignManager';
-import { TemplateEditor } from '@/components/email-agent/TemplateEditor';
-import { CampaignAnalytics } from '@/components/email-agent/CampaignAnalytics';
+import type { UnifiedAgentConfig } from '@/types';
+// Placeholder components since email-agent components don't exist yet
+const CampaignManager = ({ agents, campaigns }: any) => (
+  <div className="p-4 text-center text-gray-500">
+    <p>Campaign management will be available here</p>
+    <p>Agents: {agents.length}, Campaigns: {campaigns.length}</p>
+  </div>
+);
+
+const TemplateEditor = () => (
+  <div className="p-4 text-center text-gray-500">
+    <p>Template editor will be available here</p>
+  </div>
+);
+
+const CampaignAnalytics = ({ campaigns, agents }: any) => (
+  <div className="p-4 text-center text-gray-500">
+    <p>Campaign analytics will be available here</p>
+    <p>Campaigns: {campaigns.length}, Agents: {agents.length}</p>
+  </div>
+);
 import { Mail, FileText, BarChart3, Target, Settings } from 'lucide-react';
 
 interface EmailAgentModuleProps {

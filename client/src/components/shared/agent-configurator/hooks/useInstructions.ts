@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { AgentFormData, InstructionsData } from '../types';
+import type { AgentFormData, InstructionsData } from '../types';
 
 /**
  * Custom hook for managing agent instructions (dos and don'ts)

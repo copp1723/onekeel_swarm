@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,8 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, AlertCircle } from 'lucide-react';
 import { AGENT_TYPES } from '@/utils/agentUtils';
-import { SectionProps } from '../types';
-import { AgentType } from '@/types';
+import type { SectionProps } from '../types';
+import type { AgentType } from '@/types';
 
 interface BasicInfoSectionProps extends SectionProps {
   allowTypeChange?: boolean;

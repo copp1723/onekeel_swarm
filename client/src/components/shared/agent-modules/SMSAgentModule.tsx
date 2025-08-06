@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { UnifiedAgentConfig } from '@/types';
+import type { UnifiedAgentConfig } from '@/types';
 import { Phone, MessageSquare, Clock, Settings, BarChart3, Send } from 'lucide-react';
 
 interface SMSAgentModuleProps {

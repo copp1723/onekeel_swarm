@@ -1,4 +1,4 @@
-import { AgentTemplate } from '@/types';
+import type { AgentTemplate } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Settings } from 'lucide-react';
-import { SectionProps } from '../types';
+import type { SectionProps } from '../types';
 import { AGENT_TYPES } from '@/utils/agentUtils';
 
 /**

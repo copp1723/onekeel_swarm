@@ -1,10 +1,9 @@
-import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User } from 'lucide-react';
 import { PERSONALITY_OPTIONS, TONE_OPTIONS, RESPONSE_LENGTH_OPTIONS } from '@/utils/agentUtils';
-import { SectionProps } from '../types';
+import type { SectionProps } from '../types';
 
 /**
  * Personality & Behavior Section Component

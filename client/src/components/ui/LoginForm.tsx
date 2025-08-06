@@ -18,11 +18,8 @@ export const LoginForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const success = await login(username, password);
-      if (!success) {
-        // Error is already set in the context
-        setIsSubmitting(false);
-      }
+      await login(username, password);
+      // Login will handle success/failure via context
     } catch (err) {
       console.error('Login error:', err);
       setIsSubmitting(false);
@@ -32,10 +29,8 @@ export const LoginForm: React.FC = () => {
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
     try {
-      const success = await login('admin@completecarloans.com', 'password123');
-      if (!success) {
-        setIsSubmitting(false);
-      }
+      await login('admin@completecarloans.com', 'password123');
+      // Login will handle success/failure via context
     } catch (err) {
       console.error('Demo login error:', err);
       setIsSubmitting(false);

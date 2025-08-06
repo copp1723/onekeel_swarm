@@ -2,7 +2,7 @@ import React from 'react';
 import { Brain, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { WizardContext } from '../types';
+import type { WizardContext } from '../types';
 
 export const ScheduleStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   return (

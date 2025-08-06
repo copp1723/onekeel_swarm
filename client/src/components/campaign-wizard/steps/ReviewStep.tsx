@@ -1,6 +1,6 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
-import { WizardContext, Agent, EmailTemplate } from '../types';
+import type { WizardContext, Agent, EmailTemplate } from '../types';
 
 export const ReviewStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ctx, agents }) => {
   return (

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { AgentFormData } from '../types';
+import type { AgentFormData } from '../types';
 
 /**
  * Custom hook for managing agent domain expertise

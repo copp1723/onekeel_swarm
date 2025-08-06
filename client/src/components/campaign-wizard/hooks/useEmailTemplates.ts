@@ -1,4 +1,4 @@
-import { CampaignData } from '../types';
+import type { CampaignData } from '../types';
 
 export async function generateTemplates(
   data: CampaignData,

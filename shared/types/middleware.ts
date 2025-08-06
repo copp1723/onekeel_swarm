@@ -1,6 +1,5 @@
 // Middleware types for OneKeel Swarm
-import { Request, Response, NextFunction } from 'express';
-import { User } from '../../server/db/schema';
+import type { Request, Response, NextFunction } from 'express';
 
 // Authentication middleware types
 export interface AuthenticatedUser {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { UnifiedAgentConfig, AgentType } from '@/types';
+import type { UnifiedAgentConfig, AgentType } from '@/types';
 import { 
   getDefaultConfigForType,
   validateAgentConfig,
   cleanAgentConfig
 } from '@/utils/agentUtils';
-import { 
+import type { 
   AgentFormData, 
   ValidationErrors, 
   FormSubmissionState, 

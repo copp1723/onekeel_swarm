@@ -2,7 +2,7 @@
 import React from 'react';
 
 // Simple virtual list hook
-export const useVirtualList = (items: any[], containerHeight: number = 400) => {
+export const useVirtualList = (items: any[]) => {
   return {
     virtualItems: items,
     totalSize: items.length * 60, // Assume 60px per item

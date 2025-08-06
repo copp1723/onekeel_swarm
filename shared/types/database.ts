@@ -1,13 +1,11 @@
 // Database type guards and validation for OneKeel Swarm
-import { 
-  User, 
-  Lead, 
-  Campaign, 
-  Communication, 
+import type {
+  User,
+  Lead,
+  Campaign,
+  Communication,
   Session,
-  FeatureFlag,
-  AgentConfiguration,
-  AgentTemplate
+  FeatureFlag
 } from '../../server/db/schema';
 
 // Type guards for database entities

@@ -4,7 +4,7 @@ import LeadsView from '../views/LeadsView';
 // import { AgentsView } from '../views/AgentsView';
 import { CampaignWizard } from './campaign-wizard';
 import { createCampaign } from '../utils/campaigns-api';
-import { CampaignData } from './campaign-wizard/types';
+import type { CampaignData } from './campaign-wizard/types';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();

@@ -3,7 +3,7 @@ import { FileText, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCsvUpload } from '../hooks/useCsvUpload';
-import { WizardContext } from '../types';
+import type { WizardContext } from '../types';
 
 export const AudienceStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   const { dropzone, error, fileName } = useCsvUpload(ctx.setData);

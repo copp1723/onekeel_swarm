@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AgentTemplate } from '@/types';
+import type { AgentTemplate } from '@/types';
 import { AgentTemplateCard } from './AgentTemplateCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

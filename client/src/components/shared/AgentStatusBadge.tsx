@@ -1,6 +1,5 @@
-import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { UnifiedAgentConfig } from '@/types';
+import type { UnifiedAgentConfig } from '@/types';
 import { getAgentStatusBadge } from '@/utils/agentUtils';
 
 interface AgentStatusBadgeProps {

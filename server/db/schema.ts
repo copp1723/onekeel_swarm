@@ -8,6 +8,8 @@ export const leadStatusEnum = pgEnum('lead_status', ['new', 'contacted', 'qualif
 export const channelEnum = pgEnum('channel', ['email', 'sms', 'chat']);
 export const campaignTypeEnum = pgEnum('campaign_type', ['drip', 'blast', 'trigger']);
 export const agentTypeEnum = pgEnum('agent_type', ['email', 'sms', 'chat', 'voice']);
+export const communicationDirectionEnum = pgEnum('communication_direction', ['inbound', 'outbound']);
+export const communicationStatusEnum = pgEnum('communication_status', ['pending', 'sent', 'delivered', 'failed', 'received']);
 
 // White label and multi-tenant tables
 export const clients = pgTable('clients', {
@@ -219,6 +221,108 @@ export const templates = pgTable('templates', {
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 
+// Conversations table
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').notNull().references(() => leads.id, { onDelete: 'cascade' }),
+  channel: text('channel').notNull(),
+  status: text('status').notNull().default('active'),
+  agentType: text('agent_type').notNull(),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  endedAt: timestamp('ended_at'),
+  transcript: jsonb('transcript').default({}),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+}, (table) => {
+  return {
+    leadIdIdx: index('conversations_lead_id_idx').on(table.leadId),
+    statusIdx: index('conversations_status_idx').on(table.status),
+    channelIdx: index('conversations_channel_idx').on(table.channel),
+    agentTypeIdx: index('conversations_agent_type_idx').on(table.agentType)
+  }
+});
+
+// Communications table - all interactions with leads
+export const communications = pgTable('communications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leadId: uuid('lead_id').notNull().references(() => leads.id),
+  campaignId: uuid('campaign_id').references(() => campaigns.id),
+  
+  // Communication Details
+  channel: channelEnum('channel').notNull(),
+  direction: communicationDirectionEnum('direction').notNull(),
+  status: communicationStatusEnum('status').default('pending').notNull(),
+  
+  // Content
+  subject: varchar('subject', { length: 255 }),
+  content: text('content').notNull(),
+  
+  // External References
+  externalId: varchar('external_id', { length: 255 }), // Mailgun ID, Twilio SID, etc.
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  // Timestamps
+  scheduledFor: timestamp('scheduled_for'),
+  sentAt: timestamp('sent_at'),
+  deliveredAt: timestamp('delivered_at'),
+  openedAt: timestamp('opened_at'),
+  clickedAt: timestamp('clicked_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (table) => {
+  return {
+    leadIdIdx: index('communications_lead_id_idx').on(table.leadId),
+    campaignIdIdx: index('communications_campaign_id_idx').on(table.campaignId),
+    channelIdx: index('communications_channel_idx').on(table.channel),
+    statusIdx: index('communications_status_idx').on(table.status),
+    createdAtIdx: index('communications_created_at_idx').on(table.createdAt)
+  }
+});
+
+// Agent Templates table
+export const agentTemplates = pgTable('agent_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  type: agentTypeEnum('type').notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  
+  // Core Configuration
+  systemPrompt: text('system_prompt').notNull(),
+  contextNote: text('context_note'),
+  temperature: integer('temperature').default(7),
+  maxTokens: integer('max_tokens').default(500),
+  
+  // Template-specific settings
+  configurableParams: jsonb('configurable_params').default([]),
+  defaultParams: jsonb('default_params').default({}),
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Feature Flags table
+export const featureFlags = pgTable('feature_flags', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  enabled: boolean('enabled').notNull().default(false),
+  rolloutPercentage: integer('rollout_percentage').notNull().default(0),
+  category: varchar('category', { length: 100 }).notNull().default('system-config'),
+  complexity: varchar('complexity', { length: 50 }).notNull().default('basic'),
+  riskLevel: varchar('risk_level', { length: 50 }).notNull().default('low'),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
 // Relations
 export const clientsRelations = relations(clients, ({ many }) => ({
   users: many(users),
@@ -304,7 +408,8 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
     fields: [leads.campaign_id],
     references: [campaigns.id]
   }),
-  enrollments: many(leadCampaignEnrollments)
+  enrollments: many(leadCampaignEnrollments),
+  conversations: many(conversations)
 }));
 
 export const leadCampaignEnrollmentsRelations = relations(leadCampaignEnrollments, ({ one }) => ({
@@ -318,7 +423,33 @@ export const leadCampaignEnrollmentsRelations = relations(leadCampaignEnrollment
   })
 }));
 
-export const templatesRelations = relations(templates, ({ one }) => ({
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  lead: one(leads, {
+    fields: [conversations.leadId],
+    references: [leads.id]
+  })
+}));
+
+export const communicationsRelations = relations(communications, ({ one }) => ({
+  lead: one(leads, {
+    fields: [communications.leadId],
+    references: [leads.id]
+  }),
+  campaign: one(campaigns, {
+    fields: [communications.campaignId],
+    references: [campaigns.id]
+  })
+}));
+
+export const agentTemplatesRelations = relations(agentTemplates, () => ({
+  // Agent templates don't have direct relations yet
+}));
+
+export const featureFlagsRelations = relations(featureFlags, () => ({
+  // Feature flags are standalone entities
+}));
+
+export const templatesRelations = relations(templates, () => ({
   // Templates don't have client relations yet, keeping for future extension
 }));
 
@@ -343,5 +474,13 @@ export type LeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferSelect
 export type NewLeadCampaignEnrollment = typeof leadCampaignEnrollments.$inferInsert;
 export type AgentConfiguration = typeof agentConfigurations.$inferSelect;
 export type NewAgentConfiguration = typeof agentConfigurations.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type Communication = typeof communications.$inferSelect;
+export type NewCommunication = typeof communications.$inferInsert;
+export type AgentTemplate = typeof agentTemplates.$inferSelect;
+export type NewAgentTemplate = typeof agentTemplates.$inferInsert;
+export type FeatureFlag = typeof featureFlags.$inferSelect;
+export type NewFeatureFlag = typeof featureFlags.$inferInsert;
 export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;

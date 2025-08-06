@@ -1,4 +1,4 @@
-import { UnifiedAgentConfig, AgentType } from '@/types';
+import type { UnifiedAgentConfig, AgentType } from '@/types';
 
 /**
  * Core types for agent configurator system

@@ -1,4 +1,4 @@
-import { UnifiedAgentConfig, AgentType } from '@/types';
+import type { UnifiedAgentConfig, AgentType } from '@/types';
 import { EmailAgentModule } from './EmailAgentModule';
 import { SMSAgentModule } from './SMSAgentModule';
 import { ChatAgentModule } from './ChatAgentModule';

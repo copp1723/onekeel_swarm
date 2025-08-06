@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -28,16 +27,13 @@ import {
   Wand2,
   Clock,
   Zap,
-  Plus,
   FileText,
   Upload,
   Save,
-  UserCheck,
   AlertCircle,
   CheckCircle,
   Loader2,
-  ExternalLink,
-  RefreshCw
+  ExternalLink
 } from 'lucide-react';
 
 interface CampaignWizardProps {
@@ -193,36 +189,6 @@ export function CampaignWizard({ isOpen, onClose, onComplete, agents = [] }: Cam
     }
   };
 
-  // Retry helper for API calls
-  const retryApiCall = async (
-    apiCall: () => Promise<any>,
-    maxRetries: number = 3,
-    delay: number = 1000
-  ): Promise<any> => {
-    let lastError: Error;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await apiCall();
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-
-        if (attempt === maxRetries) {
-          throw lastError;
-        }
-
-        // Only retry on network errors or 5xx server errors
-        if (error instanceof TypeError || (error as any)?.status >= 500) {
-          addNotification('warning', 'Retrying...', `Attempt ${attempt} failed, retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay * attempt));
-        } else {
-          throw lastError;
-        }
-      }
-    }
-
-    throw lastError!;
-  };
 
   // Toggle template expansion
   const toggleTemplateExpansion = (index: number) => {

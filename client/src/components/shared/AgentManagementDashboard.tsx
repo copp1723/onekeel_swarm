@@ -3,12 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UnifiedAgentConfig, AgentType } from '@/types';
+import type { UnifiedAgentConfig, AgentType } from '@/types';
 import { useAgents } from '@/hooks/useAgents';
 import { AgentCard } from './AgentCard';
 import { UnifiedAgentConfigurator } from './UnifiedAgentConfigurator';
 // import { AgentModuleLoader } from './agent-modules/AgentModuleLoader';
-// import { AGENT_TYPES, PERSONALITY_OPTIONS } from '@/utils/agentUtils';
+import { AGENT_TYPES, PERSONALITY_OPTIONS } from '@/utils/agentUtils';
 import { 
   Plus, 
   Search, 

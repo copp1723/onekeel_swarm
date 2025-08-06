@@ -1,7 +1,6 @@
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
-import { AgentConfiguratorProps } from './types';
+import type { AgentConfiguratorProps } from './types';
 import { useAgentConfig } from './hooks/useAgentConfig';
 import { BasicInfoSection } from './sections/BasicInfoSection';
 import { PersonalitySection } from './sections/PersonalitySection';

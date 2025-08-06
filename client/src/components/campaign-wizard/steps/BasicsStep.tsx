@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Wand2 } from 'lucide-react';
-import { WizardContext } from '../types';
+import type { WizardContext } from '../types';
 
 export const BasicsStep: React.FC<{ctx: WizardContext}> = ({ ctx }) => {
   const enhanceWithAI = (field: string) => {

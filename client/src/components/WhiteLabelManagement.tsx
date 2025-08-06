@@ -8,17 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Palette, 
-  Eye, 
-  Save, 
-  Upload, 
-  Globe, 
+import {
+  Palette,
+  Eye,
+  Save,
+  Globe,
   Key,
   Plus,
   Trash2,
   Copy,
-  CheckCircle,
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -62,11 +60,10 @@ interface WhiteLabelManagementProps {
   isAdmin?: boolean;
 }
 
-export const WhiteLabelManagement: React.FC<WhiteLabelManagementProps> = ({ 
-  clientId, 
-  isAdmin = false 
+export const WhiteLabelManagement: React.FC<WhiteLabelManagementProps> = ({
+  clientId
 }) => {
-  const [client, setClient] = useState<Client | null>(null);
+  const [, setClient] = useState<Client | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { UnifiedAgentConfig } from '@/types';
+import type { UnifiedAgentConfig } from '@/types';
 import { useAgents } from '@/hooks/useAgents';
 import { 
   Brain, 

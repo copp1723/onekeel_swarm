@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
-import { CampaignData, WizardStep, WizardContext } from '../types';
+import type { CampaignData, WizardStep, WizardContext } from '../types';
 
 const EMPTY_DATA: CampaignData = {
   name: '', description: '', goal: '', context: '',
+  handoverGoals: '',
   audience: { filters: [], targetCount: 0, datasetId: '',
               contacts: [], headerMapping: {} },
   agentId: '',
@@ -15,6 +16,16 @@ const EMPTY_DATA: CampaignData = {
     totalMessages: 5,
     daysBetweenMessages: 3,
   },
+  handoverRules: {
+    qualificationScore: 7,
+    conversationLength: 10,
+    timeThreshold: 300,
+    keywordTriggers: [],
+    buyingSignals: [],
+    escalationPhrases: [],
+    goalCompletionRequired: [],
+    handoverRecipients: []
+  }
 };
 
 export function useCampaignWizard(

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { UnifiedAgentConfig } from '@/types';
+import type { UnifiedAgentConfig } from '@/types';
 import { getAgentTypeInfo, getAgentStatusBadge } from '@/utils/agentUtils';
 import { 
   Power, 

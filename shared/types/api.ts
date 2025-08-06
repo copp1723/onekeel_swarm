@@ -1,6 +1,6 @@
 // Standardized API Response Types for Type Safety
-import { Request, Response } from 'express';
-import { User } from '../../server/db/schema';
+import type { Request, Response } from 'express';
+import type { User } from '../../server/db/schema';
 
 // Error types
 export interface ApiError {
@@ -38,7 +38,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: string;
+    role: "agent" | "manager" | "admin" | "viewer";
   };
 }
 

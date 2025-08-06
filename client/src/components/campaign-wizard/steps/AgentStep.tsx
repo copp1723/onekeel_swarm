@@ -1,7 +1,7 @@
 import React from 'react';
 import { Brain, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { WizardContext, Agent } from '../types';
+import type { WizardContext, Agent } from '../types';
 
 export const AgentStep: React.FC<{ctx: WizardContext; agents: Agent[]}> = ({ ctx, agents }) => {
   return (

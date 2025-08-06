@@ -2,7 +2,7 @@
 // Centralized validation middleware with mass assignment protection
 
 import { z } from 'zod';
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 // Enhanced validation middleware with mass assignment protection
 export function validateRequest(schema: {
@@ -31,7 +31,7 @@ export function validateRequest(schema: {
         req.params = validated as any;
       }
       
-      next();
+      return next();
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({

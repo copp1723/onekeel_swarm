@@ -1,6 +1,5 @@
-import React from 'react';
 import { AgentManagementDashboard } from './AgentManagementDashboard';
-import { UnifiedAgentConfig } from '@/types';
+import type { UnifiedAgentConfig } from '@/types';
 
 /**
  * Demo component to test the unified agent management system
