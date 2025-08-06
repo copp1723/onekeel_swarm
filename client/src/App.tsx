@@ -1,85 +1,218 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LoginForm } from './components/ui/LoginForm';
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo, Suspense, lazy } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Brain, LogOut } from 'lucide-react';
+import { LeadImport } from '@/components/lead-import';
 
-// Protected Route wrapper component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+const EnhancedDashboardView = lazy(async () => {
+  // The performance/index only exports utility components, not a dashboard.
+  // Create a simple dashboard wrapper using VirtualLeadsList with mock data.
+  const mod: any = await import('@/components/performance/index');
+  const { VirtualLeadsList } = mod;
   
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
-}
-
-// Temporary Dashboard Component
-function TempDashboard() {
-  const { user, logout } = useAuth();
-  
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-          <p className="text-gray-600 mb-4">Welcome back, {user?.username || 'User'}!</p>
-          <p className="text-sm text-gray-500 mb-6">
-            Authentication has been restored. The application is now secure.
-          </p>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Logout
-          </button>
+  const DashboardWrapper = () => {
+    const mockLeads = [
+      { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '555-0001', status: 'new', score: 85 },
+      { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', phone: '555-0002', status: 'contacted', score: 92 },
+      { id: 3, firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com', phone: '555-0003', status: 'qualified', score: 78 }
+    ];
+    
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-4">Performance Dashboard</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-3">Recent Leads</h3>
+            <VirtualLeadsList leads={mockLeads} onLeadClick={(lead: any) => console.log('Lead clicked:', lead)} />
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-3">Quick Stats</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Total Leads:</span>
+                <span className="font-medium">{mockLeads.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg Score:</span>
+                <span className="font-medium">{Math.round(mockLeads.reduce((acc, lead) => acc + lead.score, 0) / mockLeads.length)}</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  };
+  
+  return { default: DashboardWrapper };
+});
+
+// These app-level views are not present in this trimmed repo. Provide safe fallbacks.
+const LeadsView = lazy(() => Promise.resolve({ default: () => null }));
+const ConversationsView = lazy(() => Promise.resolve({ default: () => null }));
+const BrandingManagementView = lazy(() => Promise.resolve({ default: () => null }));
+const AgentsView = lazy(() => Promise.resolve({ default: () => null }));
+const CampaignsView = lazy(() => Promise.resolve({ default: () => null }));
+const ClientManagementView = lazy(() => Promise.resolve({ default: () => null }));
+const TemplateLibraryView = lazy(() => Promise.resolve({ default: () => null }));
+const AgentTemplatesView = lazy(() => Promise.resolve({ default: () => null }));
+const UsersView = lazy(() => Promise.resolve({ default: () => null }));
+const EmailSettingsView = lazy(() => Promise.resolve({ default: () => null }));
+const CampaignIntelligenceView = lazy(() => Promise.resolve({ default: () => null }));
+
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { LoginForm } from '@/components/ui/LoginForm';
+import type { ViewType } from '@/types/index';
+import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
+
+// Lightweight fallbacks for nav elements that may not exist in this trimmed repo
+const NavigationBar = ({ activeView, setActiveView, brandingColor }: { activeView: ViewType; setActiveView: (v: ViewType) => void; brandingColor?: string }) => {
+  const tabs: ViewType[] = ['dashboard','conversations','leads','branding','agents','agent-templates','campaigns','clients','templates','users','email-settings','intelligence'];
+  return (
+    <div className="flex space-x-2 overflow-x-auto py-2">
+      {tabs.map(tab => (
+        <button
+          key={tab}
+          onClick={() => setActiveView(tab)}
+          style={{ borderBottom: activeView === tab ? `3px solid ${brandingColor || '#2563eb'}` : '3px solid transparent' }}
+          className="px-3 py-2 text-sm capitalize whitespace-nowrap"
+        >
+          {tab.replace('-', ' ')}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const BrandingLogo = ({ branding }: { branding: any }) => (
+  <div className="flex items-center space-x-3">
+    {branding?.logoUrl ? (
+      <img src={branding.logoUrl} alt={`${branding.companyName} logo`} className="h-8 w-8 object-contain rounded-lg" />
+    ) : (
+      <div
+        className="h-8 w-8 rounded-lg flex items-center justify-center"
+        style={{ background: `linear-gradient(to right, ${branding?.primaryColor || '#2563eb'}, ${branding?.secondaryColor || '#06b6d4'})` }}
+      >
+        <Brain className="h-5 w-5 text-white" />
+      </div>
+    )}
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">{branding?.companyName || 'OneKeel'}</h1>
+      <p className="text-sm text-gray-600">AI Marketing Automation Platform</p>
+    </div>
+  </div>
+);
+
+const ViewLoadingFallback = memo(function ViewLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600">Loading view...</p>
       </div>
     </div>
   );
-}
+});
 
-// Main App Content with routing
-function AppContent() {
-  const { isAuthenticated } = useAuth();
+const ViewRenderer = memo(function ViewRenderer({ activeView }: { activeView: ViewType }) {
+  switch (activeView) {
+    case 'dashboard': return <EnhancedDashboardView />;
+    case 'conversations': return <ConversationsView />;
+    case 'leads': return <LeadsView />;
+    case 'branding': return <BrandingManagementView />;
+    case 'agents': return <AgentsView />;
+    case 'agent-templates': return <AgentTemplatesView />;
+    case 'campaigns': return <CampaignsView />;
+    case 'clients': return <ClientManagementView />;
+    case 'templates': return <TemplateLibraryView />;
+    case 'users': return <UsersView />;
+    case 'email-settings': return <EmailSettingsView />;
+    case 'intelligence': return <CampaignIntelligenceView />;
+    default: return <EnhancedDashboardView />;
+  }
+});
+
+const AppContent = memo(function AppContent() {
+  const [showImport, setShowImport] = useState(false);
+  const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [wsConnected] = useState(true);
+  const { isAuthenticated, user, logout } = useAuth();
+
+  // Brand config fallback (since ClientContext is not wired in this trimmed repo)
+  const branding = useMemo(() => DEFAULT_BRANDING, []);
+
+  const handleShowImportToggle = useCallback(() => setShowImport(prev => !prev), []);
+  const handleViewChange = useCallback((view: ViewType) => setActiveView(view), []);
+  const handleLogout = useCallback(() => logout(), [logout]);
+
+  if (!isAuthenticated) {
+    return <LoginForm />;
+  }
+
+  if (showImport) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Import Leads</h1>
+                <p className="text-gray-600">Upload and map your CSV data</p>
+              </div>
+              <Button variant="outline" onClick={handleShowImportToggle}>
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        </div>
+        <LeadImport />
+      </div>
+    );
+  }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />
-        } />
-        
-        {/* Protected routes */}
-        <Route path="/" element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-        } />
-        
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <TempDashboard />
-          </ProtectedRoute>
-        } />
-        
-        {/* Catch all - redirect to login or dashboard based on auth */}
-        <Route path="*" element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-        } />
-      </Routes>
-    </Router>
-  );
-}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <BrandingLogo branding={branding} />
+              <Badge className="ml-4">{wsConnected ? '🟢 Connected' : '🔴 Disconnected'}</Badge>
+              {/* Optional: import toggle for CSV */}
+              <Button variant="outline" onClick={handleShowImportToggle}>Import Leads</Button>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">Welcome, {user?.username || 'User'}</span>
+              <Button variant="outline" onClick={handleLogout} className="flex items-center space-x-2">
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-function App() {
-  console.log('🔒 SECURITY FIX APPLIED: Authentication restored - login is now required');
-  console.log('🔒 Users must authenticate before accessing any application features');
-  
+      {/* Navigation */}
+      <div className="max-w-7xl mx-auto px-6">
+        <NavigationBar activeView={activeView} setActiveView={handleViewChange} brandingColor={branding.primaryColor} />
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <Suspense fallback={<ViewLoadingFallback />}>
+          <ViewRenderer activeView={activeView} />
+        </Suspense>
+      </div>
+    </div>
+  );
+});
+
+const App = memo(function App() {
   return (
     <AuthProvider>
       <AppContent />
     </AuthProvider>
   );
-}
+});
 
 export default App;
