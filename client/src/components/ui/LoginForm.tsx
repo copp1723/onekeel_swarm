@@ -18,8 +18,11 @@ export const LoginForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await login(username, password);
-      // Login will handle success/failure via context
+      const success = await login(username, password);
+      if (!success) {
+        setIsSubmitting(false);
+      }
+      // If success is true, the AuthContext will handle the redirect
     } catch (err) {
       console.error('Login error:', err);
       setIsSubmitting(false);
@@ -29,8 +32,11 @@ export const LoginForm: React.FC = () => {
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
     try {
-      await login('admin@completecarloans.com', 'password123');
-      // Login will handle success/failure via context
+      const success = await login('admin@completecarloans.com', 'password123');
+      if (!success) {
+        setIsSubmitting(false);
+      }
+      // If success is true, the AuthContext will handle the redirect
     } catch (err) {
       console.error('Demo login error:', err);
       setIsSubmitting(false);

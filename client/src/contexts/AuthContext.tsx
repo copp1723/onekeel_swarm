@@ -11,7 +11,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
   error: string | null;
@@ -27,6 +28,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Computed property for authentication status
+  const isAuthenticated = !!user;
 
   // Configure axios defaults
   axios.defaults.baseURL = API_BASE_URL;
@@ -52,7 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setError(null);
       setLoading(true);
@@ -67,10 +71,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
+      
+      return true; // Login successful
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Login failed';
       setError(errorMessage);
-      throw new Error(errorMessage);
+      return false; // Login failed
     } finally {
       setLoading(false);
     }
@@ -84,7 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, error }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, loading, error }}>
       {children}
     </AuthContext.Provider>
   );
