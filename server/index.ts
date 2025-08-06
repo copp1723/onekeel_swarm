@@ -11,10 +11,11 @@ import clientsRoutes from './routes/clients.js';
 import brandingRoutes from './routes/branding.js';
 import smsRoutes from './routes/sms.js';
 import conversationsRoutes from './routes/conversations.js';
-import { 
-  tenantIdentificationMiddleware, 
-  brandingHeaderMiddleware 
+import {
+  tenantIdentificationMiddleware,
+  brandingHeaderMiddleware
 } from './middleware/tenant.js';
+import { temporaryCSPFix } from './middleware/csp-temp-fix.js';
 import { logger } from './utils/enhanced-logger.js';
 import {
   AppError,
@@ -63,6 +64,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// CSP fix for production deployment (must be early in middleware chain)
+if (process.env.NODE_ENV === 'production') {
+  app.use(temporaryCSPFix());
+}
 
 // Multi-tenant identification middleware (must be before routes)
 app.use(tenantIdentificationMiddleware);
