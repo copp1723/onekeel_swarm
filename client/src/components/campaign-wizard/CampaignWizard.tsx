@@ -601,7 +601,7 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
     const stepIndex = steps.findIndex(s => s.id === currentStep);
     if (stepIndex < steps.length - 1) {
       const nextStep = steps[stepIndex + 1].id;
-      console.log('Campaign Wizard: Moving from', currentStep, 'to', nextStep);
+
       setCurrentStep(nextStep);
       clearNotifications(); // Clear notifications when moving to next step
     }
@@ -788,7 +788,6 @@ The AI should maintain a warm, consultative tone - like a knowledgeable friend h
   };
 
   const renderStepContent = () => {
-    console.log('Campaign Wizard: Rendering step', currentStep);
     try {
       switch (currentStep) {
         case 'basics':

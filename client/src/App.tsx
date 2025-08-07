@@ -4,47 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Brain, LogOut } from 'lucide-react';
 import { LeadImport } from '@/components/lead-import';
 
-const EnhancedDashboardView = lazy(async () => {
-  // The performance/index only exports utility components, not a dashboard.
-  // Create a simple dashboard wrapper using VirtualLeadsList with mock data.
-  const mod: any = await import('@/components/performance/index');
-  const { VirtualLeadsList } = mod;
-  
-  const DashboardWrapper = () => {
-    const mockLeads = [
-      { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '555-0001', status: 'new', score: 85 },
-      { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', phone: '555-0002', status: 'contacted', score: 92 },
-      { id: 3, firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com', phone: '555-0003', status: 'qualified', score: 78 }
-    ];
-    
-    return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-4">Performance Dashboard</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-3">Recent Leads</h3>
-            <VirtualLeadsList leads={mockLeads} onLeadClick={(lead: any) => console.log('Lead clicked:', lead)} />
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-3">Quick Stats</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Total Leads:</span>
-                <span className="font-medium">{mockLeads.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Avg Score:</span>
-                <span className="font-medium">{Math.round(mockLeads.reduce((acc, lead) => acc + lead.score, 0) / mockLeads.length)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  return { default: DashboardWrapper };
-});
+const EnhancedDashboardView = lazy(() => import('@/views/EnhancedDashboardView'));
 
 // Wire up real components from the existing codebase
 const LeadsView = lazy(() => import('@/components/lead-import/index').then(mod => ({ default: mod.LeadImport })));
@@ -171,42 +131,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { LoginForm } from '@/components/ui/LoginForm';
 import type { ViewType } from '@/types/index';
 import { DEFAULT_BRANDING } from '../../shared/config/branding-config';
-
-// Streamlined navigation - UI cleanup: removed redundant tabs and emojis for cleaner interface
-const NavigationBar = ({ activeView, setActiveView, brandingColor }: { activeView: ViewType; setActiveView: (v: ViewType) => void; brandingColor?: string }) => {
-  const tabs: ViewType[] = ['dashboard','campaigns','agents','leads','intelligence'];
-  const tabLabels: Partial<Record<ViewType, string>> = {
-    dashboard: 'Dashboard',
-    campaigns: 'Campaigns',
-    agents: 'AI Agents',
-    leads: 'Leads',
-    intelligence: 'Analytics',
-    // Keep other mappings for fallback compatibility
-    conversations: 'Conversations',
-    branding: 'Branding',
-    'agent-templates': 'Agent Templates',
-    clients: 'Clients',
-    templates: 'Templates',
-    users: 'Users',
-    'email-settings': 'Email Settings',
-    analytics: 'Analytics'
-  };
-  
-  return (
-    <div className="flex space-x-2 overflow-x-auto py-2">
-      {tabs.map(tab => (
-        <button
-          key={tab}
-          onClick={() => setActiveView(tab)}
-          style={{ borderBottom: activeView === tab ? `3px solid ${brandingColor || '#2563eb'}` : '3px solid transparent' }}
-          className="px-4 py-3 text-sm font-medium whitespace-nowrap hover:bg-gray-50 transition-colors"
-        >
-          {tabLabels[tab] || tab.replace('-', ' ')}
-        </button>
-      ))}
-    </div>
-  );
-};
+import NavigationBar from '@/components/navigation/NavigationBar';
 
 const BrandingLogo = ({ branding }: { branding: any }) => (
   <div className="flex items-center space-x-3">
