@@ -58,12 +58,15 @@ export async function createCampaign(wizardData: CampaignData) {
  * Get all campaigns
  */
 export async function getCampaigns() {
+  console.log('[campaigns-api] Fetching campaigns...');
   const response = await apiClient.get('/campaigns');
   
   if (!response.success) {
+    console.error('[campaigns-api] Failed to fetch campaigns:', response.error);
     throw new Error(response.error?.message || 'Failed to fetch campaigns');
   }
   
+  console.log('[campaigns-api] Campaigns fetched:', response.data);
   return response.data;
 }
 

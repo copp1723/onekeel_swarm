@@ -20,9 +20,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// In production, use relative URLs so frontend and backend are on same domain
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 
+// Use environment variable for API base URL, with proper fallbacks
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ||
   (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '');
+
+console.log('[AuthContext] API_BASE_URL:', API_BASE_URL);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -39,12 +41,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('token');
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('[AuthContext] Found token, verifying with /api/auth/me');
       // Verify token is still valid
       axios.get('/api/auth/me')
         .then(response => {
+          console.log('[AuthContext] Token valid, user:', response.data.user);
           setUser(response.data.user);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('[AuthContext] Token validation failed:', error);
           localStorage.removeItem('token');
           delete axios.defaults.headers.common['Authorization'];
         })
@@ -52,6 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setLoading(false);
         });
     } else {
+      console.log('[AuthContext] No token found');
       setLoading(false);
     }
   }, []);
@@ -61,20 +67,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       setLoading(true);
 
+      console.log('[AuthContext] Attempting login for:', username);
       const response = await axios.post('/api/auth/login', {
         username,
         password,
       });
 
       const { token, user } = response.data;
+      console.log('[AuthContext] Login successful, user:', user);
 
       localStorage.setItem('token', token);
+      // Also set as accessToken for backward compatibility
+      localStorage.setItem('accessToken', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
       
       return true; // Login successful
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Login failed';
+      console.error('[AuthContext] Login failed:', errorMessage, err);
       setError(errorMessage);
       return false; // Login failed
     } finally {
@@ -83,7 +94,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    console.log('[AuthContext] Logging out');
     localStorage.removeItem('token');
+    localStorage.removeItem('accessToken'); // Remove both for compatibility
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setError(null);

@@ -16,7 +16,17 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = '/api'; // Proxy configured in Vite
+    // Support production deployment with environment variable
+    const envBase = (import.meta as any).env?.VITE_API_BASE_URL;
+    if (envBase) {
+      // For production, use the full URL
+      this.baseURL = envBase.endsWith('/api') ? envBase : `${envBase}/api`;
+      console.log('[ApiClient] Using production API:', this.baseURL);
+    } else {
+      // For development, use proxy
+      this.baseURL = '/api';
+      console.log('[ApiClient] Using development proxy: /api');
+    }
   }
 
   private async request<T = any>(
@@ -29,10 +39,13 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
-    // Add authorization token if available
-    const token = localStorage.getItem('accessToken');
+    // Add authorization token if available - use 'token' to match AuthContext
+    const token = localStorage.getItem('token');
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
+      console.log('[ApiClient] Token found, adding Authorization header');
+    } else {
+      console.warn('[ApiClient] No token found in localStorage');
     }
 
     const config: RequestInit = {
@@ -45,10 +58,19 @@ class ApiClient {
     };
 
     try {
+      console.log(`[ApiClient] ${options.method || 'GET'} ${url}`);
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('[ApiClient] Failed to parse JSON response:', parseError);
+        data = { error: { message: 'Invalid JSON response from server' } };
+      }
 
       if (!response.ok) {
+        console.error(`[ApiClient] Request failed: ${response.status} ${response.statusText}`, data);
         return {
           success: false,
           error: data.error || {
@@ -58,11 +80,13 @@ class ApiClient {
         };
       }
 
+      console.log('[ApiClient] Request successful:', data);
       return {
         success: true,
-        data: data.campaign || data.campaigns || data,
+        data: data.campaign || data.campaigns || data.agents || data.agent || data,
       };
     } catch (error) {
+      console.error('[ApiClient] Network error:', error);
       return {
         success: false,
         error: {

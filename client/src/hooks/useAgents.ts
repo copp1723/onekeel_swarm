@@ -34,18 +34,39 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
       if (type) params.append('type', type);
       if (active !== undefined) params.append('active', active.toString());
       
-      const response = await fetch(`/api/agents?${params}`);
+      // Get token for authorization
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // Use proper base URL for production
+      const baseURL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+      const apiPath = baseURL ? `${baseURL}/api` : '/api';
+      const url = `${apiPath}/agents?${params}`;
+      
+      console.log('[useAgents] Loading agents from:', url);
+      const response = await fetch(url, {
+        headers,
+        credentials: 'include'
+      });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[useAgents] Failed to load agents:', response.status, errorText);
         throw new Error(`Failed to load agents: ${response.statusText}`);
       }
       
       const data = await response.json();
-      setAgents(data.agents || []);
+      console.log('[useAgents] Loaded agents:', data);
+      setAgents(data.agents || data || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
       setError(errorMessage);
-      console.error('Error loading agents:', err);
+      console.error('[useAgents] Error loading agents:', err);
     } finally {
       setLoading(false);
     }
@@ -53,38 +74,64 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
 
   const createAgent = useCallback(async (agentData: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
     try {
-      const response = await fetch('/api/agents', {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const baseURL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+      const apiPath = baseURL ? `${baseURL}/api` : '/api';
+      const url = `${apiPath}/agents`;
+      
+      console.log('[useAgents] Creating agent at:', url);
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(agentData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[useAgents] Failed to create agent:', errorData);
         throw new Error(errorData.details || errorData.error || 'Failed to create agent');
       }
 
       const data = await response.json();
-      const newAgent = data.agent;
+      const newAgent = data.agent || data;
+      console.log('[useAgents] Created agent:', newAgent);
       
       setAgents(prev => [...prev, newAgent]);
       return newAgent;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create agent';
       setError(errorMessage);
+      console.error('[useAgents] Error creating agent:', err);
       throw err;
     }
   }, []);
 
   const updateAgent = useCallback(async (id: string, updates: Partial<UnifiedAgentConfig>): Promise<UnifiedAgentConfig> => {
     try {
-      const response = await fetch(`/api/agents/${id}`, {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const baseURL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+      const apiPath = baseURL ? `${baseURL}/api` : '/api';
+      const url = `${apiPath}/agents/${id}`;
+      
+      const response = await fetch(url, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include',
         body: JSON.stringify(updates),
       });
 
@@ -94,7 +141,7 @@ export function useAgents(options: UseAgentsOptions = {}): UseAgentsReturn {
       }
 
       const data = await response.json();
-      const updatedAgent = data.agent;
+      const updatedAgent = data.agent || data;
       
       setAgents(prev => prev.map(agent => agent.id === id ? updatedAgent : agent));
       return updatedAgent;
