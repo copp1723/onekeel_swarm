@@ -121,8 +121,12 @@ export const sessions = pgTable('sessions', {
   id: text('id').primaryKey(),
   user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }),
+  token: text('token').notNull(), // Added missing token column
+  ip_address: text('ip_address'),
+  user_agent: text('user_agent'),
   expires_at: timestamp('expires_at').notNull(),
   created_at: timestamp('created_at').notNull().defaultNow(),
+  last_accessed_at: timestamp('last_accessed_at').notNull().defaultNow(),
 }, (table) => {
   return {
     clientIdIdx: index('sessions_client_id_idx').on(table.clientId)
@@ -137,8 +141,14 @@ export const agentConfigurations = pgTable('agent_configurations', {
   type: agentTypeEnum('type').notNull(),
   active: boolean('active').default(true).notNull(),
   systemPrompt: text('system_prompt').notNull(),
+  context_note: text('context_note'), // Added missing context_note column
   temperature: integer('temperature').default(7),
   maxTokens: integer('max_tokens').default(500),
+  api_key: text('api_key'),
+  api_endpoint: text('api_endpoint'),
+  channel_config: jsonb('channel_config').default({}),
+  response_delay: integer('response_delay').default(0),
+  retry_attempts: integer('retry_attempts').default(3),
   metadata: jsonb('metadata').default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -156,16 +166,20 @@ export const campaigns = pgTable('campaigns', {
   description: text('description'),
   type: text('type').default('drip').notNull(), // Temporarily text instead of enum
   status: text('status').notNull().default('draft'),
+  active: boolean('active').default(true).notNull(), // Added missing active column
   user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   
   // Campaign wizard fields
   goal: text('goal'),
+  target_criteria: jsonb('target_criteria').default({}), // Added missing target_criteria
   targetAudience: jsonb('target_audience').default({}),
   agentId: uuid('agent_id').references(() => agentConfigurations.id),
   offerDetails: jsonb('offer_details').default({}),
   emailSequence: jsonb('email_sequence').default([]),
   schedule: jsonb('schedule').default({}),
   settings: jsonb('settings').default({}),
+  start_date: timestamp('start_date'),
+  end_date: timestamp('end_date'),
   
   created_at: timestamp('created_at').notNull().defaultNow(),
   updated_at: timestamp('updated_at').notNull().defaultNow(),
